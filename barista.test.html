@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Barista Test</title>
+  <link rel="stylesheet" media="all" href="include/mocha.css">
+</head>
+<body>
+  <div id="mocha"><p><a href=".">Index</a></p></div>
+  <div id="messages"></div>
+  <div id="fixtures"></div>
+  <script src="include/mocha.js"></script>
+  <script src="include/chai.js"></script>
+  <script src="include/sinon.js"></script>
+  <script src="barista.js"></script>
+  <script>mocha.setup('bdd')</script>
+  <script src="barista.test.js"></script>
+  <script>
+    var assert = chai.assert;
+    var expect = chai.expect;
+    var should = chai.should();
+    var match = sinon.match;
+    var jsb = new JsBarista();
+  </script>
+  <script>mocha.run();</script>
+</body>
+</html>
