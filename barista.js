@@ -38,14 +38,11 @@ var JsBarista = function() {
   }
 
   function Maker() {
-    function intMake(implementation, args) {
-      var instance = implementation.apply(this, args);
-      instance.prototype = implementation.prototype;
-      return instance;
-    }
-
     function make(implementation, args) {
-      return new intMake(implementation, args);
+      var proto = Object(implementation.prototype) === implementation.prototype ? implementation.prototype : Object.prototype,
+          obj = Object.create(proto),
+          ret = implementation.apply(obj, args);
+      return Object(ret) === ret ? ret : obj;
     }
 
     return {

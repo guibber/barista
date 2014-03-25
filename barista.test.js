@@ -6,24 +6,42 @@ describe('JsBarista', function() {
         return {arg1: arg1};
       };
 
+      var expected = new ObjectDef(11);
       var actual = jsb.newMaker().make(ObjectDef, [11]);
 
-      assert.equal(actual.arg1, 11);
-      assert.equal(actual.prototype, ObjectDef.prototype);
+      assert.equal(actual.arg1, expected.arg1);
+      assert.equal(actual.prototype, expected.prototype);
     });
 
-    //    it('make() creates standard object like new operator', function() {
-    //      var ObjectDef = function() {
-    //        this.val1 = 11;
-    //      };
-    //      console.log(ObjectDef);
-    //      var expected = new ObjectDef(11);
-    //      console.log(expected);
-    //      var actual = jsb.newMaker().make(ObjectDef, [11]);
-    //      
-    //      expect(actual.arg1).to.equal(expected.arg1);
-    //      expect(actual.prototype).to.equal(expected.prototype);
-    //    });
+    it('make() creates standard object using this just like new operator', function() {
+      var ObjectDef = function() {
+        this.val1 = 11;
+      };
+      
+      var expected = new ObjectDef(11);
+      var actual = jsb.newMaker().make(ObjectDef, [11]);
+      
+      assert.equal(actual.arg1, expected.arg1);
+      assert.equal(actual.prototype, expected.prototype);
+    });
+
+    it('make() creates externally set prototype object just like new operator', function() {
+      var ObjectDef = function() {
+        this.val1 = 11;
+      };
+
+      ObjectDef.prototype.getValue = function () {
+        return this.val1++;
+      };
+      
+      var expected = new ObjectDef(11);
+      var actual = jsb.newMaker().make(ObjectDef, [11]);
+      
+      assert.equal(actual.arg1, expected.arg1);
+      assert.equal(actual.prototype, expected.prototype);
+      assert.equal(actual.getValue(), expected.getValue());
+    });
+
   });
 
   describe('Property', function() {
