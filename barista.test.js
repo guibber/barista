@@ -7,7 +7,7 @@ describe('JsBarista', function() {
       };
 
       var expected = new ObjectDef(11);
-      var actual = jsb.newMaker().make(ObjectDef, [11]);
+      var actual = new jsb.Maker().make(ObjectDef, [11]);
 
       assert.equal(actual.arg1, expected.arg1);
       assert.equal(actual.prototype, expected.prototype);
@@ -19,7 +19,7 @@ describe('JsBarista', function() {
       };
 
       var expected = new ObjectDef(11);
-      var actual = jsb.newMaker().make(ObjectDef, [11]);
+      var actual = new jsb.Maker().make(ObjectDef, [11]);
 
       assert.equal(actual.arg1, expected.arg1);
       assert.equal(actual.prototype, expected.prototype);
@@ -35,7 +35,7 @@ describe('JsBarista', function() {
       };
 
       var expected = new ObjectDef(11);
-      var actual = jsb.newMaker().make(ObjectDef, [11]);
+      var actual = new jsb.Maker().make(ObjectDef, [11]);
 
       assert.equal(actual.arg1, expected.arg1);
       assert.equal(actual.prototype, expected.prototype);
@@ -50,7 +50,7 @@ describe('JsBarista', function() {
         return {arg1: arg1};
       };
 
-      var property = jsb.newProperty('name', ObjectDef);
+      var property = new jsb.Property('name', ObjectDef);
 
       assert.equal(property.name, 'name');
       assert.equal(property.implementation, ObjectDef);
@@ -59,13 +59,13 @@ describe('JsBarista', function() {
     it('isObject() returns true for functions starting with capital letter', function() {
       var ObjectDef = function() {
       };
-      assert.isTrue(jsb.newProperty('Name', ObjectDef).isObject());
+      assert.isTrue(new jsb.Property('Name', ObjectDef).isObject());
     });
 
     it('isObject() returns false for functions starting with lowercase letter', function() {
       var ObjectDef = function() {
       };
-      assert.isFalse(jsb.newProperty('name', ObjectDef).isObject());
+      assert.isFalse(new jsb.Property('name', ObjectDef).isObject());
     });
 
     it('isObject() returns false for all other types', function() {
@@ -75,13 +75,13 @@ describe('JsBarista', function() {
       var date = new Date();
       var obj = {};
 
-      assert.isFalse(jsb.newProperty('X', bool).isObject());
-      assert.isFalse(jsb.newProperty('X', number).isObject());
-      assert.isFalse(jsb.newProperty('X', str).isObject());
-      assert.isFalse(jsb.newProperty('X', date).isObject());
-      assert.isFalse(jsb.newProperty('X', obj).isObject());
-      assert.isFalse(jsb.newProperty('X', null).isObject());
-      assert.isFalse(jsb.newProperty('X').isObject());
+      assert.isFalse(new jsb.Property('X', bool).isObject());
+      assert.isFalse(new jsb.Property('X', number).isObject());
+      assert.isFalse(new jsb.Property('X', str).isObject());
+      assert.isFalse(new jsb.Property('X', date).isObject());
+      assert.isFalse(new jsb.Property('X', obj).isObject());
+      assert.isFalse(new jsb.Property('X', null).isObject());
+      assert.isFalse(new jsb.Property('X').isObject());
     });
   });
 
@@ -99,7 +99,7 @@ describe('JsBarista', function() {
         };
       };
 
-      var extractor = jsb.newPropertyExtractor(ns, jsb.newProperty);
+      var extractor = new jsb.PropertyExtractor(ns, jsb.newProperty);
 
       assert.equal(extractor.extract('prop1').name, 'prop1');
       assert.equal(extractor.extract('prop2').name, 'prop2');
@@ -110,23 +110,23 @@ describe('JsBarista', function() {
   describe('ConfigManager', function() {
     var defaultConfig = {iType: 'perdep'};
     it('get() returns default when undefined config', function() {
-      assert.deepEqual(jsb.newConfigManager().get('name'), defaultConfig);
+      assert.deepEqual(new jsb.ConfigManager().get('name'), defaultConfig);
     });
 
     it('get() returns default when empty config', function() {
-      assert.deepEqual(jsb.newConfigManager({}).get('name'), defaultConfig);
+      assert.deepEqual(new jsb.ConfigManager({}).get('name'), defaultConfig);
     });
 
     it('get() returns default when one config name not found', function() {
-      assert.deepEqual(jsb.newConfigManager({Name: 'config'}).get('NotThere'), defaultConfig);
+      assert.deepEqual(new jsb.ConfigManager({Name: 'config'}).get('NotThere'), defaultConfig);
     });
 
     it('get() returns config one config and exists', function() {
-      assert.deepEqual(jsb.newConfigManager({Name: 'config'}).get('Name'), 'config');
+      assert.deepEqual(new jsb.ConfigManager({Name: 'config'}).get('Name'), 'config');
     });
 
     it('get() returns matching config of many', function() {
-      assert.deepEqual(jsb.newConfigManager({
+      assert.deepEqual(new jsb.ConfigManager({
         Name: 'configName',
         Place: 'configPlace',
         Thing: 'configThing'
@@ -141,9 +141,9 @@ describe('JsBarista', function() {
 
     beforeEach(function() {
       sandbox = sinon.sandbox.create();
-      maker = jsb.newMaker();
+      maker = new jsb.Maker();
       mockMaker = sandbox.mock(maker);
-      cashier = jsb.newCashier(maker);
+      cashier = new jsb.Cashier(maker);
     });
 
     afterEach(function() {
@@ -186,11 +186,11 @@ describe('JsBarista', function() {
 
     beforeEach(function() {
       sandbox = sinon.sandbox.create();
-      cashier = jsb.newCashier();
+      cashier = new jsb.Cashier();
       mockCashier = sandbox.mock(cashier);
-      configMgr = jsb.newConfigManager();
+      configMgr = new jsb.ConfigManager();
       mockConfigMgr = sandbox.mock(configMgr);
-      builder = jsb.newNamespaceBuilder(cashier, configMgr);
+      builder = new jsb.NamespaceBuilder(cashier, configMgr);
     });
 
     afterEach(function() {
@@ -205,7 +205,7 @@ describe('JsBarista', function() {
 
     it('build() with one added non-object returns namespace with prop', function() {
       var implementation = 'impl',
-          prop = jsb.newProperty('impl', implementation);
+          prop = new jsb.Property('impl', implementation);
 
       builder.add(prop);
       assert.deepEqual(builder.build(), {
@@ -214,7 +214,7 @@ describe('JsBarista', function() {
     });
 
     it('build() with one object added returns namespace instance per', function() {
-      var prop = jsb.newProperty('Name', function() {
+      var prop = new jsb.Property('Name', function() {
       });
       mockConfigMgr.expects('get').withExactArgs(prop.name).once().returns({iType: 'perdep'});
       mockCashier.expects("orderCoffee").withExactArgs(prop.implementation).once().returns('jsb1');
@@ -227,7 +227,7 @@ describe('JsBarista', function() {
     });
 
     it('build() with one object added with static config returns static', function() {
-      var prop = jsb.newProperty('Name', function() {
+      var prop = new jsb.Property('Name', function() {
       });
       mockConfigMgr.expects('get').withExactArgs(prop.name).once().returns({iType: 'static'});
       mockCashier.expects("orderSharedCoffee").withExactArgs(prop.implementation).once().returns('jsb1');
@@ -240,12 +240,12 @@ describe('JsBarista', function() {
     });
 
     it('build() with multiple objects and non objects added returns configured namespace', function() {
-      var prop1 = jsb.newProperty('val1', 1),
-          prop2 = jsb.newProperty('function2', function() {
+      var prop1 = new jsb.Property('val1', 1),
+          prop2 = new jsb.Property('function2', function() {
           }),
-          prop3 = jsb.newProperty('Obj3', function() {
+          prop3 = new jsb.Property('Obj3', function() {
           }),
-          prop4 = jsb.newProperty('Obj4', function() {
+          prop4 = new jsb.Property('Obj4', function() {
           });
 
       mockConfigMgr.expects('get').withExactArgs(prop3.name).once().returns({iType: 'perdep'});
@@ -267,12 +267,12 @@ describe('JsBarista', function() {
     });
 
     it('build() with multiple objects and non objects static and instance per returns configured namespace', function() {
-      var prop1 = jsb.newProperty('val1', 1),
-          prop2 = jsb.newProperty('function2', function() {
+      var prop1 = new jsb.Property('val1', 1),
+          prop2 = new jsb.Property('function2', function() {
           }),
-          prop3 = jsb.newProperty('Obj3', function() {
+          prop3 = new jsb.Property('Obj3', function() {
           }),
-          prop4 = jsb.newProperty('Obj4', function() {
+          prop4 = new jsb.Property('Obj4', function() {
           });
 
       mockConfigMgr.expects('get').withExactArgs(prop3.name).once().returns({iType: 'perdep'});
@@ -305,11 +305,11 @@ describe('JsBarista', function() {
 
     beforeEach(function() {
       sandbox = sinon.sandbox.create();
-      builder = jsb.newNamespaceBuilder();
+      builder = new jsb.NamespaceBuilder();
       mockBuilder = sandbox.mock(builder);
-      extractor = jsb.newPropertyExtractor();
+      extractor = new jsb.PropertyExtractor();
       mockExtractor = sandbox.mock(extractor);
-      barista = jsb.newBarista(extractor, builder);
+      barista = new jsb.Barista(extractor, builder);
     });
 
     afterEach(function() {

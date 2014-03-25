@@ -33,10 +33,6 @@ var JsBarista = function() {
     };
   }
 
-  function newPropertyExtractor(ns, newPropFunc) {
-    return new PropertyExtractor(ns, newPropFunc);
-  }
-
   function Maker() {
     function make(implementation, args) {
       var proto = Object(implementation.prototype) === implementation.prototype ? implementation.prototype : Object.prototype,
@@ -48,10 +44,6 @@ var JsBarista = function() {
     return {
       make: make
     }
-  }
-
-  function newMaker() {
-    return new Maker();
   }
 
   function Cashier(maker) {
@@ -78,10 +70,6 @@ var JsBarista = function() {
     }
   }
 
-  function newCashier(maker) {
-    return new Cashier(maker);
-  }
-
   function ConfigManager(config) {
     function get(name) {
       return config && config[name] ? config[name] : {iType: 'perdep'};
@@ -90,10 +78,6 @@ var JsBarista = function() {
     return {
       get: get
     };
-  }
-
-  function newConfigManager(config) {
-    return new ConfigManager(config);
   }
 
   function NamespaceBuilder(cashier, configMgr) {
@@ -129,10 +113,6 @@ var JsBarista = function() {
     };
   }
 
-  function newNamespaceBuilder(cashier, configMgr) {
-    return new NamespaceBuilder(cashier, configMgr);
-  }
-
   function Barista(extractor, namespaceBuilder) {
     function serve(ns) {
       for (var name in ns) {
@@ -145,30 +125,20 @@ var JsBarista = function() {
       serve: serve
     };
   };
-
-  function newBarista(extractor, namespaceBuilder) {
-    return new Barista(extractor, namespaceBuilder);
-  }
-
+  
   function serve(ns, config) {
-    return newBarista(newPropertyExtractor(ns, newProperty), newNamespaceBuilder(newCashier(newMaker()), newConfigManager(config))).serve(ns);
+    return new Barista(new PropertyExtractor(ns, newProperty), new NamespaceBuilder(new Cashier(new Maker()), new ConfigManager(config))).serve(ns);
   }
 
   return {
     serve: serve,
     Barista: Barista,
-    newBarista: newBarista,
     Maker: Maker,
-    newMaker: newMaker,
     Cashier: Cashier,
-    newCashier: newCashier,
     Property: Property,
     newProperty: newProperty,
     PropertyExtractor: PropertyExtractor,
-    newPropertyExtractor: newPropertyExtractor,
     NamespaceBuilder: NamespaceBuilder,
-    newNamespaceBuilder: newNamespaceBuilder,
-    ConfigManager: ConfigManager,
-    newConfigManager: newConfigManager
+    ConfigManager: ConfigManager
   };
 };
