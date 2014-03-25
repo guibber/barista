@@ -82,13 +82,29 @@ var JsBarista = function() {
     return new Cashier(maker);
   }
 
-  function NamespaceBuilder(cashier) {
-    var retNs = {};
+  function ConfigManager(config) {
+    function get(name) {
+      return config && config[name] ? config[name] : {iType: 'perdep'};
+    }
+
+    return {
+      get: get
+    };
+  }
+
+  function newConfigManager(config) {
+    return new ConfigManager(config);
+  }
+
+  function NamespaceBuilder(cashier, configMgr) {
+    var retNs = {},
+        iTypeMap = {
+          'perdep': function(i) { return cashier.orderCoffee(i); },
+          'static': function(i) { return cashier.orderSharedCoffee(i); }
+        };
 
     function addObject(prop) {
-      retNs['Nbar_' + prop.name] = cashier.orderCoffee(prop.implementation);
-      retNs['Sbar_' + prop.name] = cashier.orderSharedCoffee(prop.implementation);
-      retNs[prop.name] = retNs['Nbar_' + prop.name];
+      retNs[prop.name] = iTypeMap[configMgr.get(prop.name).iType](prop.implementation);
     }
 
     function addPropertyOrFunc(prop) {
@@ -113,8 +129,8 @@ var JsBarista = function() {
     };
   }
 
-  function newNamespaceBuilder(cashier) {
-    return new NamespaceBuilder(cashier);
+  function newNamespaceBuilder(cashier, configMgr) {
+    return new NamespaceBuilder(cashier, configMgr);
   }
 
   function Barista(extractor, namespaceBuilder) {
@@ -134,12 +150,8 @@ var JsBarista = function() {
     return new Barista(extractor, namespaceBuilder);
   }
 
-  function serve(ns, modsFunc) {
-    var servedNs = newBarista(newPropertyExtractor(ns, newProperty), newNamespaceBuilder(newCashier(newMaker()))).serve(ns);
-    if (modsFunc) {
-      modsFunc(servedNs);
-    }
-    return servedNs;
+  function serve(ns, config) {
+    return newBarista(newPropertyExtractor(ns, newProperty), newNamespaceBuilder(newCashier(newMaker()), newConfigManager(config))).serve(ns);
   }
 
   return {
@@ -155,6 +167,8 @@ var JsBarista = function() {
     PropertyExtractor: PropertyExtractor,
     newPropertyExtractor: newPropertyExtractor,
     NamespaceBuilder: NamespaceBuilder,
-    newNamespaceBuilder: newNamespaceBuilder
+    newNamespaceBuilder: newNamespaceBuilder,
+    ConfigManager: ConfigManager,
+    newConfigManager: newConfigManager
   };
 };

@@ -17,10 +17,10 @@ describe('JsBarista', function() {
       var ObjectDef = function() {
         this.val1 = 11;
       };
-      
+
       var expected = new ObjectDef(11);
       var actual = jsb.newMaker().make(ObjectDef, [11]);
-      
+
       assert.equal(actual.arg1, expected.arg1);
       assert.equal(actual.prototype, expected.prototype);
     });
@@ -30,13 +30,13 @@ describe('JsBarista', function() {
         this.val1 = 11;
       };
 
-      ObjectDef.prototype.getValue = function () {
+      ObjectDef.prototype.getValue = function() {
         return this.val1++;
       };
-      
+
       var expected = new ObjectDef(11);
       var actual = jsb.newMaker().make(ObjectDef, [11]);
-      
+
       assert.equal(actual.arg1, expected.arg1);
       assert.equal(actual.prototype, expected.prototype);
       assert.equal(actual.getValue(), expected.getValue());
@@ -107,6 +107,33 @@ describe('JsBarista', function() {
     });
   });
 
+  describe('ConfigManager', function() {
+    var defaultConfig = {iType: 'perdep'};
+    it('get() returns default when undefined config', function() {
+      assert.deepEqual(jsb.newConfigManager().get('name'), defaultConfig);
+    });
+
+    it('get() returns default when empty config', function() {
+      assert.deepEqual(jsb.newConfigManager({}).get('name'), defaultConfig);
+    });
+
+    it('get() returns default when one config name not found', function() {
+      assert.deepEqual(jsb.newConfigManager({Name: 'config'}).get('NotThere'), defaultConfig);
+    });
+
+    it('get() returns config one config and exists', function() {
+      assert.deepEqual(jsb.newConfigManager({Name: 'config'}).get('Name'), 'config');
+    });
+
+    it('get() returns matching config of many', function() {
+      assert.deepEqual(jsb.newConfigManager({
+        Name: 'configName',
+        Place: 'configPlace',
+        Thing: 'configThing'
+      }).get('Place'), 'configPlace');
+    });
+  });
+
   describe('Cashier', function() {
     var sandbox,
         maker,
@@ -161,11 +188,14 @@ describe('JsBarista', function() {
       sandbox = sinon.sandbox.create();
       cashier = jsb.newCashier();
       mockCashier = sandbox.mock(cashier);
-      builder = jsb.newNamespaceBuilder(cashier);
+      configMgr = jsb.newConfigManager();
+      mockConfigMgr = sandbox.mock(configMgr);
+      builder = jsb.newNamespaceBuilder(cashier, configMgr);
     });
 
     afterEach(function() {
       mockCashier.verify();
+      mockConfigMgr.verify();
       sandbox.restore();
     });
 
@@ -183,18 +213,29 @@ describe('JsBarista', function() {
       });
     });
 
-    it('build() with one object added returns namespace with N, S, and O', function() {
-      var prop = jsb.newProperty('Impl', function() {
+    it('build() with one object added returns namespace instance per', function() {
+      var prop = jsb.newProperty('Name', function() {
       });
-      mockCashier.expects("orderCoffee").withExactArgs(prop.implementation).once().returns(1);
-      mockCashier.expects("orderSharedCoffee").withExactArgs(prop.implementation).once().returns(2);
+      mockConfigMgr.expects('get').withExactArgs(prop.name).once().returns({iType: 'perdep'});
+      mockCashier.expects("orderCoffee").withExactArgs(prop.implementation).once().returns('jsb1');
 
       builder.add(prop);
 
       assert.deepEqual(builder.build(), {
-        Nbar_Impl: 1,
-        Sbar_Impl: 2,
-        Impl: 1
+        Name: 'jsb1'
+      });
+    });
+
+    it('build() with one object added with static config returns static', function() {
+      var prop = jsb.newProperty('Name', function() {
+      });
+      mockConfigMgr.expects('get').withExactArgs(prop.name).once().returns({iType: 'static'});
+      mockCashier.expects("orderSharedCoffee").withExactArgs(prop.implementation).once().returns('jsb1');
+
+      builder.add(prop);
+
+      assert.deepEqual(builder.build(), {
+        Name: 'jsb1'
       });
     });
 
@@ -206,10 +247,11 @@ describe('JsBarista', function() {
           }),
           prop4 = jsb.newProperty('Obj4', function() {
           });
-      mockCashier.expects("orderCoffee").withExactArgs(prop3.implementation).once().returns('prop3-1');
-      mockCashier.expects("orderSharedCoffee").withExactArgs(prop3.implementation).once().returns('prop3-2');
-      mockCashier.expects("orderCoffee").withExactArgs(prop4.implementation).once().returns('prop4-1');
-      mockCashier.expects("orderSharedCoffee").withExactArgs(prop4.implementation).once().returns('prop4-2');
+
+      mockConfigMgr.expects('get').withExactArgs(prop3.name).once().returns({iType: 'perdep'});
+      mockCashier.expects("orderCoffee").withExactArgs(prop3.implementation).once().returns('jsb3-1');
+      mockConfigMgr.expects('get').withExactArgs(prop4.name).once().returns({iType: 'perdep'});
+      mockCashier.expects("orderCoffee").withExactArgs(prop4.implementation).once().returns('jsb4-1');
 
       builder.add(prop1);
       builder.add(prop2);
@@ -219,12 +261,35 @@ describe('JsBarista', function() {
       assert.deepEqual(builder.build(), {
         val1: prop1.implementation,
         function2: prop2.implementation,
-        Nbar_Obj3: 'prop3-1',
-        Sbar_Obj3: 'prop3-2',
-        Obj3: 'prop3-1',
-        Nbar_Obj4: 'prop4-1',
-        Sbar_Obj4: 'prop4-2',
-        Obj4: 'prop4-1'
+        Obj3: 'jsb3-1',
+        Obj4: 'jsb4-1'
+      });
+    });
+
+    it('build() with multiple objects and non objects static and instance per returns configured namespace', function() {
+      var prop1 = jsb.newProperty('val1', 1),
+          prop2 = jsb.newProperty('function2', function() {
+          }),
+          prop3 = jsb.newProperty('Obj3', function() {
+          }),
+          prop4 = jsb.newProperty('Obj4', function() {
+          });
+
+      mockConfigMgr.expects('get').withExactArgs(prop3.name).once().returns({iType: 'perdep'});
+      mockCashier.expects("orderCoffee").withExactArgs(prop3.implementation).once().returns('jsb3-1');
+      mockConfigMgr.expects('get').withExactArgs(prop4.name).once().returns({iType: 'static'});
+      mockCashier.expects("orderSharedCoffee").withExactArgs(prop4.implementation).once().returns('jsb4-1');
+
+      builder.add(prop1);
+      builder.add(prop2);
+      builder.add(prop3);
+      builder.add(prop4);
+
+      assert.deepEqual(builder.build(), {
+        val1: prop1.implementation,
+        function2: prop2.implementation,
+        Obj3: 'jsb3-1',
+        Obj4: 'jsb4-1'
       });
     });
 
@@ -288,41 +353,6 @@ describe('JsBarista', function() {
   });
 
   describe('namespace serve()', function() {
-    it('returns namespace with properties and functions, and 3 Objects', function() {
-      var ns = function() {
-        var x = 11;
-
-        function xyz() {
-        }
-
-        function ObjDef() {
-          function getX() {
-            return x;
-          }
-          return {getX: getX};
-        }
-        return {
-          x: x,
-          xyz: xyz,
-          ObjDef: ObjDef
-        };
-      },
-          actual = jsb.serve(new ns());
-
-      assert.propertyVal(actual, 'x', ns.x);
-      assert.propertyVal(actual, 'xyz', ns.xyz);
-      assert.property(actual, 'Nbar_ObjDef');
-      assert.property(actual, 'Sbar_ObjDef');
-      assert.equal(actual.ObjDef, actual.Nbar_ObjDef);
-    });
-
-    it('calls modFunc to make mods on namespace', function() {
-      var actual = jsb.serve({}, function(ns) {
-        ns.adjusted = true;
-      });
-      assert.propertyVal(actual, 'adjusted', true);
-    });
-
     it('using baristafied namespace', function() {
       var ns = function(dependency) {
         var prop1 = dependency;
@@ -347,15 +377,13 @@ describe('JsBarista', function() {
           ObjDef2: ObjDef2
         };
       },
-          actual = jsb.serve(new ns('depends'), function(ns) {
-            ns.ObjDef2 = ns.Sbar_ObjDef2;
-          }),
-          obj1Instance1 = actual.ObjDef1(1),
-          obj1Instance2 = actual.ObjDef1(2),
-          obj2Ref1 = actual.ObjDef2(3),
-          obj2Ref2 = actual.ObjDef2(4);
+          servedNs = jsb.serve(new ns('depends'), {ObjDef2: {iType: 'static'}}),
+          obj1Instance1 = servedNs.ObjDef1(1),
+          obj1Instance2 = servedNs.ObjDef1(2),
+          obj2Ref1 = servedNs.ObjDef2(3),
+          obj2Ref2 = servedNs.ObjDef2(4);
 
-      assert.propertyVal(actual, 'prop1', 'depends');
+      assert.propertyVal(servedNs, 'prop1', 'depends');
       assert.equal(obj1Instance1.getParam(), 1);
       assert.equal(obj1Instance2.getParam(), 2);
       assert.equal(obj2Ref1.getParam(), 3);
