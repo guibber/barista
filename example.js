@@ -1,8 +1,5 @@
-var ExampleNamespace = function(depend) {
-  depend = depend || {};
-  var jsb = depend.JSBarista,
-      ns = {};
-
+var ExampleNamespace = function() {
+   
   function GObject1(p) {
     function doSomething(it) {
       console.log('GObject1(' + p + ').doSomething(' + it + ')');
@@ -23,20 +20,19 @@ var ExampleNamespace = function(depend) {
     };
   }
 
-  ns.GObject1 = GObject1;
-  ns.GObject2 = GObject2;
-  ns.barista = jsb.newBarista(ns);
-  ns.barista.GObject2 = ns.barista.staticGObject2;
-  return ns;
+  return {
+    GObject1: GObject1,
+    GObject2: GObject2
+  };
 };
 
-var ns = new ExampleNamespace({
-  JSBarista: new JSBarista()
-});
+var jsb = new JsBarista();
+var ns = jsb.serve(new ExampleNamespace());
 
-ns.barista.GObject1('first').doSomething('1');
-ns.barista.GObject1('second').doSomething('2');
-ns.barista.GObject2('1').execute('this');
-ns.barista.GObject2('2').execute('that');
-ns.barista.GObject2('3').execute('all');
-ns.barista.GObject2().execute('stat');
+ns.GObject1('first').doSomething('1');
+ns.GObject1('second').doSomething('2');
+ns.GObject2('1').execute('this');
+ns.GObject2('2').execute('that');
+ns.GObject2('3').execute('all');
+ns.GObject2().execute('stat');
+
