@@ -84,7 +84,7 @@ var JsBarista = function() {
     var retNs = {},
         iTypeMap = {
           'perdep': function(i) { return cashier.orderCoffee(i); },
-          'static': function(i) { return cashier.orderSharedCoffee(i); }
+          'single': function(i) { return cashier.orderSharedCoffee(i); }
         };
 
     function addObject(prop) {

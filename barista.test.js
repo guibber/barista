@@ -226,10 +226,10 @@ describe('JsBarista', function() {
       });
     });
 
-    it('build() with one object added with static config returns static', function() {
+    it('build() with one object added with single(ton) config returns singleton', function() {
       var prop = new jsb.Property('Name', function() {
       });
-      mockConfigMgr.expects('get').withExactArgs(prop.name).once().returns({iType: 'static'});
+      mockConfigMgr.expects('get').withExactArgs(prop.name).once().returns({iType: 'single'});
       mockCashier.expects("orderSharedCoffee").withExactArgs(prop.implementation).once().returns('jsb1');
 
       builder.add(prop);
@@ -266,7 +266,7 @@ describe('JsBarista', function() {
       });
     });
 
-    it('build() with multiple objects and non objects static and instance per returns configured namespace', function() {
+    it('build() with multiple objects and non objects singleton and instance per returns configured namespace', function() {
       var prop1 = new jsb.Property('val1', 1),
           prop2 = new jsb.Property('function2', function() {
           }),
@@ -277,7 +277,7 @@ describe('JsBarista', function() {
 
       mockConfigMgr.expects('get').withExactArgs(prop3.name).once().returns({iType: 'perdep'});
       mockCashier.expects("orderCoffee").withExactArgs(prop3.implementation).once().returns('jsb3-1');
-      mockConfigMgr.expects('get').withExactArgs(prop4.name).once().returns({iType: 'static'});
+      mockConfigMgr.expects('get').withExactArgs(prop4.name).once().returns({iType: 'single'});
       mockCashier.expects("orderSharedCoffee").withExactArgs(prop4.implementation).once().returns('jsb4-1');
 
       builder.add(prop1);
@@ -377,7 +377,7 @@ describe('JsBarista', function() {
           ObjDef2: ObjDef2
         };
       },
-          servedNs = jsb.serve(new ns('depends'), {ObjDef2: {iType: 'static'}}),
+          servedNs = jsb.serve(new ns('depends'), {ObjDef2: {iType: 'single'}}),
           obj1Instance1 = servedNs.ObjDef1(1),
           obj1Instance2 = servedNs.ObjDef1(2),
           obj2Ref1 = servedNs.ObjDef2(3),
