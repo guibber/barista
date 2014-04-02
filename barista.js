@@ -80,7 +80,7 @@ var JsBarista = function(injectionMap) {
 
     return {
       make: make
-    }
+    };
   }
 
   function OrderTaker(maker) {
@@ -104,11 +104,10 @@ var JsBarista = function(injectionMap) {
     return {
       orderPerDependency: orderPerDependency,
       orderSingleton: orderSingleton
-    }
+    };
   }
 
   function ConfigDefaulter() {
-    var i = 1;
     function setRegistrationDefaults(registrations) {
       registrations.forEach(function(registration) {
         registration.type = registration.type ? registration.type : 'perdep';
@@ -177,7 +176,7 @@ var JsBarista = function(injectionMap) {
       configMgr.getRegistrations(prop.name).forEach(function(registration) {
         var invoker = invokerBuilder.build(ns, prop, registration);
         if (!defaultInvoker || registration.name === '_default') {
-          defaultInvoker = invoker
+          defaultInvoker = invoker;
         }
       });
       if (defaultInvoker) {
