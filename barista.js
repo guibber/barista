@@ -36,6 +36,94 @@ var JsBarista = function(injectionMap) {
     };
   }
 
+  function ArgsWrapper() {
+    function buildParam(arg) {
+      return {value: arg};
+    }
+
+    function wrap(args) {
+      args = args || [];
+      return args.map(buildParam);
+    }
+
+    return {
+      wrap: wrap
+    };
+  }
+
+  function ArgsOverrider(argsWrapper) {
+    function override(params, args) {
+      params = params || [];
+      args = argsWrapper.wrap(Array.prototype.slice.call(args || []));
+      var i,
+          merged = new Array(params.length > args.length ? params.length : args.length);
+      for (i = 0; i < merged.length; ++i) {
+        merged[i] = args[i] || params[i];
+      }
+      return merged;
+    }
+
+    return {
+      override: override
+    };
+  }
+
+  function ResolveParam(key) {
+    var values = key.split('.');
+    return {
+      namespace: values[0],
+      object: values[1],
+      name: values.length > 2 ? values[2] : '_default'
+    };
+  }
+
+  function ParamResolver(injectionMapper, newInjectionResolverFunc) {
+    var me,
+        resolverMap = {
+          value: function(param) {
+            return param.value;
+          },
+          func: function(param) {
+            return param.func();
+          },
+          resolve: function(param) {
+            var resolveParam = new ResolveParam(param.resolve);
+            var invoker = injectionMapper.find(resolveParam.namespace, resolveParam.object, resolveParam.name);
+            if (invoker) {
+              return invoker();
+            }
+            return null;
+          },
+          array: function(param) {
+            return newInjectionResolverFunc(me).resolve(param.array);
+          }
+        };
+
+    function resolve(param) {
+      return resolverMap[Object.keys(param)[0]](param);
+    }
+
+    me = {
+      resolve: resolve
+    };
+    return me;
+  }
+
+  function InjectionResolver(paramResolver) {
+    function resolve(params) {
+      params = params || [];
+      return params.map(paramResolver.resolve);
+    }
+
+    return {
+      resolve: resolve
+    };
+  }
+
+  function newInjectionResolver(paramResolver) {
+    return new InjectionResolver(paramResolver);
+  }
+
   function Property(name, implementation) {
     function isFunction() {
       return typeof(implementation) === 'function';
@@ -70,11 +158,11 @@ var JsBarista = function(injectionMap) {
     };
   }
 
-  function Maker() {
-    function make(implementation, args) {
+  function Maker(argsOverrider, injectionResolver) {
+    function make(implementation, params, args) {
       var proto = Object(implementation.prototype) === implementation.prototype ? implementation.prototype : Object.prototype,
           obj = Object.create(proto),
-          ret = implementation.apply(obj, args);
+          ret = implementation.apply(obj, injectionResolver.resolve(argsOverrider.override(params, args)));
       return Object(ret) === ret ? ret : obj;
     }
 
@@ -86,7 +174,7 @@ var JsBarista = function(injectionMap) {
   function OrderTaker(maker) {
     function orderPerDependency(implementation, params) {
       return function() {
-        return maker.make(implementation, arguments);
+        return maker.make(implementation, params, arguments);
       };
     }
 
@@ -96,7 +184,7 @@ var JsBarista = function(injectionMap) {
         if (instance) {
           return instance;
         }
-        instance = maker.make(implementation, arguments);
+        instance = maker.make(implementation, params, arguments);
         return instance;
       };
     }
@@ -220,13 +308,17 @@ var JsBarista = function(injectionMap) {
   };
 
   function serve(ns, config) {
+    var injectionMapper = new InjectionMapper();
     return new Barista(
       new PropertyExtractor(ns, newProperty),
       new NamespaceBuilder(
         new ConfigManager(config, new ConfigDefaulter()),
         new InvokerBuilder(
-          new OrderTaker(new Maker()),
-          new InjectionMapper()
+          new OrderTaker(new Maker(
+            new ArgsOverrider(new ArgsWrapper()),
+            new InjectionResolver(new ParamResolver(injectionMapper, newInjectionResolver))
+          )),
+          injectionMapper
         )
       )
     ).serve(ns);
@@ -235,6 +327,9 @@ var JsBarista = function(injectionMap) {
   return {
     serve: serve,
     Barista: Barista,
+    ArgsOverrider: ArgsOverrider,
+    ArgsWrapper: ArgsWrapper,
+    InjectionResolver: InjectionResolver,
     Maker: Maker,
     OrderTaker: OrderTaker,
     Property: Property,
@@ -242,6 +337,8 @@ var JsBarista = function(injectionMap) {
     PropertyExtractor: PropertyExtractor,
     ConfigDefaulter: ConfigDefaulter,
     InjectionMapper: InjectionMapper,
+    ResolveParam: ResolveParam,
+    ParamResolver: ParamResolver,
     InvokerBuilder: InvokerBuilder,
     NamespaceBuilder: NamespaceBuilder,
     ConfigManager: ConfigManager

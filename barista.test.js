@@ -1,109 +1,68 @@
 describe('JsBarista', function() {
 
-  describe('Maker', function() {
-    it('make() creates anonymous object like new operator', function() {
-      var ObjectDef = function(arg1) {
-        return {arg1: arg1};
-      };
-
-      var expected = new ObjectDef(11);
-      var actual = new jsb.Maker().make(ObjectDef, [11]);
-
-      assert.equal(actual.arg1, expected.arg1);
-      assert.equal(actual.prototype, expected.prototype);
+  describe('ArgsWrapper', function() {
+    it('wrap() null args returns empty array', function() {
+      assert.deepEqual(new jsb.ArgsWrapper().wrap(), []);
     });
 
-    it('make() creates standard object using this just like new operator', function() {
-      var ObjectDef = function() {
-        this.val1 = 11;
-      };
-
-      var expected = new ObjectDef(11);
-      var actual = new jsb.Maker().make(ObjectDef, [11]);
-
-      assert.equal(actual.arg1, expected.arg1);
-      assert.equal(actual.prototype, expected.prototype);
+    it('wrap() empty args returns empty array', function() {
+      assert.deepEqual(new jsb.ArgsWrapper().wrap([]), []);
     });
 
-    it('make() creates externally set prototype object just like new operator', function() {
-      var ObjectDef = function() {
-        this.val1 = 11;
-      };
-
-      ObjectDef.prototype.getValue = function() {
-        return this.val1++;
-      };
-
-      var expected = new ObjectDef(11);
-      var actual = new jsb.Maker().make(ObjectDef, [11]);
-
-      assert.equal(actual.arg1, expected.arg1);
-      assert.equal(actual.prototype, expected.prototype);
-      assert.equal(actual.getValue(), expected.getValue());
+    it('wrap() one arg returns wrapped arg', function() {
+      assert.deepEqual(new jsb.ArgsWrapper().wrap([1]), [{value: 1}]);
     });
 
-  });
-
-  describe('Property', function() {
-    it('name and implmentation properties set', function() {
-      var ObjectDef = function(arg1) {
-        return {arg1: arg1};
-      };
-
-      var property = new jsb.Property('name', ObjectDef);
-
-      assert.equal(property.name, 'name');
-      assert.equal(property.implementation, ObjectDef);
-    });
-
-    it('isObject() returns true for functions starting with capital letter', function() {
-      var ObjectDef = function() {
-      };
-      assert.isTrue(new jsb.Property('Name', ObjectDef).isObject());
-    });
-
-    it('isObject() returns false for functions starting with lowercase letter', function() {
-      var ObjectDef = function() {
-      };
-      assert.isFalse(new jsb.Property('name', ObjectDef).isObject());
-    });
-
-    it('isObject() returns false for all other types', function() {
-      var bool = true;
-      var number = 1;
-      var str = 'string';
-      var date = new Date();
-      var obj = {};
-
-      assert.isFalse(new jsb.Property('X', bool).isObject());
-      assert.isFalse(new jsb.Property('X', number).isObject());
-      assert.isFalse(new jsb.Property('X', str).isObject());
-      assert.isFalse(new jsb.Property('X', date).isObject());
-      assert.isFalse(new jsb.Property('X', obj).isObject());
-      assert.isFalse(new jsb.Property('X', null).isObject());
-      assert.isFalse(new jsb.Property('X').isObject());
+    it('wrap() many args returns wrapped args', function() {
+      assert.deepEqual(new jsb.ArgsWrapper().wrap([1, 2, 3]), [{value: 1}, {value: 2}, {value: 3}]);
     });
   });
 
-  describe('PropertyExtractor', function() {
-    it('extract() calls newPropFunc with args and returns property', function() {
-      var ns = function(param) {
-        var prop1 = 1,
-            prop2 = 2,
-            prop3 = 3;
+  describe('ArgsOverrider', function() {
+    var overrider;
 
-        return {
-          prop1: prop1,
-          prop2: prop2,
-          prop3: prop3
-        };
-      };
+    beforeEach(function() {
+      overrider = new jsb.ArgsOverrider(new jsb.ArgsWrapper());
+    });
 
-      var extractor = new jsb.PropertyExtractor(ns, jsb.newProperty);
+    it('override() with null args and null params returns empty array', function() {
+      assert.deepEqual(overrider.override(), []);
+    });
 
-      assert.equal(extractor.extract('prop1').name, 'prop1');
-      assert.equal(extractor.extract('prop2').name, 'prop2');
-      assert.equal(extractor.extract('prop3').name, 'prop3');
+    it('override() with empty args and empty params returns empty array', function() {
+      assert.deepEqual(overrider.override([], []), []);
+    });
+
+    it('override() with one arg and empty params returns wrapped arg', function() {
+      assert.deepEqual(overrider.override([], ['arg1']), [{value: 'arg1'}]);
+    });
+
+    it('override() with many args and empty params returns wrapped args', function() {
+      assert.deepEqual(overrider.override([], ['arg1', 'arg2', 'arg3']), [{value: 'arg1'}, {value: 'arg2'}, {value: 'arg3'}]);
+    });
+
+    it('override() with empty args and one param returns param', function() {
+      assert.deepEqual(overrider.override(['param'], []), ['param']);
+    });
+
+    it('override() with empty args and many params returns params', function() {
+      assert.deepEqual(overrider.override(['param1', 'param2', 'param3'], []), ['param1', 'param2', 'param3']);
+    });
+
+    it('override() with one arg and many params returns overriden arg and remainder of params', function() {
+      assert.deepEqual(overrider.override(['param1', 'param2', 'param3'], ['arg1']), [{value: 'arg1'}, 'param2', 'param3']);
+    });
+
+    it('override() with many args and many params returns overriden args', function() {
+      assert.deepEqual(overrider.override(['param1', 'param2', 'param3'], ['arg1', 'arg2', 'arg3']), [{value: 'arg1'}, {value: 'arg2'}, {value: 'arg3'}]);
+    });
+
+    it('override() with less args and many params returns overriden args and remainer param', function() {
+      assert.deepEqual(overrider.override(['param1', 'param2', 'param3'], ['arg1', 'arg2']), [{value: 'arg1'}, {value: 'arg2'}, 'param3']);
+    });
+
+    it('override() with more args and many params returns all args', function() {
+      assert.deepEqual(overrider.override(['param1', 'param2', 'param3'], ['arg1', 'arg2', 'arg3', 'arg4']), [{value: 'arg1'}, {value: 'arg2'}, {value: 'arg3'}, {value: 'arg4'}]);
     });
   });
 
@@ -219,7 +178,258 @@ describe('JsBarista', function() {
       new jsb.InjectionMapper(map).map('s1', 'o1', 'regname', 'found');
       assert.equal(map.s1.o1.regname, 'found');
     });
+  });
 
+  describe('ResolveParam', function() {
+    it('namespace, object, and name properties set when all present in key', function() {
+      var key = new jsb.ResolveParam('ns.object.name');
+      assert.equal(key.namespace, 'ns');
+      assert.equal(key.object, 'object');
+      assert.equal(key.name, 'name');
+    });
+
+    it('namespace, object, and name is defaulted to _default when absent', function() {
+      var key = new jsb.ResolveParam('ns.object');
+      assert.equal(key.namespace, 'ns');
+      assert.equal(key.object, 'object');
+      assert.equal(key.name, '_default');
+    });
+  });
+
+  describe('ParamResolver', function() {
+    var sandbox,
+        mapper,
+        mockMapper,
+        stubNewInjectionResolver,
+        injectionResolver,
+        mockInjectionResolver,
+        resolver;
+
+    beforeEach(function() {
+      sandbox = sinon.sandbox.create();
+      mapper = new jsb.InjectionMapper();
+      mockMapper = sandbox.mock(mapper);
+      stubNewInjectionResolver = sandbox.stub();
+      injectionResolver = new jsb.InjectionResolver();
+      mockInjectionResolver = sandbox.mock(injectionResolver);
+      resolver = new jsb.ParamResolver(mapper, stubNewInjectionResolver);
+    });
+
+    afterEach(function() {
+      mockMapper.verify();
+      sandbox.restore();
+    });
+
+    it('resolve() value param returns value', function() {
+      assert.equal(resolver.resolve({value: 11}), 11);
+    });
+
+    it('resolve() func param returns func valled value', function() {
+      assert.equal(resolver.resolve({func: function() { return 11; }}), 11);
+    });
+
+    it('resolve() resolve param returns resolved object', function() {
+      var invoker = function() {
+        return 'invoked';
+      };
+      mockMapper.expects('find').once().withExactArgs('ns', 'Object1', '_default').returns(invoker);
+      assert.equal(resolver.resolve({resolve: 'ns.Object1'}), 'invoked');
+    });
+
+    it('resolve() array param returns resolved array', function() {
+      var paramArray = [{resolve: 'ns.Object1'}, {value: 'value'}, {resolve: 'ns.Object2'}];
+      stubNewInjectionResolver.withArgs(resolver).returns(injectionResolver);
+      mockInjectionResolver.expects('resolve').once().withExactArgs(paramArray).returns('array_resolved');
+      assert.equal(resolver.resolve({array: paramArray}), 'array_resolved');
+    });
+  });
+
+  describe('InjectionResolver', function() {
+    var sandbox,
+        paramResolver,
+        mockParamResolver,
+        resolver;
+
+    beforeEach(function() {
+      sandbox = sinon.sandbox.create();
+      paramResolver = new jsb.ParamResolver();
+      mockParamResolver = sandbox.mock(paramResolver);
+      resolver = new jsb.InjectionResolver(paramResolver);
+    });
+
+    afterEach(function() {
+      mockParamResolver.verify();
+      sandbox.restore();
+    });
+
+    it('resolve() with null params return empty array', function() {
+      assert.deepEqual(resolver.resolve(), []);
+    });
+
+    it('resolve() with empty params return empty array', function() {
+      assert.deepEqual(resolver.resolve([]), []);
+    });
+
+    it('resolve() with one param returns resolved param', function() {
+      mockParamResolver.expects('resolve').once().withArgs('param1').returns('resolved1');
+      assert.deepEqual(resolver.resolve(['param1']), ['resolved1']);
+    });
+
+    it('resolve() with many params returns resolved params', function() {
+      mockParamResolver.expects('resolve').once().withArgs('param1').returns('resolved1');
+      mockParamResolver.expects('resolve').once().withArgs('param2').returns('resolved2');
+      mockParamResolver.expects('resolve').once().withArgs('param3').returns('resolved3');
+      assert.deepEqual(resolver.resolve(['param1', 'param2', 'param3']), ['resolved1', 'resolved2', 'resolved3']);
+    });
+  });
+
+  describe('Maker', function() {
+    var sandbox,
+        injectionResolver,
+        mockInjectionResolver,
+        argsOverrider,
+        mockArgsOverrider,
+        maker;
+
+    beforeEach(function() {
+      sandbox = sinon.sandbox.create();
+      injectionResolver = new jsb.InjectionResolver();
+      mockInjectionResolver = sandbox.mock(injectionResolver);
+      argsOverrider = new jsb.ArgsOverrider();
+      mockArgsOverrider = sandbox.mock(argsOverrider);
+      maker = new jsb.Maker(argsOverrider, injectionResolver);
+    });
+
+    afterEach(function() {
+      mockInjectionResolver.verify();
+      mockArgsOverrider.verify();
+      sandbox.restore();
+    });
+
+    it('make() creates anonymous object like new operator', function() {
+      var ObjectDef = function(arg1) {
+        return {value1: arg1};
+      },
+          actual,
+          expected;
+
+      mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns('overriden_params');
+      mockInjectionResolver.expects('resolve').once().withExactArgs('overriden_params').returns(['resolved1']);
+
+      expected = new ObjectDef('resolved1');
+      actual = maker.make(ObjectDef, ['param1'], ['arg1']);
+
+      assert.equal(actual.value1, expected.value1);
+      assert.equal(actual.prototype, expected.prototype);
+      assert.deepEqual(actual, expected);
+    });
+
+    it('make() creates standard object using this just like new operator', function() {
+      var ObjectDef = function(arg1) {
+        this.value1 = arg1;
+      },
+          actual,
+          expected;
+
+      mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns('overriden_params');
+      mockInjectionResolver.expects('resolve').once().withExactArgs('overriden_params').returns(['resolved1']);
+
+      expected = new ObjectDef('resolved1');
+      actual = maker.make(ObjectDef, ['param1'], ['arg1']);
+
+      assert.equal(actual.value1, expected.value1);
+      assert.equal(actual.prototype, expected.prototype);
+      assert.deepEqual(actual, expected);
+    });
+
+
+    it('make() creates externally set prototype object just like new operator', function() {
+      var ObjectDef = function(arg1) {
+        this.value1 = arg1;
+      },
+          actual,
+          expected;
+
+      ObjectDef.prototype.getValue = function() {
+        return this.value1 + 'X';
+      };
+
+      mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns('overriden_params');
+      mockInjectionResolver.expects('resolve').once().withExactArgs('overriden_params').returns(['resolved1']);
+
+      expected = new ObjectDef('resolved1');
+      actual = maker.make(ObjectDef, ['param1'], ['arg1']);
+
+      assert.equal(actual.value1, 'resolved1');
+      assert.equal(actual.value1, expected.value1);
+      assert.equal(actual.prototype, expected.prototype);
+      assert.equal(actual.getValue(), 'resolved1X');
+      assert.equal(actual.getValue(), expected.getValue());
+      assert.deepEqual(actual, expected);
+    });
+  });
+
+  describe('Property', function() {
+    it('name and implmentation properties set', function() {
+      var ObjectDef = function(arg1) {
+        return {arg1: arg1};
+      };
+
+      var property = new jsb.Property('name', ObjectDef);
+
+      assert.equal(property.name, 'name');
+      assert.equal(property.implementation, ObjectDef);
+    });
+
+    it('isObject() returns true for functions starting with capital letter', function() {
+      var ObjectDef = function() {
+      };
+      assert.isTrue(new jsb.Property('Name', ObjectDef).isObject());
+    });
+
+    it('isObject() returns false for functions starting with lowercase letter', function() {
+      var ObjectDef = function() {
+      };
+      assert.isFalse(new jsb.Property('name', ObjectDef).isObject());
+    });
+
+    it('isObject() returns false for all other types', function() {
+      var bool = true;
+      var number = 1;
+      var str = 'string';
+      var date = new Date();
+      var obj = {};
+
+      assert.isFalse(new jsb.Property('X', bool).isObject());
+      assert.isFalse(new jsb.Property('X', number).isObject());
+      assert.isFalse(new jsb.Property('X', str).isObject());
+      assert.isFalse(new jsb.Property('X', date).isObject());
+      assert.isFalse(new jsb.Property('X', obj).isObject());
+      assert.isFalse(new jsb.Property('X', null).isObject());
+      assert.isFalse(new jsb.Property('X').isObject());
+    });
+  });
+
+  describe('PropertyExtractor', function() {
+    it('extract() calls newPropFunc with args and returns property', function() {
+      var ns = function() {
+        var prop1 = 1,
+            prop2 = 2,
+            prop3 = 3;
+
+        return {
+          prop1: prop1,
+          prop2: prop2,
+          prop3: prop3
+        };
+      };
+
+      var extractor = new jsb.PropertyExtractor(ns, jsb.newProperty);
+
+      assert.equal(extractor.extract('prop1').name, 'prop1');
+      assert.equal(extractor.extract('prop2').name, 'prop2');
+      assert.equal(extractor.extract('prop3').name, 'prop3');
+    });
   });
 
   describe('ConfigDefaulter', function() {
@@ -246,19 +456,19 @@ describe('JsBarista', function() {
     });
 
     it('setNsDefault() with empty config gets defaulted ns', function() {
-      var config = {}
+      var config = {};
       assert.equal(new jsb.ConfigDefaulter().setNsDefault(config), 'namespace');
       assert.deepEqual(config, {ns: 'namespace'});
     });
 
     it('setNsDefault() with config and ns set does not overwrite', function() {
-      var config = {ns: 'original'}
+      var config = {ns: 'original'};
       assert.equal(new jsb.ConfigDefaulter().setNsDefault(config), 'original');
       assert.deepEqual(config, {ns: 'original'});
     });
 
     it('setNsDefault() with config other properties defaults ns but does not overwrite other props', function() {
-      var config = {someProp: 'original'}
+      var config = {someProp: 'original'};
       assert.equal(new jsb.ConfigDefaulter().setNsDefault(config), 'namespace');
       assert.deepEqual(config, {
         ns: 'namespace',
@@ -382,10 +592,10 @@ describe('JsBarista', function() {
       mockMaker
         .expects('make')
         .once()
-        .withExactArgs('obj', match({0: "arg1", 1: "arg2", 2: "arg3"}))
+        .withExactArgs('obj', 'params', match({0: "arg1", 1: "arg2", 2: "arg3"}))
         .returns('instance');
 
-      var instance = orderTaker.orderPerDependency('obj')('arg1', 'arg2', 'arg3');
+      var instance = orderTaker.orderPerDependency('obj', 'params')('arg1', 'arg2', 'arg3');
       assert.equal(instance, 'instance');
     });
 
@@ -393,10 +603,10 @@ describe('JsBarista', function() {
       mockMaker
         .expects('make')
         .once()
-        .withExactArgs('obj', match({0: "arg1", 1: "arg2", 2: "arg3"}))
+        .withExactArgs('obj', 'params', match({0: "arg1", 1: "arg2", 2: "arg3"}))
         .returns('instance');
 
-      var func = orderTaker.orderSingleton('obj');
+      var func = orderTaker.orderSingleton('obj', 'params');
       var instance = func('arg1', 'arg2', 'arg3');
       var instance2 = func('argOther');
       assert.equal(instance, 'instance');
@@ -638,8 +848,9 @@ describe('JsBarista', function() {
     });
   });
 
-  describe('namespace serve()', function() {
-    it('using baristafied namespace directly', function() {
+  describe('Barista Namespace', function() {
+    it('serve() with simple use controls instancing', function() {
+      jsb = new JsBarista();
       var ns = function(dependency) {
         var prop1 = dependency;
 
@@ -678,6 +889,123 @@ describe('JsBarista', function() {
       assert.equal(obj2Ref1.getParam(), 3);
       assert.equal(obj2Ref2.getParam(), 3);
       assert.equal(obj2Ref1, obj2Ref2);
+    });
+
+    it('serve() with multiple namespaces and full dependency injection', function() {
+      jsb = new JsBarista();
+      var nsUtils = function() {
+        function Writer(prefix) {
+          function write(value) {
+            console.log(prefix + value);
+          }
+          return {
+            write: write
+          };
+        }
+
+        function Capitalizer() {
+          function capitalize(value) {
+            return value.toUpperCase();
+          }
+          return {
+            capitalize: capitalize
+          };
+        }
+
+        function ChainOfResponsibilities(responsibilities) {
+          function execute(context) {
+            responsibilities.forEach(function(responsibility) {
+              responsibility.execute(context);
+            });
+          }
+          return {
+            execute: execute
+          };
+        }
+
+        return {
+          Writer: Writer,
+          Capitalizer: Capitalizer,
+          ChainOfResponsibilities: ChainOfResponsibilities
+        };
+      },
+          nsResponsibilities = function() {
+            function WriteSomethingResponsibility(writer) {
+              function execute(context) {
+                writer.write(context.value);
+              }
+              return {
+                execute: execute
+              };
+            }
+
+            function WriteCapitalResponsibility(writer, capitalizer) {
+              function execute(context) {
+                writer.write(capitalizer.capitalize(context.value));
+              }
+              return {
+                execute: execute
+              };
+            }
+
+            return {
+              WriteSomethingResponsibility: WriteSomethingResponsibility,
+              WriteCapitalResponsibility: WriteCapitalResponsibility
+            };
+          },
+          nsWidget = function() {
+            function Widget1(controller) {
+              function write(value) {
+                controller.execute({
+                  value: value
+                });
+              }
+              return {
+                write: write
+              };
+            }
+
+            function Widget2(writeController) {
+              function write(value) {
+                writeController.execute({
+                  value: value
+                });
+              }
+              return {
+                write: write
+              };
+            }
+
+            return {
+              Widget1: Widget1
+            };
+          },
+          servedUtils = jsb.serve(new nsUtils(), {
+            ns: 'Utils',
+            Writer: {params: [{value: 'PREFIX'}]},
+            Capitalizer: {type: 'single'},
+            ChainOfResponsibilities: {
+              name: 'writeController',
+              params: [{
+                array: [{
+                    resolve: 'Responsibilities.WriteSomethingResponsibility'
+                  }, {
+                    resolve: 'Responsibilities.WriteCapitalResponsibility'
+                  }]
+              }]
+            }
+          }),
+          servedResponsibilities = jsb.serve(new nsResponsibilities(), {
+            ns: 'Responsibilities',
+            WriteSomethingResponsibility: {params: [{resolve: 'Utils.Writer'}]},
+            WriteCapitalResponsibility: {params: [{resolve: 'Utils.Writer'}, {resolve: 'Utils.Capitalizer'}]},
+          }),
+          servedWidget = jsb.serve(new nsWidget(), {
+            ns: 'Widget',
+            Widget1: {params: [{resolve: 'Utils.ChainOfResponsibilities.writeController'}]}
+          });
+
+      servedWidget.Widget1().write('eleven');
     });
   });
 });
