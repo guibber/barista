@@ -994,36 +994,35 @@ describe('Barista', function() {
               Widget2: Widget2
             };
           },
+          servedUtilsNs = bar.serve(new nsUtils(), {
+            ns: 'Utils',
+            Prepender: {params: [{value: '+'}]},
+            Capitalizer: {type: 'single'},
+            ChainOfResponsibilities: [{
+                name: 'widget1Controller',
+                params: {
+                  array: [
+                    {resolve: 'Responsibilities.PrependResponsibility'},
+                    {resolve: 'Responsibilities.PrependAndCapitalizeResponsibility'},
+                    {resolve: 'Responsibilities.AddXsResponsibility.x3'}
+                  ]
+                }
+              },
+              {
+                name: 'widget2Controller',
+                params: {
+                  array: [
+                    {resolve: 'Responsibilities.PrependAndCapitalizeResponsibility'},
+                    {resolve: 'Responsibilities.AddXsResponsibility.x1'}
+                  ]
+                }
+              }]
+          }),
           servedWidgetNs = bar.serve(new nsWidget(), {
             ns: 'Widget',
             Widget1: {params: {resolve: 'Utils.ChainOfResponsibilities.widget1Controller'}},
             Widget2: {params: {resolve: 'Utils.ChainOfResponsibilities.widget2Controller'}}
           });
-
-      bar.serve(new nsUtils(), {
-        ns: 'Utils',
-        Prepender: {params: [{value: '+'}]},
-        Capitalizer: {type: 'single'},
-        ChainOfResponsibilities: [{
-            name: 'widget1Controller',
-            params: {
-              array: [
-                {resolve: 'Responsibilities.PrependResponsibility'},
-                {resolve: 'Responsibilities.PrependAndCapitalizeResponsibility'},
-                {resolve: 'Responsibilities.AddXsResponsibility.x3'}
-              ]
-            }
-          },
-          {
-            name: 'widget2Controller',
-            params: {
-              array: [
-                {resolve: 'Responsibilities.PrependAndCapitalizeResponsibility'},
-                {resolve: 'Responsibilities.AddXsResponsibility.x1'}
-              ]
-            }
-          }]
-      });
 
       bar.serve(new nsResponsibilities(), {
         ns: 'Responsibilities',
@@ -1040,6 +1039,7 @@ describe('Barista', function() {
         ]
       });
 
+      assert.equal(servedUtilsNs.Prepender('overriden').prepend('value'), 'overridenvalue');
       assert.equal(servedWidgetNs.Widget1().run('eleven'), 'Widget1++ELEVENXXX');
       assert.equal(servedWidgetNs.Widget2().run('tenplusone'), 'Widget2+TENPLUSONEX');
     });
