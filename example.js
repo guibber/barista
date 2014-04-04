@@ -26,8 +26,8 @@ var ExampleNamespace = function() {
   };
 };
 
-var jsb = new JsBarista();
-var ns = jsb.serve(new ExampleNamespace(), {ns: 'ExampleNamespace', GObject2: {type: 'single'}});
+var bar = new Barista();
+var ns = bar.serve(new ExampleNamespace(), {ns: 'ExampleNamespace', GObject2: {type: 'single'}});
 
 ns.GObject1('first').doSomething('1');
 ns.GObject1('second').doSomething('2');
