@@ -814,12 +814,12 @@ describe('JsBarista', function() {
       sandbox.restore();
     });
 
-    it('serve() with zero properites returns namespace', function() {
+    it('serve() with zero properties returns namespace', function() {
       mockBuilder.expects('build').once().returns('namespace');
       assert.equal(barista.serve({}), 'namespace');
     });
 
-    it('serve() with one properity adds to namespace', function() {
+    it('serve() with one property adds to namespace', function() {
       mockExtractor.expects('extract').withExactArgs('prop1').once().returns('extracted1');
       mockBuilder.expects('add').withExactArgs('extracted1').once();
       mockBuilder.expects('build').once().returns('namespace');
@@ -829,7 +829,7 @@ describe('JsBarista', function() {
       }), 'namespace');
     });
 
-    it('serve() with many properities adds to namespace', function() {
+    it('serve() with many properties adds to namespace', function() {
       mockExtractor.expects('extract').withExactArgs('prop1').once().returns('extracted1');
       mockExtractor.expects('extract').withExactArgs('prop2').once().returns('extracted2');
       mockExtractor.expects('extract').withExactArgs('prop3').once().returns('extracted3');
@@ -850,7 +850,8 @@ describe('JsBarista', function() {
 
   describe('Barista Namespace', function() {
     it('serve() with simple use controls instancing', function() {
-      jsb = new JsBarista();
+      var actualMap = {};
+      jsb = new JsBarista(actualMap);
       var ns = function(dependency) {
         var prop1 = dependency;
 
@@ -894,12 +895,12 @@ describe('JsBarista', function() {
     it('serve() with multiple namespaces and full dependency injection', function() {
       jsb = new JsBarista();
       var nsUtils = function() {
-        function Writer(prefix) {
-          function write(value) {
-            console.log(prefix + value);
+        function Prepender(prefix) {
+          function prepend(value) {
+            return prefix + value;
           }
           return {
-            write: write
+            prepend: prepend
           };
         }
 
@@ -924,24 +925,36 @@ describe('JsBarista', function() {
         }
 
         return {
-          Writer: Writer,
+          Prepender: Prepender,
           Capitalizer: Capitalizer,
           ChainOfResponsibilities: ChainOfResponsibilities
         };
       },
           nsResponsibilities = function() {
-            function WriteSomethingResponsibility(writer) {
+            function PrependResponsibility(prepender) {
               function execute(context) {
-                writer.write(context.value);
+                context.value = prepender.prepend(context.value);
               }
               return {
                 execute: execute
               };
             }
 
-            function WriteCapitalResponsibility(writer, capitalizer) {
+            function PrependAndCapitalizeResponsibility(prepender, capitalizer) {
               function execute(context) {
-                writer.write(capitalizer.capitalize(context.value));
+                context.value = prepender.prepend(capitalizer.capitalize(context.value));
+              }
+              return {
+                execute: execute
+              };
+            }
+
+            function AddXsResponsibility(count) {
+              function execute(context) {
+                var i;
+                for (i = 0; i < count; ++i) {
+                  context.value = context.value + 'X';
+                }
               }
               return {
                 execute: execute
@@ -949,63 +962,91 @@ describe('JsBarista', function() {
             }
 
             return {
-              WriteSomethingResponsibility: WriteSomethingResponsibility,
-              WriteCapitalResponsibility: WriteCapitalResponsibility
+              PrependResponsibility: PrependResponsibility,
+              PrependAndCapitalizeResponsibility: PrependAndCapitalizeResponsibility,
+              AddXsResponsibility: AddXsResponsibility
             };
           },
           nsWidget = function() {
             function Widget1(controller) {
-              function write(value) {
-                controller.execute({
+              function run(value) {
+                var context = {
                   value: value
-                });
+                };
+                controller.execute(context);
+                return 'Widget1' + context.value;
               }
               return {
-                write: write
+                run: run
               };
             }
 
-            function Widget2(writeController) {
-              function write(value) {
-                writeController.execute({
+            function Widget2(controller) {
+              function run(value) {
+                var context = {
                   value: value
-                });
+                };
+                controller.execute(context);
+                return 'Widget2' + context.value;
               }
               return {
-                write: write
+                run: run
               };
             }
 
             return {
-              Widget1: Widget1
+              Widget1: Widget1,
+              Widget2: Widget2
             };
           },
-          servedUtils = jsb.serve(new nsUtils(), {
-            ns: 'Utils',
-            Writer: {params: [{value: 'PREFIX'}]},
-            Capitalizer: {type: 'single'},
-            ChainOfResponsibilities: {
-              name: 'writeController',
-              params: [{
-                array: [{
-                    resolve: 'Responsibilities.WriteSomethingResponsibility'
-                  }, {
-                    resolve: 'Responsibilities.WriteCapitalResponsibility'
-                  }]
-              }]
-            }
-          }),
-          servedResponsibilities = jsb.serve(new nsResponsibilities(), {
-            ns: 'Responsibilities',
-            WriteSomethingResponsibility: {params: [{resolve: 'Utils.Writer'}]},
-            WriteCapitalResponsibility: {params: [{resolve: 'Utils.Writer'}, {resolve: 'Utils.Capitalizer'}]},
-          }),
-          servedWidget = jsb.serve(new nsWidget(), {
+          servedWidgetNs = jsb.serve(new nsWidget(), {
             ns: 'Widget',
-            Widget1: {params: [{resolve: 'Utils.ChainOfResponsibilities.writeController'}]}
+            Widget1: {params: [{resolve: 'Utils.ChainOfResponsibilities.widget1Controller'}]},
+            Widget2: {params: [{resolve: 'Utils.ChainOfResponsibilities.widget2Controller'}]}
           });
 
-      servedWidget.Widget1().write('eleven');
+      jsb.serve(new nsUtils(), {
+        ns: 'Utils',
+        Prepender: {params: [{value: '+'}]},
+        Capitalizer: {type: 'single'},
+        ChainOfResponsibilities: [{
+            name: 'widget1Controller',
+            params: [{
+              array: [
+                {resolve: 'Responsibilities.PrependResponsibility'},
+                {resolve: 'Responsibilities.PrependAndCapitalizeResponsibility'},
+                {resolve: 'Responsibilities.AddXsResponsibility.x3'}
+              ]
+            }]
+          },
+          {
+            name: 'widget2Controller',
+            params: [{
+              array: [
+                {resolve: 'Responsibilities.PrependAndCapitalizeResponsibility'},
+                {resolve: 'Responsibilities.AddXsResponsibility.x1'}
+              ]
+            }]
+          }]
+      });
+
+      jsb.serve(new nsResponsibilities(), {
+        ns: 'Responsibilities',
+        PrependResponsibility: {params: [{resolve: 'Utils.Prepender'}]},
+        PrependAndCapitalizeResponsibility: {
+          params: [
+            {resolve: 'Utils.Prepender'},
+            {resolve: 'Utils.Capitalizer'}
+          ]
+        },
+        AddXsResponsibility: [
+          {name: 'x3', params: [{value: 3}]},
+          {name: 'x1', params: [{value: 1}]}
+        ]
+      });
+
+      assert.equal(servedWidgetNs.Widget1().run('eleven'), 'Widget1++ELEVENXXX');
+      assert.equal(servedWidgetNs.Widget2().run('tenplusone'), 'Widget2+TENPLUSONEX');
     });
   });
 });
