@@ -1,4 +1,4 @@
-var JsBarista = function(injectionMap) {
+var Barista = function(injectionMap) {
   injectionMap = injectionMap || {};
 
   function InjectionMapper(overrideMap) {
@@ -111,7 +111,6 @@ var JsBarista = function(injectionMap) {
 
   function InjectionResolver(paramResolver) {
     function resolve(params) {
-      params = params || [];
       return params.map(paramResolver.resolve);
     }
 
@@ -200,6 +199,11 @@ var JsBarista = function(injectionMap) {
       registrations.forEach(function(registration) {
         registration.type = registration.type ? registration.type : 'perdep';
         registration.name = registration.name ? registration.name : '_default';
+        registration.params = registration.params
+          ? Array.isArray(registration.params)
+            ? registration.params
+            : [registration.params]
+          : [];
       });
       return registrations;
     }
@@ -223,10 +227,9 @@ var JsBarista = function(injectionMap) {
 
     function getRegistrations(name) {
       var registrations = config[name] ? config[name] : [{}];
-      if (Array.isArray(registrations)) {
-        return configDefaulter.setRegistrationDefaults(registrations);
-      }
-      return configDefaulter.setRegistrationDefaults([registrations]);
+      return Array.isArray(registrations)
+        ? configDefaulter.setRegistrationDefaults(registrations)
+        : configDefaulter.setRegistrationDefaults([registrations]);
     }
 
     return {

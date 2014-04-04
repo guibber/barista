@@ -1,20 +1,20 @@
-describe('JsBarista', function() {
+describe('Barista', function() {
 
   describe('ArgsWrapper', function() {
     it('wrap() null args returns empty array', function() {
-      assert.deepEqual(new jsb.ArgsWrapper().wrap(), []);
+      assert.deepEqual(new bar.ArgsWrapper().wrap(), []);
     });
 
     it('wrap() empty args returns empty array', function() {
-      assert.deepEqual(new jsb.ArgsWrapper().wrap([]), []);
+      assert.deepEqual(new bar.ArgsWrapper().wrap([]), []);
     });
 
     it('wrap() one arg returns wrapped arg', function() {
-      assert.deepEqual(new jsb.ArgsWrapper().wrap([1]), [{value: 1}]);
+      assert.deepEqual(new bar.ArgsWrapper().wrap([1]), [{value: 1}]);
     });
 
     it('wrap() many args returns wrapped args', function() {
-      assert.deepEqual(new jsb.ArgsWrapper().wrap([1, 2, 3]), [{value: 1}, {value: 2}, {value: 3}]);
+      assert.deepEqual(new bar.ArgsWrapper().wrap([1, 2, 3]), [{value: 1}, {value: 2}, {value: 3}]);
     });
   });
 
@@ -22,7 +22,7 @@ describe('JsBarista', function() {
     var overrider;
 
     beforeEach(function() {
-      overrider = new jsb.ArgsOverrider(new jsb.ArgsWrapper());
+      overrider = new bar.ArgsOverrider(new bar.ArgsWrapper());
     });
 
     it('override() with null args and null params returns empty array', function() {
@@ -99,97 +99,97 @@ describe('JsBarista', function() {
     });
 
     it('find() on empty map returns null', function() {
-      assert.equal(new jsb.InjectionMapper({}).find('s', 'o'), null);
+      assert.equal(new bar.InjectionMapper({}).find('s', 'o'), null);
     });
 
     it('find() on map with one entry returns match', function() {
-      assert.equal(new jsb.InjectionMapper(oneEntryDefaultMap).find('s', 'o', '_default'), 'found');
+      assert.equal(new bar.InjectionMapper(oneEntryDefaultMap).find('s', 'o', '_default'), 'found');
     });
 
     it('find() on map with one entry with many registration returns match', function() {
       oneEntryDefaultMap.s.o.other1 = 'x';
       oneEntryDefaultMap.s.o.other2 = 'x';
-      assert.equal(new jsb.InjectionMapper(oneEntryDefaultMap).find('s', 'o', '_default'), 'found');
+      assert.equal(new bar.InjectionMapper(oneEntryDefaultMap).find('s', 'o', '_default'), 'found');
     });
 
     it('find() on map with one entry returns match by defaulting default', function() {
-      assert.equal(new jsb.InjectionMapper(oneEntryDefaultMap).find('s', 'o'), 'found');
+      assert.equal(new bar.InjectionMapper(oneEntryDefaultMap).find('s', 'o'), 'found');
     });
 
     it('find() on map with one entry returns returns null when no registration match', function() {
-      assert.equal(new jsb.InjectionMapper(oneEntryDefaultMap).find('s', 'o', 'notfound'), null);
+      assert.equal(new bar.InjectionMapper(oneEntryDefaultMap).find('s', 'o', 'notfound'), null);
     });
 
     it('find() on map with one entry returns returns null when no object match', function() {
-      assert.equal(new jsb.InjectionMapper(oneEntryDefaultMap).find('s', 'oNoMatch'), null);
+      assert.equal(new bar.InjectionMapper(oneEntryDefaultMap).find('s', 'oNoMatch'), null);
     });
 
     it('find() on map with one entry returns returns null when no sourceNs match', function() {
-      assert.equal(new jsb.InjectionMapper(oneEntryDefaultMap).find('sNoMatch'), null);
+      assert.equal(new bar.InjectionMapper(oneEntryDefaultMap).find('sNoMatch'), null);
     });
 
     it('find() on map with many entries returns match', function() {
-      assert.equal(new jsb.InjectionMapper(manyEntriesDefaultMap).find('s1', 'o1', '_default'), 'found');
+      assert.equal(new bar.InjectionMapper(manyEntriesDefaultMap).find('s1', 'o1', '_default'), 'found');
     });
 
     it('find() on map with many entries not found returns null', function() {
-      assert.equal(new jsb.InjectionMapper(manyEntriesDefaultMap).find('s1', 'o1', 'notfound'), null);
+      assert.equal(new bar.InjectionMapper(manyEntriesDefaultMap).find('s1', 'o1', 'notfound'), null);
     });
 
     it('map() on empty map returns mapping', function() {
       var map = {};
-      new jsb.InjectionMapper(map).map('s', 'o', '_default', 'found');
+      new bar.InjectionMapper(map).map('s', 'o', '_default', 'found');
       assert.deepEqual(map, oneEntryDefaultMap);
     });
 
     it('map() on empty map with null regname defaults regname to _default', function() {
       var map = {};
-      new jsb.InjectionMapper(map).map('s', 'o', null, 'found');
+      new bar.InjectionMapper(map).map('s', 'o', null, 'found');
       assert.deepEqual(map, oneEntryDefaultMap);
     });
 
     it('map() on map with one existing entry overwrites regname', function() {
       var map = oneEntryDefaultMap;
-      new jsb.InjectionMapper(map).map('s', 'o', '_default', 'overwritten');
+      new bar.InjectionMapper(map).map('s', 'o', '_default', 'overwritten');
       assert.equal(map.s.o._default, 'overwritten');
     });
 
     it('map() on map with one existing entry maps correctly', function() {
       var map = oneEntryDefaultMap;
-      new jsb.InjectionMapper(map).map('s1', 'o1', null, 'found');
+      new bar.InjectionMapper(map).map('s1', 'o1', null, 'found');
       assert.equal(map.s1.o1._default, 'found');
     });
 
     it('map() on map with many existing regnames maps correctly', function() {
       var map = oneEntryDefaultMap;
       oneEntryDefaultMap.s.o.existingReg = 'existingReg';
-      new jsb.InjectionMapper(map).map('s', 'o', 'regname', 'found');
+      new bar.InjectionMapper(map).map('s', 'o', 'regname', 'found');
       assert.equal(map.s.o.regname, 'found');
     });
 
     it('map() on map with many entries maps new entry correctly', function() {
       var map = manyEntriesDefaultMap;
-      new jsb.InjectionMapper(map).map('s', 'o', 'regname', 'found');
+      new bar.InjectionMapper(map).map('s', 'o', 'regname', 'found');
       assert.equal(map.s.o.regname, 'found');
     });
 
     it('map() on map with many entries maps additional regname correctly', function() {
       var map = manyEntriesDefaultMap;
-      new jsb.InjectionMapper(map).map('s1', 'o1', 'regname', 'found');
+      new bar.InjectionMapper(map).map('s1', 'o1', 'regname', 'found');
       assert.equal(map.s1.o1.regname, 'found');
     });
   });
 
   describe('ResolveParam', function() {
     it('namespace, object, and name properties set when all present in key', function() {
-      var key = new jsb.ResolveParam('ns.object.name');
+      var key = new bar.ResolveParam('ns.object.name');
       assert.equal(key.namespace, 'ns');
       assert.equal(key.object, 'object');
       assert.equal(key.name, 'name');
     });
 
     it('namespace, object, and name is defaulted to _default when absent', function() {
-      var key = new jsb.ResolveParam('ns.object');
+      var key = new bar.ResolveParam('ns.object');
       assert.equal(key.namespace, 'ns');
       assert.equal(key.object, 'object');
       assert.equal(key.name, '_default');
@@ -207,12 +207,12 @@ describe('JsBarista', function() {
 
     beforeEach(function() {
       sandbox = sinon.sandbox.create();
-      mapper = new jsb.InjectionMapper();
+      mapper = new bar.InjectionMapper();
       mockMapper = sandbox.mock(mapper);
       stubNewInjectionResolver = sandbox.stub();
-      injectionResolver = new jsb.InjectionResolver();
+      injectionResolver = new bar.InjectionResolver();
       mockInjectionResolver = sandbox.mock(injectionResolver);
-      resolver = new jsb.ParamResolver(mapper, stubNewInjectionResolver);
+      resolver = new bar.ParamResolver(mapper, stubNewInjectionResolver);
     });
 
     afterEach(function() {
@@ -252,18 +252,14 @@ describe('JsBarista', function() {
 
     beforeEach(function() {
       sandbox = sinon.sandbox.create();
-      paramResolver = new jsb.ParamResolver();
+      paramResolver = new bar.ParamResolver();
       mockParamResolver = sandbox.mock(paramResolver);
-      resolver = new jsb.InjectionResolver(paramResolver);
+      resolver = new bar.InjectionResolver(paramResolver);
     });
 
     afterEach(function() {
       mockParamResolver.verify();
       sandbox.restore();
-    });
-
-    it('resolve() with null params return empty array', function() {
-      assert.deepEqual(resolver.resolve(), []);
     });
 
     it('resolve() with empty params return empty array', function() {
@@ -293,11 +289,11 @@ describe('JsBarista', function() {
 
     beforeEach(function() {
       sandbox = sinon.sandbox.create();
-      injectionResolver = new jsb.InjectionResolver();
+      injectionResolver = new bar.InjectionResolver();
       mockInjectionResolver = sandbox.mock(injectionResolver);
-      argsOverrider = new jsb.ArgsOverrider();
+      argsOverrider = new bar.ArgsOverrider();
       mockArgsOverrider = sandbox.mock(argsOverrider);
-      maker = new jsb.Maker(argsOverrider, injectionResolver);
+      maker = new bar.Maker(argsOverrider, injectionResolver);
     });
 
     afterEach(function() {
@@ -375,7 +371,7 @@ describe('JsBarista', function() {
         return {arg1: arg1};
       };
 
-      var property = new jsb.Property('name', ObjectDef);
+      var property = new bar.Property('name', ObjectDef);
 
       assert.equal(property.name, 'name');
       assert.equal(property.implementation, ObjectDef);
@@ -384,13 +380,13 @@ describe('JsBarista', function() {
     it('isObject() returns true for functions starting with capital letter', function() {
       var ObjectDef = function() {
       };
-      assert.isTrue(new jsb.Property('Name', ObjectDef).isObject());
+      assert.isTrue(new bar.Property('Name', ObjectDef).isObject());
     });
 
     it('isObject() returns false for functions starting with lowercase letter', function() {
       var ObjectDef = function() {
       };
-      assert.isFalse(new jsb.Property('name', ObjectDef).isObject());
+      assert.isFalse(new bar.Property('name', ObjectDef).isObject());
     });
 
     it('isObject() returns false for all other types', function() {
@@ -400,13 +396,13 @@ describe('JsBarista', function() {
       var date = new Date();
       var obj = {};
 
-      assert.isFalse(new jsb.Property('X', bool).isObject());
-      assert.isFalse(new jsb.Property('X', number).isObject());
-      assert.isFalse(new jsb.Property('X', str).isObject());
-      assert.isFalse(new jsb.Property('X', date).isObject());
-      assert.isFalse(new jsb.Property('X', obj).isObject());
-      assert.isFalse(new jsb.Property('X', null).isObject());
-      assert.isFalse(new jsb.Property('X').isObject());
+      assert.isFalse(new bar.Property('X', bool).isObject());
+      assert.isFalse(new bar.Property('X', number).isObject());
+      assert.isFalse(new bar.Property('X', str).isObject());
+      assert.isFalse(new bar.Property('X', date).isObject());
+      assert.isFalse(new bar.Property('X', obj).isObject());
+      assert.isFalse(new bar.Property('X', null).isObject());
+      assert.isFalse(new bar.Property('X').isObject());
     });
   });
 
@@ -424,7 +420,7 @@ describe('JsBarista', function() {
         };
       };
 
-      var extractor = new jsb.PropertyExtractor(ns, jsb.newProperty);
+      var extractor = new bar.PropertyExtractor(ns, bar.newProperty);
 
       assert.equal(extractor.extract('prop1').name, 'prop1');
       assert.equal(extractor.extract('prop2').name, 'prop2');
@@ -435,41 +431,42 @@ describe('JsBarista', function() {
   describe('ConfigDefaulter', function() {
     var defaultConfig = {
       type: 'perdep',
-      name: '_default'
+      name: '_default',
+      params: []
     };
 
     it('setRegistrationDefaults() does nothing when zero registrations', function() {
-      assert.deepEqual(new jsb.ConfigDefaulter().setRegistrationDefaults([]), []);
+      assert.deepEqual(new bar.ConfigDefaulter().setRegistrationDefaults([]), []);
     });
 
-    it('setRegistrationDefaults() with one registration adds type and name if undefined', function() {
-      assert.deepEqual(new jsb.ConfigDefaulter().setRegistrationDefaults([{}]), [defaultConfig]);
+    it('setRegistrationDefaults() with one registration adds type and name and params if undefined', function() {
+      assert.deepEqual(new bar.ConfigDefaulter().setRegistrationDefaults([{}]), [defaultConfig]);
     });
 
-    it('setRegistrationDefaults() with one registration adds type or name if undefined', function() {
-      assert.deepEqual(new jsb.ConfigDefaulter().setRegistrationDefaults([{type: 'perdep'}]), [defaultConfig]);
-      assert.deepEqual(new jsb.ConfigDefaulter().setRegistrationDefaults([{name: '_default'}]), [defaultConfig]);
+    it('setRegistrationDefaults() with one registration adds type or name and params if undefined', function() {
+      assert.deepEqual(new bar.ConfigDefaulter().setRegistrationDefaults([{type: 'perdep'}]), [defaultConfig]);
+      assert.deepEqual(new bar.ConfigDefaulter().setRegistrationDefaults([{name: '_default'}]), [defaultConfig]);
     });
 
     it('setRegistrationDefaults() with many registrations adds type and name if undefined', function() {
-      assert.deepEqual(new jsb.ConfigDefaulter().setRegistrationDefaults([{}, {}, {}]), [defaultConfig, defaultConfig, defaultConfig]);
+      assert.deepEqual(new bar.ConfigDefaulter().setRegistrationDefaults([{}, {}, {}]), [defaultConfig, defaultConfig, defaultConfig]);
     });
 
     it('setNsDefault() with empty config gets defaulted ns', function() {
       var config = {};
-      assert.equal(new jsb.ConfigDefaulter().setNsDefault(config), 'namespace');
+      assert.equal(new bar.ConfigDefaulter().setNsDefault(config), 'namespace');
       assert.deepEqual(config, {ns: 'namespace'});
     });
 
     it('setNsDefault() with config and ns set does not overwrite', function() {
       var config = {ns: 'original'};
-      assert.equal(new jsb.ConfigDefaulter().setNsDefault(config), 'original');
+      assert.equal(new bar.ConfigDefaulter().setNsDefault(config), 'original');
       assert.deepEqual(config, {ns: 'original'});
     });
 
     it('setNsDefault() with config other properties defaults ns but does not overwrite other props', function() {
       var config = {someProp: 'original'};
-      assert.equal(new jsb.ConfigDefaulter().setNsDefault(config), 'namespace');
+      assert.equal(new bar.ConfigDefaulter().setNsDefault(config), 'namespace');
       assert.deepEqual(config, {
         ns: 'namespace',
         someProp: 'original'
@@ -485,7 +482,7 @@ describe('JsBarista', function() {
 
     beforeEach(function() {
       sandbox = sinon.sandbox.create();
-      defaulter = new jsb.ConfigDefaulter();
+      defaulter = new bar.ConfigDefaulter();
       mockDefaulter = sandbox.mock(defaulter);
 
     });
@@ -502,7 +499,7 @@ describe('JsBarista', function() {
         .withExactArgs([{}])
         .returns('config');
 
-      assert.deepEqual(new jsb.ConfigManager(null, defaulter).getRegistrations('name'), 'config');
+      assert.deepEqual(new bar.ConfigManager(null, defaulter).getRegistrations('name'), 'config');
     });
 
     it('getRegistrations() returns defaulted registration when empty config', function() {
@@ -512,7 +509,7 @@ describe('JsBarista', function() {
         .withExactArgs([{}])
         .returns('config');
 
-      assert.deepEqual(new jsb.ConfigManager({}, defaulter).getRegistrations('name'), 'config');
+      assert.deepEqual(new bar.ConfigManager({}, defaulter).getRegistrations('name'), 'config');
     });
 
     it('getRegistrations() returns default registration when one non-matching config', function() {
@@ -522,7 +519,7 @@ describe('JsBarista', function() {
         .withExactArgs([{}])
         .returns('config');
 
-      assert.deepEqual(new jsb.ConfigManager({Name: {}}, defaulter).getRegistrations('nothere'), 'config');
+      assert.deepEqual(new bar.ConfigManager({Name: {}}, defaulter).getRegistrations('nothere'), 'config');
     });
 
     it('getRegistrations() returns matching registration in array when one matching config without array', function() {
@@ -532,7 +529,7 @@ describe('JsBarista', function() {
         .withExactArgs([{v: 1}])
         .returns('config');
 
-      assert.deepEqual(new jsb.ConfigManager({Name: {v: 1}}, defaulter).getRegistrations('Name'), 'config');
+      assert.deepEqual(new bar.ConfigManager({Name: {v: 1}}, defaulter).getRegistrations('Name'), 'config');
     });
 
     it('getRegistrations() returns matching registration when one matching config and already in array', function() {
@@ -542,7 +539,7 @@ describe('JsBarista', function() {
         .withExactArgs([{v: 1}])
         .returns('config');
 
-      assert.deepEqual(new jsb.ConfigManager({Name: [{v: 1}]}, defaulter).getRegistrations('Name'), 'config');
+      assert.deepEqual(new bar.ConfigManager({Name: [{v: 1}]}, defaulter).getRegistrations('Name'), 'config');
     });
 
     it('getRegistrations() returns matching registration when many configs', function() {
@@ -552,7 +549,7 @@ describe('JsBarista', function() {
         .withExactArgs([{x: 'configPlace'}])
         .returns('config');
 
-      assert.deepEqual(new jsb.ConfigManager({
+      assert.deepEqual(new bar.ConfigManager({
         Name: 'configName',
         Place: [{x: 'configPlace'}],
         Thing: 'configThing'
@@ -566,7 +563,7 @@ describe('JsBarista', function() {
         .withExactArgs('config')
         .returns('ns');
 
-      assert.equal(new jsb.ConfigManager('config', defaulter).getNs(), 'ns');
+      assert.equal(new bar.ConfigManager('config', defaulter).getNs(), 'ns');
     });
   });
 
@@ -578,9 +575,9 @@ describe('JsBarista', function() {
 
     beforeEach(function() {
       sandbox = sinon.sandbox.create();
-      maker = new jsb.Maker();
+      maker = new bar.Maker();
       mockMaker = sandbox.mock(maker);
-      orderTaker = new jsb.OrderTaker(maker);
+      orderTaker = new bar.OrderTaker(maker);
     });
 
     afterEach(function() {
@@ -625,11 +622,11 @@ describe('JsBarista', function() {
 
     beforeEach(function() {
       sandbox = sinon.sandbox.create();
-      mapper = new jsb.InjectionMapper();
+      mapper = new bar.InjectionMapper();
       mockMapper = sandbox.mock(mapper);
-      orderTaker = new jsb.OrderTaker();
+      orderTaker = new bar.OrderTaker();
       mockOrderTaker = sandbox.mock(orderTaker);
-      builder = new jsb.InvokerBuilder(orderTaker, mapper);
+      builder = new bar.InvokerBuilder(orderTaker, mapper);
     });
 
     afterEach(function() {
@@ -668,11 +665,11 @@ describe('JsBarista', function() {
 
     beforeEach(function() {
       sandbox = sinon.sandbox.create();
-      configMgr = new jsb.ConfigManager();
+      configMgr = new bar.ConfigManager();
       mockConfigMgr = sandbox.mock(configMgr);
-      invokerBuilder = new jsb.InvokerBuilder();
+      invokerBuilder = new bar.InvokerBuilder();
       mockInvokerBuilder = sandbox.mock(invokerBuilder);
-      builder = new jsb.NamespaceBuilder(configMgr, invokerBuilder);
+      builder = new bar.NamespaceBuilder(configMgr, invokerBuilder);
     });
 
     afterEach(function() {
@@ -687,7 +684,7 @@ describe('JsBarista', function() {
 
     it('build() with one added non-object returns namespace with prop', function() {
       var implementation = 'impl',
-          prop = new jsb.Property('impl', implementation);
+          prop = new bar.Property('impl', implementation);
 
       builder.add(prop);
 
@@ -697,7 +694,7 @@ describe('JsBarista', function() {
     });
 
     it('build() with one object with no registrations returns empty namespace', function() {
-      var prop = new jsb.Property('Name', function() {
+      var prop = new bar.Property('Name', function() {
       });
       mockConfigMgr.expects('getNs').once().returns('ns');
       mockConfigMgr.expects('getRegistrations').withExactArgs(prop.name).once().returns([]);
@@ -711,7 +708,7 @@ describe('JsBarista', function() {
       var registration = {
         name: 'notdefault'
       },
-          prop = new jsb.Property('Name', function() {
+          prop = new bar.Property('Name', function() {
           });
       mockConfigMgr.expects('getNs').once().returns('ns');
       mockConfigMgr.expects('getRegistrations').withExactArgs(prop.name).once().returns([registration]);
@@ -726,7 +723,7 @@ describe('JsBarista', function() {
       var registration = {
         name: '_default'
       },
-          prop = new jsb.Property('Name', function() {
+          prop = new bar.Property('Name', function() {
           });
       mockConfigMgr.expects('getNs').once().returns('ns');
       mockConfigMgr.expects('getRegistrations').withExactArgs(prop.name).once().returns([registration]);
@@ -743,7 +740,7 @@ describe('JsBarista', function() {
         }, {
           name: 'special'
         }],
-          prop = new jsb.Property('Name', function() {
+          prop = new bar.Property('Name', function() {
           });
       mockConfigMgr.expects('getNs').once().returns('ns');
       mockConfigMgr.expects('getRegistrations').withExactArgs(prop.name).once().returns(registrations);
@@ -761,11 +758,11 @@ describe('JsBarista', function() {
         }, {
           name: 'special'
         }],
-          prop1 = new jsb.Property('Name1', function() {
+          prop1 = new bar.Property('Name1', function() {
           }),
-          prop2 = new jsb.Property('Name2', function() {
+          prop2 = new bar.Property('Name2', function() {
           }),
-          prop3 = new jsb.Property('Name3', function() {
+          prop3 = new bar.Property('Name3', function() {
           });
 
       mockConfigMgr.expects('getNs').thrice().returns('ns');
@@ -801,11 +798,11 @@ describe('JsBarista', function() {
 
     beforeEach(function() {
       sandbox = sinon.sandbox.create();
-      builder = new jsb.NamespaceBuilder();
+      builder = new bar.NamespaceBuilder();
       mockBuilder = sandbox.mock(builder);
-      extractor = new jsb.PropertyExtractor();
+      extractor = new bar.PropertyExtractor();
       mockExtractor = sandbox.mock(extractor);
-      barista = new jsb.Barista(extractor, builder);
+      barista = new bar.Barista(extractor, builder);
     });
 
     afterEach(function() {
@@ -850,7 +847,7 @@ describe('JsBarista', function() {
 
   describe('Barista Namespace', function() {
     it('serve() with simple use controls instancing', function() {
-      jsb = new JsBarista();
+      jsb = new Barista();
       var ns = function(dependency) {
         var prop1 = dependency;
 
@@ -874,8 +871,7 @@ describe('JsBarista', function() {
           ObjDef2: ObjDef2
         };
       },
-          servedNs = jsb.serve(new ns('depends'), {
-            ns: 'ns',
+          servedNs = bar.serve(new ns('depends'), {
             ObjDef2: {type: 'single'}
           }),
           obj1Instance1 = servedNs.ObjDef1(1),
@@ -892,7 +888,7 @@ describe('JsBarista', function() {
     });
 
     it('serve() with multiple namespaces and full dependency injection', function() {
-      jsb = new JsBarista();
+      jsb = new Barista();
       var nsUtils = function() {
         function Prepender(prefix) {
           function prepend(value) {
@@ -998,38 +994,38 @@ describe('JsBarista', function() {
               Widget2: Widget2
             };
           },
-          servedWidgetNs = jsb.serve(new nsWidget(), {
+          servedWidgetNs = bar.serve(new nsWidget(), {
             ns: 'Widget',
-            Widget1: {params: [{resolve: 'Utils.ChainOfResponsibilities.widget1Controller'}]},
-            Widget2: {params: [{resolve: 'Utils.ChainOfResponsibilities.widget2Controller'}]}
+            Widget1: {params: {resolve: 'Utils.ChainOfResponsibilities.widget1Controller'}},
+            Widget2: {params: {resolve: 'Utils.ChainOfResponsibilities.widget2Controller'}}
           });
 
-      jsb.serve(new nsUtils(), {
+      bar.serve(new nsUtils(), {
         ns: 'Utils',
         Prepender: {params: [{value: '+'}]},
         Capitalizer: {type: 'single'},
         ChainOfResponsibilities: [{
             name: 'widget1Controller',
-            params: [{
+            params: {
               array: [
                 {resolve: 'Responsibilities.PrependResponsibility'},
                 {resolve: 'Responsibilities.PrependAndCapitalizeResponsibility'},
                 {resolve: 'Responsibilities.AddXsResponsibility.x3'}
               ]
-            }]
+            }
           },
           {
             name: 'widget2Controller',
-            params: [{
+            params: {
               array: [
                 {resolve: 'Responsibilities.PrependAndCapitalizeResponsibility'},
                 {resolve: 'Responsibilities.AddXsResponsibility.x1'}
               ]
-            }]
+            }
           }]
       });
 
-      jsb.serve(new nsResponsibilities(), {
+      bar.serve(new nsResponsibilities(), {
         ns: 'Responsibilities',
         PrependResponsibility: {params: [{resolve: 'Utils.Prepender'}]},
         PrependAndCapitalizeResponsibility: {
@@ -1039,7 +1035,7 @@ describe('JsBarista', function() {
           ]
         },
         AddXsResponsibility: [
-          {name: 'x3', params: [{value: 3}]},
+          {name: 'x3', params: {value: 3}},
           {name: 'x1', params: [{value: 1}]}
         ]
       });
