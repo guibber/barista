@@ -850,8 +850,7 @@ describe('JsBarista', function() {
 
   describe('Barista Namespace', function() {
     it('serve() with simple use controls instancing', function() {
-      var actualMap = {};
-      jsb = new JsBarista(actualMap);
+      jsb = new JsBarista();
       var ns = function(dependency) {
         var prop1 = dependency;
 
