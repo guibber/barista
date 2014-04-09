@@ -842,8 +842,13 @@ describe('Barista', function() {
   });
 
   describe('Barista Namespace', function() {
+    it('singleton and perdependecy properites are exposed and set', function() {
+      assert.equal(bar.singleton, 'singleton');
+      assert.equal(bar.perdependency, 'perdependency');
+    });
+    
     it('serve() with simple use controls instancing', function() {
-      jsb = new Barista();
+      bar = new Barista();
       var ns = function(dependency) {
         var prop1 = dependency;
 
@@ -884,7 +889,7 @@ describe('Barista', function() {
     });
 
     it('serve() with multiple namespaces and full dependency injection', function() {
-      jsb = new Barista();
+      bar = new Barista();
       var nsUtils = function() {
         function Prepender(prefix) {
           function prepend(value) {
