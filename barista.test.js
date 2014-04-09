@@ -1,71 +1,204 @@
 describe('Barista', function() {
+  describe('ConfigDefaulter', function() {
+    var defaultConfig = {
+      type: bar.perdependency,
+      name: '_default',
+      params: []
+    };
 
-  describe('ArgsWrapper', function() {
-    it('wrap() null args returns empty array', function() {
-      assert.deepEqual(new bar.ArgsWrapper().wrap(), []);
+    it('setRegistrationDefaults() does nothing when zero registrations', function() {
+      assert.deepEqual(new bar.ConfigDefaulter().setRegistrationDefaults([]), []);
     });
 
-    it('wrap() empty args returns empty array', function() {
-      assert.deepEqual(new bar.ArgsWrapper().wrap([]), []);
+    it('setRegistrationDefaults() with one registration adds type and name and params if undefined', function() {
+      assert.deepEqual(new bar.ConfigDefaulter().setRegistrationDefaults([{}]), [defaultConfig]);
     });
 
-    it('wrap() one arg returns wrapped arg', function() {
-      assert.deepEqual(new bar.ArgsWrapper().wrap([1]), [{value: 1}]);
+    it('setRegistrationDefaults() with one registration adds type or name and params if undefined', function() {
+      assert.deepEqual(new bar.ConfigDefaulter().setRegistrationDefaults([{type: bar.perdependency}]), [defaultConfig]);
+      assert.deepEqual(new bar.ConfigDefaulter().setRegistrationDefaults([{name: '_default'}]), [defaultConfig]);
     });
 
-    it('wrap() many args returns wrapped args', function() {
-      assert.deepEqual(new bar.ArgsWrapper().wrap([1, 2, 3]), [{value: 1}, {value: 2}, {value: 3}]);
+    it('setRegistrationDefaults() with many registrations adds type and name if undefined', function() {
+      assert.deepEqual(new bar.ConfigDefaulter().setRegistrationDefaults([{}, {}, {}]), [defaultConfig, defaultConfig, defaultConfig]);
+    });
+
+    it('setNsDefault() with empty config gets defaulted ns', function() {
+      var config = {};
+      assert.equal(new bar.ConfigDefaulter().setNsDefault(config), 'namespace');
+      assert.deepEqual(config, {ns: 'namespace'});
+    });
+
+    it('setNsDefault() with config and ns set does not overwrite', function() {
+      var config = {ns: 'original'};
+      assert.equal(new bar.ConfigDefaulter().setNsDefault(config), 'original');
+      assert.deepEqual(config, {ns: 'original'});
+    });
+
+    it('setNsDefault() with config other properties defaults ns but does not overwrite other props', function() {
+      var config = {someProp: 'original'};
+      assert.equal(new bar.ConfigDefaulter().setNsDefault(config), 'namespace');
+      assert.deepEqual(config, {
+        ns: 'namespace',
+        someProp: 'original'
+      });
     });
   });
 
-  describe('ArgsOverrider', function() {
-    var overrider;
+  describe('ConfigManager', function() {
+    var sandbox,
+        defaulter,
+        mockDefaulter;
 
     beforeEach(function() {
-      overrider = new bar.ArgsOverrider(new bar.ArgsWrapper());
+      sandbox = sinon.sandbox.create();
+      defaulter = new bar.ConfigDefaulter();
+      mockDefaulter = sandbox.mock(defaulter);
+
     });
 
-    it('override() with null args and null params returns empty array', function() {
-      assert.deepEqual(overrider.override(), []);
+    afterEach(function() {
+      mockDefaulter.verify();
+      sandbox.restore();
     });
 
-    it('override() with empty args and empty params returns empty array', function() {
-      assert.deepEqual(overrider.override([], []), []);
+    it('getRegistrations() returns defaulted registration when null config', function() {
+      mockDefaulter
+        .expects('setRegistrationDefaults')
+        .once()
+        .withExactArgs([{}])
+        .returns('config');
+
+      assert.deepEqual(new bar.ConfigManager(null, defaulter).getRegistrations('name'), 'config');
     });
 
-    it('override() with one arg and empty params returns wrapped arg', function() {
-      assert.deepEqual(overrider.override([], ['arg1']), [{value: 'arg1'}]);
+    it('getRegistrations() returns defaulted registration when empty config', function() {
+      mockDefaulter
+        .expects('setRegistrationDefaults')
+        .once()
+        .withExactArgs([{}])
+        .returns('config');
+
+      assert.deepEqual(new bar.ConfigManager({}, defaulter).getRegistrations('name'), 'config');
     });
 
-    it('override() with many args and empty params returns wrapped args', function() {
-      assert.deepEqual(overrider.override([], ['arg1', 'arg2', 'arg3']), [{value: 'arg1'}, {value: 'arg2'}, {value: 'arg3'}]);
+    it('getRegistrations() returns default registration when one non-matching config', function() {
+      mockDefaulter
+        .expects('setRegistrationDefaults')
+        .once()
+        .withExactArgs([{}])
+        .returns('config');
+
+      assert.deepEqual(new bar.ConfigManager({Name: {}}, defaulter).getRegistrations('nothere'), 'config');
     });
 
-    it('override() with empty args and one param returns param', function() {
-      assert.deepEqual(overrider.override(['param'], []), ['param']);
+    it('getRegistrations() returns matching registration in array when one matching config without array', function() {
+      mockDefaulter
+        .expects('setRegistrationDefaults')
+        .once()
+        .withExactArgs([{v: 1}])
+        .returns('config');
+
+      assert.deepEqual(new bar.ConfigManager({Name: {v: 1}}, defaulter).getRegistrations('Name'), 'config');
     });
 
-    it('override() with empty args and many params returns params', function() {
-      assert.deepEqual(overrider.override(['param1', 'param2', 'param3'], []), ['param1', 'param2', 'param3']);
+    it('getRegistrations() returns matching registration when one matching config and already in array', function() {
+      mockDefaulter
+        .expects('setRegistrationDefaults')
+        .once()
+        .withExactArgs([{v: 1}])
+        .returns('config');
+
+      assert.deepEqual(new bar.ConfigManager({Name: [{v: 1}]}, defaulter).getRegistrations('Name'), 'config');
     });
 
-    it('override() with one arg and many params returns overriden arg and remainder of params', function() {
-      assert.deepEqual(overrider.override(['param1', 'param2', 'param3'], ['arg1']), [{value: 'arg1'}, 'param2', 'param3']);
+    it('getRegistrations() returns matching registration when many configs', function() {
+      mockDefaulter
+        .expects('setRegistrationDefaults')
+        .once()
+        .withExactArgs([{x: 'configPlace'}])
+        .returns('config');
+
+      assert.deepEqual(new bar.ConfigManager({
+        Name: 'configName',
+        Place: [{x: 'configPlace'}],
+        Thing: 'configThing'
+      }, defaulter).getRegistrations('Place'), 'config');
     });
 
-    it('override() with many args and many params returns overriden args', function() {
-      assert.deepEqual(overrider.override(['param1', 'param2', 'param3'], ['arg1', 'arg2', 'arg3']), [{value: 'arg1'}, {value: 'arg2'}, {value: 'arg3'}]);
+    it('getNs() returns config.ns', function() {
+      mockDefaulter
+        .expects('setNsDefault')
+        .once()
+        .withExactArgs('config')
+        .returns('ns');
+
+      assert.equal(new bar.ConfigManager('config', defaulter).getNs(), 'ns');
+    });
+  });
+  
+  describe('Property', function() {
+    it('name and implmentation properties set', function() {
+      var ObjectDef = function(arg1) {
+        return {arg1: arg1};
+      };
+
+      var property = new bar.Property('name', ObjectDef);
+
+      assert.equal(property.name, 'name');
+      assert.equal(property.implementation, ObjectDef);
     });
 
-    it('override() with less args and many params returns overriden args and remainer param', function() {
-      assert.deepEqual(overrider.override(['param1', 'param2', 'param3'], ['arg1', 'arg2']), [{value: 'arg1'}, {value: 'arg2'}, 'param3']);
+    it('isObject() returns true for functions starting with capital letter', function() {
+      var ObjectDef = function() {
+      };
+      assert.isTrue(new bar.Property('Name', ObjectDef).isObject());
     });
 
-    it('override() with more args and many params returns all args', function() {
-      assert.deepEqual(overrider.override(['param1', 'param2', 'param3'], ['arg1', 'arg2', 'arg3', 'arg4']), [{value: 'arg1'}, {value: 'arg2'}, {value: 'arg3'}, {value: 'arg4'}]);
+    it('isObject() returns false for functions starting with lowercase letter', function() {
+      var ObjectDef = function() {
+      };
+      assert.isFalse(new bar.Property('name', ObjectDef).isObject());
+    });
+
+    it('isObject() returns false for all other types', function() {
+      var bool = true;
+      var number = 1;
+      var str = 'string';
+      var date = new Date();
+      var obj = {};
+
+      assert.isFalse(new bar.Property('X', bool).isObject());
+      assert.isFalse(new bar.Property('X', number).isObject());
+      assert.isFalse(new bar.Property('X', str).isObject());
+      assert.isFalse(new bar.Property('X', date).isObject());
+      assert.isFalse(new bar.Property('X', obj).isObject());
+      assert.isFalse(new bar.Property('X', null).isObject());
+      assert.isFalse(new bar.Property('X').isObject());
     });
   });
 
+  describe('PropertyExtractor', function() {
+    it('extract() calls newPropFunc with args and returns property', function() {
+      var ns = function() {
+        var prop1 = 1,
+            prop2 = 2,
+            prop3 = 3;
+
+        return {
+          prop1: prop1,
+          prop2: prop2,
+          prop3: prop3
+        };
+      };
+
+      var extractor = new bar.PropertyExtractor(ns, bar.newProperty);
+
+      assert.equal(extractor.extract('prop1').name, 'prop1');
+      assert.equal(extractor.extract('prop2').name, 'prop2');
+      assert.equal(extractor.extract('prop3').name, 'prop3');
+    });
+  });
   describe('InjectionMapper', function() {
     var oneEntryDefaultMap,
         manyEntriesDefaultMap;
@@ -179,17 +312,83 @@ describe('Barista', function() {
       assert.equal(map.s1.o1.regname, 'found');
     });
   });
+  
+  describe('ArgsWrapper', function() {
+    it('wrap() null args returns empty array', function() {
+      assert.deepEqual(new bar.ArgsWrapper().wrap(), []);
+    });
 
-  describe('ResolveParam', function() {
+    it('wrap() empty args returns empty array', function() {
+      assert.deepEqual(new bar.ArgsWrapper().wrap([]), []);
+    });
+
+    it('wrap() one arg returns wrapped arg', function() {
+      assert.deepEqual(new bar.ArgsWrapper().wrap([1]), [{value: 1}]);
+    });
+
+    it('wrap() many args returns wrapped args', function() {
+      assert.deepEqual(new bar.ArgsWrapper().wrap([1, 2, 3]), [{value: 1}, {value: 2}, {value: 3}]);
+    });
+  });
+
+  describe('ArgsOverrider', function() {
+    var overrider;
+
+    beforeEach(function() {
+      overrider = new bar.ArgsOverrider(new bar.ArgsWrapper());
+    });
+
+    it('override() with null args and null params returns empty array', function() {
+      assert.deepEqual(overrider.override(), []);
+    });
+
+    it('override() with empty args and empty params returns empty array', function() {
+      assert.deepEqual(overrider.override([], []), []);
+    });
+
+    it('override() with one arg and empty params returns wrapped arg', function() {
+      assert.deepEqual(overrider.override([], ['arg1']), [{value: 'arg1'}]);
+    });
+
+    it('override() with many args and empty params returns wrapped args', function() {
+      assert.deepEqual(overrider.override([], ['arg1', 'arg2', 'arg3']), [{value: 'arg1'}, {value: 'arg2'}, {value: 'arg3'}]);
+    });
+
+    it('override() with empty args and one param returns param', function() {
+      assert.deepEqual(overrider.override(['param'], []), ['param']);
+    });
+
+    it('override() with empty args and many params returns params', function() {
+      assert.deepEqual(overrider.override(['param1', 'param2', 'param3'], []), ['param1', 'param2', 'param3']);
+    });
+
+    it('override() with one arg and many params returns overriden arg and remainder of params', function() {
+      assert.deepEqual(overrider.override(['param1', 'param2', 'param3'], ['arg1']), [{value: 'arg1'}, 'param2', 'param3']);
+    });
+
+    it('override() with many args and many params returns overriden args', function() {
+      assert.deepEqual(overrider.override(['param1', 'param2', 'param3'], ['arg1', 'arg2', 'arg3']), [{value: 'arg1'}, {value: 'arg2'}, {value: 'arg3'}]);
+    });
+
+    it('override() with less args and many params returns overriden args and remainer param', function() {
+      assert.deepEqual(overrider.override(['param1', 'param2', 'param3'], ['arg1', 'arg2']), [{value: 'arg1'}, {value: 'arg2'}, 'param3']);
+    });
+
+    it('override() with more args and many params returns all args', function() {
+      assert.deepEqual(overrider.override(['param1', 'param2', 'param3'], ['arg1', 'arg2', 'arg3', 'arg4']), [{value: 'arg1'}, {value: 'arg2'}, {value: 'arg3'}, {value: 'arg4'}]);
+    });
+  });
+
+  describe('ResolvedParam', function() {
     it('namespace, object, and name properties set when all present in key', function() {
-      var key = new bar.ResolveParam('ns.object.name');
+      var key = new bar.ResolvedParam('ns.object.name');
       assert.equal(key.namespace, 'ns');
       assert.equal(key.object, 'object');
       assert.equal(key.name, 'name');
     });
 
     it('namespace, object, and name is defaulted to _default when absent', function() {
-      var key = new bar.ResolveParam('ns.object');
+      var key = new bar.ResolvedParam('ns.object');
       assert.equal(key.namespace, 'ns');
       assert.equal(key.object, 'object');
       assert.equal(key.name, '_default');
@@ -338,7 +537,6 @@ describe('Barista', function() {
       assert.deepEqual(actual, expected);
     });
 
-
     it('make() creates externally set prototype object just like new operator', function() {
       var ObjectDef = function(arg1) {
         this.value1 = arg1;
@@ -362,208 +560,6 @@ describe('Barista', function() {
       assert.equal(actual.getValue(), 'resolved1X');
       assert.equal(actual.getValue(), expected.getValue());
       assert.deepEqual(actual, expected);
-    });
-  });
-
-  describe('Property', function() {
-    it('name and implmentation properties set', function() {
-      var ObjectDef = function(arg1) {
-        return {arg1: arg1};
-      };
-
-      var property = new bar.Property('name', ObjectDef);
-
-      assert.equal(property.name, 'name');
-      assert.equal(property.implementation, ObjectDef);
-    });
-
-    it('isObject() returns true for functions starting with capital letter', function() {
-      var ObjectDef = function() {
-      };
-      assert.isTrue(new bar.Property('Name', ObjectDef).isObject());
-    });
-
-    it('isObject() returns false for functions starting with lowercase letter', function() {
-      var ObjectDef = function() {
-      };
-      assert.isFalse(new bar.Property('name', ObjectDef).isObject());
-    });
-
-    it('isObject() returns false for all other types', function() {
-      var bool = true;
-      var number = 1;
-      var str = 'string';
-      var date = new Date();
-      var obj = {};
-
-      assert.isFalse(new bar.Property('X', bool).isObject());
-      assert.isFalse(new bar.Property('X', number).isObject());
-      assert.isFalse(new bar.Property('X', str).isObject());
-      assert.isFalse(new bar.Property('X', date).isObject());
-      assert.isFalse(new bar.Property('X', obj).isObject());
-      assert.isFalse(new bar.Property('X', null).isObject());
-      assert.isFalse(new bar.Property('X').isObject());
-    });
-  });
-
-  describe('PropertyExtractor', function() {
-    it('extract() calls newPropFunc with args and returns property', function() {
-      var ns = function() {
-        var prop1 = 1,
-            prop2 = 2,
-            prop3 = 3;
-
-        return {
-          prop1: prop1,
-          prop2: prop2,
-          prop3: prop3
-        };
-      };
-
-      var extractor = new bar.PropertyExtractor(ns, bar.newProperty);
-
-      assert.equal(extractor.extract('prop1').name, 'prop1');
-      assert.equal(extractor.extract('prop2').name, 'prop2');
-      assert.equal(extractor.extract('prop3').name, 'prop3');
-    });
-  });
-
-  describe('ConfigDefaulter', function() {
-    var defaultConfig = {
-      type: bar.perdependency,
-      name: '_default',
-      params: []
-    };
-
-    it('setRegistrationDefaults() does nothing when zero registrations', function() {
-      assert.deepEqual(new bar.ConfigDefaulter().setRegistrationDefaults([]), []);
-    });
-
-    it('setRegistrationDefaults() with one registration adds type and name and params if undefined', function() {
-      assert.deepEqual(new bar.ConfigDefaulter().setRegistrationDefaults([{}]), [defaultConfig]);
-    });
-
-    it('setRegistrationDefaults() with one registration adds type or name and params if undefined', function() {
-      assert.deepEqual(new bar.ConfigDefaulter().setRegistrationDefaults([{type: bar.perdependency}]), [defaultConfig]);
-      assert.deepEqual(new bar.ConfigDefaulter().setRegistrationDefaults([{name: '_default'}]), [defaultConfig]);
-    });
-
-    it('setRegistrationDefaults() with many registrations adds type and name if undefined', function() {
-      assert.deepEqual(new bar.ConfigDefaulter().setRegistrationDefaults([{}, {}, {}]), [defaultConfig, defaultConfig, defaultConfig]);
-    });
-
-    it('setNsDefault() with empty config gets defaulted ns', function() {
-      var config = {};
-      assert.equal(new bar.ConfigDefaulter().setNsDefault(config), 'namespace');
-      assert.deepEqual(config, {ns: 'namespace'});
-    });
-
-    it('setNsDefault() with config and ns set does not overwrite', function() {
-      var config = {ns: 'original'};
-      assert.equal(new bar.ConfigDefaulter().setNsDefault(config), 'original');
-      assert.deepEqual(config, {ns: 'original'});
-    });
-
-    it('setNsDefault() with config other properties defaults ns but does not overwrite other props', function() {
-      var config = {someProp: 'original'};
-      assert.equal(new bar.ConfigDefaulter().setNsDefault(config), 'namespace');
-      assert.deepEqual(config, {
-        ns: 'namespace',
-        someProp: 'original'
-      });
-    });
-
-  });
-
-  describe('ConfigManager', function() {
-    var sandbox,
-        defaulter,
-        mockDefaulter;
-
-    beforeEach(function() {
-      sandbox = sinon.sandbox.create();
-      defaulter = new bar.ConfigDefaulter();
-      mockDefaulter = sandbox.mock(defaulter);
-
-    });
-
-    afterEach(function() {
-      mockDefaulter.verify();
-      sandbox.restore();
-    });
-
-    it('getRegistrations() returns defaulted registration when null config', function() {
-      mockDefaulter
-        .expects('setRegistrationDefaults')
-        .once()
-        .withExactArgs([{}])
-        .returns('config');
-
-      assert.deepEqual(new bar.ConfigManager(null, defaulter).getRegistrations('name'), 'config');
-    });
-
-    it('getRegistrations() returns defaulted registration when empty config', function() {
-      mockDefaulter
-        .expects('setRegistrationDefaults')
-        .once()
-        .withExactArgs([{}])
-        .returns('config');
-
-      assert.deepEqual(new bar.ConfigManager({}, defaulter).getRegistrations('name'), 'config');
-    });
-
-    it('getRegistrations() returns default registration when one non-matching config', function() {
-      mockDefaulter
-        .expects('setRegistrationDefaults')
-        .once()
-        .withExactArgs([{}])
-        .returns('config');
-
-      assert.deepEqual(new bar.ConfigManager({Name: {}}, defaulter).getRegistrations('nothere'), 'config');
-    });
-
-    it('getRegistrations() returns matching registration in array when one matching config without array', function() {
-      mockDefaulter
-        .expects('setRegistrationDefaults')
-        .once()
-        .withExactArgs([{v: 1}])
-        .returns('config');
-
-      assert.deepEqual(new bar.ConfigManager({Name: {v: 1}}, defaulter).getRegistrations('Name'), 'config');
-    });
-
-    it('getRegistrations() returns matching registration when one matching config and already in array', function() {
-      mockDefaulter
-        .expects('setRegistrationDefaults')
-        .once()
-        .withExactArgs([{v: 1}])
-        .returns('config');
-
-      assert.deepEqual(new bar.ConfigManager({Name: [{v: 1}]}, defaulter).getRegistrations('Name'), 'config');
-    });
-
-    it('getRegistrations() returns matching registration when many configs', function() {
-      mockDefaulter
-        .expects('setRegistrationDefaults')
-        .once()
-        .withExactArgs([{x: 'configPlace'}])
-        .returns('config');
-
-      assert.deepEqual(new bar.ConfigManager({
-        Name: 'configName',
-        Place: [{x: 'configPlace'}],
-        Thing: 'configThing'
-      }, defaulter).getRegistrations('Place'), 'config');
-    });
-
-    it('getNs() returns config.ns', function() {
-      mockDefaulter
-        .expects('setNsDefault')
-        .once()
-        .withExactArgs('config')
-        .returns('ns');
-
-      assert.equal(new bar.ConfigManager('config', defaulter).getNs(), 'ns');
     });
   });
 

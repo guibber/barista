@@ -4,6 +4,84 @@ var Barista = function(injectionMap) {
   var singleton = 'singleton',
       perdependency = 'perdependency';
 
+  function ConfigDefaulter() {
+    function setRegistrationDefaults(registrations) {
+      registrations.forEach(function(registration) {
+        registration.type = registration.type || perdependency;
+        registration.name = registration.name || '_default';
+        registration.params = registration.params
+          ? Array.isArray(registration.params)
+            ? registration.params
+            : [registration.params]
+          : [];
+      });
+      return registrations;
+    }
+
+    function setNsDefault(config) {
+      config.ns = config.ns || 'namespace';
+      return config.ns;
+    }
+
+    return {
+      setNsDefault: setNsDefault,
+      setRegistrationDefaults: setRegistrationDefaults
+    };
+  }
+
+  function ConfigManager(config, configDefaulter) {
+    config = config || {};
+    function getNs() {
+      return configDefaulter.setNsDefault(config);
+    }
+
+    function getRegistrations(name) {
+      var registrations = config[name] || [{}];
+      return Array.isArray(registrations)
+        ? configDefaulter.setRegistrationDefaults(registrations)
+        : configDefaulter.setRegistrationDefaults([registrations]);
+    }
+
+    return {
+      getRegistrations: getRegistrations,
+      getNs: getNs
+    };
+  }
+
+  function Property(name, implementation) {
+    function isFunction() {
+      return typeof(implementation) === 'function';
+    }
+
+    function isFirstLetterCapital() {
+      return (/^[A-Z]/).test(name);
+    }
+
+    function isObject() {
+      return isFunction() && isFirstLetterCapital();
+    }
+
+    return {
+      name: name,
+      implementation: implementation,
+      isObject: isObject
+    };
+  }
+
+  function newProperty(name, implementation) {
+    return new Property(name, implementation);
+  }
+
+  function PropertyExtractor(ns, newPropFunc) {
+    function extract(name) {
+      return newPropFunc(name, ns[name]);
+    }
+
+    return {
+      extract: extract
+    };
+  }
+
   function InjectionMapper(overrideMap) {
     injectionMap = overrideMap || injectionMap;
 
@@ -70,7 +148,7 @@ var Barista = function(injectionMap) {
     };
   }
 
-  function ResolveParam(key) {
+  function ResolvedParam(key) {
     var values = key.split('.');
     return {
       namespace: values[0],
@@ -89,7 +167,7 @@ var Barista = function(injectionMap) {
             return param.func();
           },
           resolve: function(param) {
-            var resolveParam = new ResolveParam(param.resolve),
+            var resolveParam = new ResolvedParam(param.resolve),
                 invoker = injectionMapper.find(resolveParam.namespace, resolveParam.object, resolveParam.name);
             if (invoker) {
               return invoker();
@@ -123,40 +201,6 @@ var Barista = function(injectionMap) {
 
   function newInjectionResolver(paramResolver) {
     return new InjectionResolver(paramResolver);
-  }
-
-  function Property(name, implementation) {
-    function isFunction() {
-      return typeof(implementation) === 'function';
-    }
-
-    function isFirstLetterCapital() {
-      return (/^[A-Z]/).test(name);
-    }
-
-    function isObject() {
-      return isFunction() && isFirstLetterCapital();
-    }
-
-    return {
-      name: name,
-      implementation: implementation,
-      isObject: isObject
-    };
-  }
-
-  function newProperty(name, implementation) {
-    return new Property(name, implementation);
-  }
-
-  function PropertyExtractor(ns, newPropFunc) {
-    function extract(name) {
-      return newPropFunc(name, ns[name]);
-    }
-
-    return {
-      extract: extract
-    };
   }
 
   function Maker(argsOverrider, injectionResolver) {
@@ -193,50 +237,6 @@ var Barista = function(injectionMap) {
     return {
       orderPerDependency: orderPerDependency,
       orderSingleton: orderSingleton
-    };
-  }
-
-  function ConfigDefaulter() {
-    function setRegistrationDefaults(registrations) {
-      registrations.forEach(function(registration) {
-        registration.type = registration.type || perdependency;
-        registration.name = registration.name || '_default';
-        registration.params = registration.params
-          ? Array.isArray(registration.params)
-            ? registration.params
-            : [registration.params]
-          : [];
-      });
-      return registrations;
-    }
-
-    function setNsDefault(config) {
-      config.ns = config.ns || 'namespace';
-      return config.ns;
-    }
-
-    return {
-      setNsDefault: setNsDefault,
-      setRegistrationDefaults: setRegistrationDefaults
-    };
-  }
-
-  function ConfigManager(config, configDefaulter) {
-    config = config || {};
-    function getNs() {
-      return configDefaulter.setNsDefault(config);
-    }
-
-    function getRegistrations(name) {
-      var registrations = config[name] || [{}];
-      return Array.isArray(registrations)
-        ? configDefaulter.setRegistrationDefaults(registrations)
-        : configDefaulter.setRegistrationDefaults([registrations]);
-    }
-
-    return {
-      getRegistrations: getRegistrations,
-      getNs: getNs
     };
   }
 
@@ -347,7 +347,7 @@ var Barista = function(injectionMap) {
     PropertyExtractor: PropertyExtractor,
     ConfigDefaulter: ConfigDefaulter,
     InjectionMapper: InjectionMapper,
-    ResolveParam: ResolveParam,
+    ResolvedParam: ResolvedParam,
     ParamResolver: ParamResolver,
     InvokerBuilder: InvokerBuilder,
     NamespaceBuilder: NamespaceBuilder,
