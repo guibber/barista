@@ -430,7 +430,7 @@ describe('Barista', function() {
 
   describe('ConfigDefaulter', function() {
     var defaultConfig = {
-      type: 'perdep',
+      type: bar.perdependency,
       name: '_default',
       params: []
     };
@@ -444,7 +444,7 @@ describe('Barista', function() {
     });
 
     it('setRegistrationDefaults() with one registration adds type or name and params if undefined', function() {
-      assert.deepEqual(new bar.ConfigDefaulter().setRegistrationDefaults([{type: 'perdep'}]), [defaultConfig]);
+      assert.deepEqual(new bar.ConfigDefaulter().setRegistrationDefaults([{type: bar.perdependency}]), [defaultConfig]);
       assert.deepEqual(new bar.ConfigDefaulter().setRegistrationDefaults([{name: '_default'}]), [defaultConfig]);
     });
 
@@ -644,14 +644,14 @@ describe('Barista', function() {
       mockMapper.expects('find').once().withExactArgs('ns', 'propName', 'registrationName').returns(null);
       mockOrderTaker.expects("orderPerDependency").withExactArgs('implementation', 'params').once().returns('invoker');
       mockMapper.expects('map').once().withExactArgs('ns', 'propName', 'registrationName', 'invoker');
-      assert.equal(builder.build('ns', {name: 'propName', implementation: 'implementation'}, {type: 'perdep', name: 'registrationName', params: 'params'}), 'invoker');
+      assert.equal(builder.build('ns', {name: 'propName', implementation: 'implementation'}, {type: bar.perdependency, name: 'registrationName', params: 'params'}), 'invoker');
     });
 
     it('build() with mapper not finding invoker creates singleton invoker, maps and returns', function() {
       mockMapper.expects('find').once().withExactArgs('ns', 'propName', 'registrationName').returns(null);
       mockOrderTaker.expects("orderSingleton").withExactArgs('implementation', 'params').once().returns('invoker');
       mockMapper.expects('map').once().withExactArgs('ns', 'propName', 'registrationName', 'invoker');
-      assert.equal(builder.build('ns', {name: 'propName', implementation: 'implementation'}, {type: 'single', name: 'registrationName', params: 'params'}), 'invoker');
+      assert.equal(builder.build('ns', {name: 'propName', implementation: 'implementation'}, {type: bar.singleton, name: 'registrationName', params: 'params'}), 'invoker');
     });
   });
 
@@ -872,7 +872,7 @@ describe('Barista', function() {
         };
       },
           servedNs = bar.serve(new ns('depends'), {
-            ObjDef2: {type: 'single'}
+            ObjDef2: {type: bar.singleton}
           }),
           obj1Instance1 = servedNs.ObjDef1(1),
           obj1Instance2 = servedNs.ObjDef1(2),
@@ -997,7 +997,7 @@ describe('Barista', function() {
           servedUtilsNs = bar.serve(new nsUtils(), {
             ns: 'Utils',
             Prepender: {params: [{value: '+'}]},
-            Capitalizer: {type: 'single'},
+            Capitalizer: {type: bar.singleton},
             ChainOfResponsibilities: [{
                 name: 'widget1Controller',
                 params: {

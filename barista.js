@@ -1,17 +1,19 @@
 var Barista = function(injectionMap) {
+  'use strict';
   injectionMap = injectionMap || {};
+  var singleton = 'singleton',
+      perdependency = 'perdependency';
 
   function InjectionMapper(overrideMap) {
     injectionMap = overrideMap || injectionMap;
 
     function getRegName(regName) {
-      return regName ? regName : '_default';
+      return regName || '_default';
     }
 
     function getChild(parent, childName, empty) {
       return parent
-        ? parent[childName]
-          ? parent[childName] : empty
+        ? parent[childName] || empty
         : empty;
     }
 
@@ -87,8 +89,8 @@ var Barista = function(injectionMap) {
             return param.func();
           },
           resolve: function(param) {
-            var resolveParam = new ResolveParam(param.resolve);
-            var invoker = injectionMapper.find(resolveParam.namespace, resolveParam.object, resolveParam.name);
+            var resolveParam = new ResolveParam(param.resolve),
+                invoker = injectionMapper.find(resolveParam.namespace, resolveParam.object, resolveParam.name);
             if (invoker) {
               return invoker();
             }
@@ -129,7 +131,7 @@ var Barista = function(injectionMap) {
     }
 
     function isFirstLetterCapital() {
-      return /^[A-Z]/.test(name);
+      return (/^[A-Z]/).test(name);
     }
 
     function isObject() {
@@ -159,7 +161,7 @@ var Barista = function(injectionMap) {
 
   function Maker(argsOverrider, injectionResolver) {
     function make(implementation, params, args) {
-      var proto = Object(implementation.prototype) === implementation.prototype ? implementation.prototype : Object.prototype,
+      var proto = Object(implementation.prototype) === implementation.prototype ? implementation.prototype : {}.prototype,
           obj = Object.create(proto),
           ret = implementation.apply(obj, injectionResolver.resolve(argsOverrider.override(params, args)));
       return Object(ret) === ret ? ret : obj;
@@ -197,8 +199,8 @@ var Barista = function(injectionMap) {
   function ConfigDefaulter() {
     function setRegistrationDefaults(registrations) {
       registrations.forEach(function(registration) {
-        registration.type = registration.type ? registration.type : 'perdep';
-        registration.name = registration.name ? registration.name : '_default';
+        registration.type = registration.type || perdependency;
+        registration.name = registration.name || '_default';
         registration.params = registration.params
           ? Array.isArray(registration.params)
             ? registration.params
@@ -209,7 +211,7 @@ var Barista = function(injectionMap) {
     }
 
     function setNsDefault(config) {
-      config.ns = config.ns ? config.ns : 'namespace';
+      config.ns = config.ns || 'namespace';
       return config.ns;
     }
 
@@ -226,7 +228,7 @@ var Barista = function(injectionMap) {
     }
 
     function getRegistrations(name) {
-      var registrations = config[name] ? config[name] : [{}];
+      var registrations = config[name] || [{}];
       return Array.isArray(registrations)
         ? configDefaulter.setRegistrationDefaults(registrations)
         : configDefaulter.setRegistrationDefaults([registrations]);
@@ -240,8 +242,8 @@ var Barista = function(injectionMap) {
 
   function InvokerBuilder(orderTaker, injectionMapper) {
     var typeMap = {
-      'perdep': function(i, p) { return orderTaker.orderPerDependency(i, p); },
-      'single': function(i, p) { return orderTaker.orderSingleton(i, p); }
+      'perdependency': function(i, p) { return orderTaker.orderPerDependency(i, p); },
+      'singleton': function(i, p) { return orderTaker.orderSingleton(i, p); }
     };
 
     function build(ns, prop, registration) {
@@ -299,8 +301,11 @@ var Barista = function(injectionMap) {
 
   function Barista(extractor, namespaceBuilder) {
     function serve(ns) {
-      for (var name in ns) {
-        namespaceBuilder.add(extractor.extract(name));
+      var name;
+      for (name in ns) {
+        if (ns.hasOwnProperty(name)) {
+          namespaceBuilder.add(extractor.extract(name));
+        }
       }
       return namespaceBuilder.build();
     }
@@ -308,7 +313,7 @@ var Barista = function(injectionMap) {
     return {
       serve: serve
     };
-  };
+  }
 
   function serve(ns, config) {
     var injectionMapper = new InjectionMapper();
@@ -328,6 +333,8 @@ var Barista = function(injectionMap) {
   }
 
   return {
+    singleton: singleton,
+    perdependency: perdependency,
     serve: serve,
     Barista: Barista,
     ArgsOverrider: ArgsOverrider,
