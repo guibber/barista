@@ -136,7 +136,7 @@ describe('Barista', function() {
       assert.equal(new bar.ConfigManager('config', defaulter).getNs(), 'ns');
     });
   });
-  
+
   describe('Property', function() {
     it('name and implmentation properties set', function() {
       var ObjectDef = function(arg1) {
@@ -269,9 +269,11 @@ describe('Barista', function() {
       assert.equal(new bar.InjectionMapper(manyEntriesDefaultMap).find('s1', 'o1', 'notfound'), null);
     });
 
-    it('map() on empty map returns mapping', function() {
+    it('map() on empty map returns mapping and sets _default', function() {
       var map = {};
-      new bar.InjectionMapper(map).map('s', 'o', '_default', 'found');
+      oneEntryDefaultMap.s.o.name = 'found';
+
+      new bar.InjectionMapper(map).map('s', 'o', 'name', 'found');
       assert.deepEqual(map, oneEntryDefaultMap);
     });
 
@@ -281,38 +283,73 @@ describe('Barista', function() {
       assert.deepEqual(map, oneEntryDefaultMap);
     });
 
+    it('map() non-default regname maps, but does not overwrite existing _default', function() {
+      var map = copy(oneEntryDefaultMap);
+      oneEntryDefaultMap.s.o.notDefault = 'newInvoker';
+
+      new bar.InjectionMapper(map).map('s', 'o', "notDefault", 'newInvoker');
+
+      assert.deepEqual(map, oneEntryDefaultMap);
+    });
+
     it('map() on map with one existing entry overwrites regname', function() {
-      var map = oneEntryDefaultMap;
-      new bar.InjectionMapper(map).map('s', 'o', '_default', 'overwritten');
-      assert.equal(map.s.o._default, 'overwritten');
+      var map = copy(oneEntryDefaultMap);
+      map.s.o.existingName = 'existingName';
+      oneEntryDefaultMap.s.o.existingName = 'overwritten';
+
+      new bar.InjectionMapper(map).map('s', 'o', 'existingName', 'overwritten');
+
+      assert.deepEqual(map, oneEntryDefaultMap);
     });
 
     it('map() on map with one existing entry maps correctly', function() {
-      var map = oneEntryDefaultMap;
-      new bar.InjectionMapper(map).map('s1', 'o1', null, 'found');
-      assert.equal(map.s1.o1._default, 'found');
+      var map = copy(oneEntryDefaultMap);
+      oneEntryDefaultMap.s1 = {
+        o1: {
+          _default: 'found',
+          name: 'found'
+        }
+      };
+
+      new bar.InjectionMapper(map).map('s1', 'o1', 'name', 'found');
+
+      assert.deepEqual(map, oneEntryDefaultMap);
     });
 
-    it('map() on map with many existing regnames maps correctly', function() {
-      var map = oneEntryDefaultMap;
-      oneEntryDefaultMap.s.o.existingReg = 'existingReg';
+    it('map() on map with one entry and many existing regnames maps correctly', function() {
+      var map = copy(oneEntryDefaultMap);
+      map.s.o.existingReg = oneEntryDefaultMap.s.o.existingReg = 'existingReg';
+      oneEntryDefaultMap.s.o.regname = 'found';
+
       new bar.InjectionMapper(map).map('s', 'o', 'regname', 'found');
-      assert.equal(map.s.o.regname, 'found');
+
+      assert.deepEqual(map, oneEntryDefaultMap);
     });
 
     it('map() on map with many entries maps new entry correctly', function() {
-      var map = manyEntriesDefaultMap;
+      var map = copy(manyEntriesDefaultMap);
+      manyEntriesDefaultMap.s = {
+        o: {
+          _default: 'found',
+          regname: 'found'
+        }
+      };
+
       new bar.InjectionMapper(map).map('s', 'o', 'regname', 'found');
-      assert.equal(map.s.o.regname, 'found');
+
+      assert.deepEqual(map, manyEntriesDefaultMap);
     });
 
     it('map() on map with many entries maps additional regname correctly', function() {
-      var map = manyEntriesDefaultMap;
+      var map = copy(manyEntriesDefaultMap);
+      manyEntriesDefaultMap.s1.o1.regname = 'found';
+
       new bar.InjectionMapper(map).map('s1', 'o1', 'regname', 'found');
-      assert.equal(map.s1.o1.regname, 'found');
+
+      assert.deepEqual(map, manyEntriesDefaultMap);
     });
   });
-  
+
   describe('ArgsWrapper', function() {
     it('wrap() null args returns empty array', function() {
       assert.deepEqual(new bar.ArgsWrapper().wrap(), []);
@@ -419,15 +456,15 @@ describe('Barista', function() {
       sandbox.restore();
     });
 
-    it('resolve() value param returns value', function() {
+    it('resolve() with value param returns value', function() {
       assert.equal(resolver.resolve({value: 11}), 11);
     });
 
-    it('resolve() func param returns func valled value', function() {
+    it('resolve() with func calls func and returns value', function() {
       assert.equal(resolver.resolve({func: function() { return 11; }}), 11);
     });
 
-    it('resolve() resolve param returns resolved object', function() {
+    it('resolve() with resolve param returns resolved object', function() {
       var invoker = function() {
         return 'invoked';
       };
@@ -435,7 +472,7 @@ describe('Barista', function() {
       assert.equal(resolver.resolve({resolve: 'ns.Object1'}), 'invoked');
     });
 
-    it('resolve() array param returns resolved array', function() {
+    it('resolve() with array of params returns resolved array', function() {
       var paramArray = [{resolve: 'ns.Object1'}, {value: 'value'}, {resolve: 'ns.Object2'}];
       stubNewInjectionResolver.withArgs(resolver).returns(injectionResolver);
       mockInjectionResolver.expects('resolve').once().withExactArgs(paramArray).returns('array_resolved');
@@ -519,7 +556,7 @@ describe('Barista', function() {
       assert.deepEqual(actual, expected);
     });
 
-    it('make() creates standard object using this just like new operator', function() {
+    it('make() creates standard object using "this" just like new operator', function() {
       var ObjectDef = function(arg1) {
         this.value1 = arg1;
       },
@@ -700,7 +737,7 @@ describe('Barista', function() {
       assert.deepEqual(builder.build(), {});
     });
 
-    it('build() with one object with non-default registrations returns namespace with prop', function() {
+    it('build() with one object with non-default registration returns namespace with invoker', function() {
       var registration = {
         name: 'notdefault'
       },
@@ -715,7 +752,7 @@ describe('Barista', function() {
       assert.deepEqual(builder.build(), {Name: 'invoker'});
     });
 
-    it('build() with one object with default registrations returns namespace with prop', function() {
+    it('build() with one object with default registrations returns namespace with invoker', function() {
       var registration = {
         name: '_default'
       },
@@ -730,30 +767,55 @@ describe('Barista', function() {
       assert.deepEqual(builder.build(), {Name: 'invoker'});
     });
 
-    it('build() with one object with many registrations returns namespace with prop', function() {
-      var registrations = [{
-          name: '_default'
-        }, {
-          name: 'special'
-        }],
+    it('build() with one object with many registrations including default returns namespace with default invoker', function() {
+      var registrations = [
+        {name: '_default'},
+        {name: 'X'},
+        {name: 'Y'}
+      ],
           prop = new bar.Property('Name', function() {
           });
       mockConfigMgr.expects('getNs').once().returns('ns');
       mockConfigMgr.expects('getRegistrations').withExactArgs(prop.name).once().returns(registrations);
       mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, registrations[0]).returns('invoker');
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, registrations[1]).returns('invoker_special');
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, registrations[1]).returns('invokerX');
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, registrations[2]).returns('invokerY');
 
       builder.add(prop);
 
       assert.deepEqual(builder.build(), {Name: 'invoker'});
     });
 
-    it('build() with many objects with many registrations returns namespace with props', function() {
-      var registrations = [{
-          name: '_default'
-        }, {
-          name: 'special'
-        }],
+    it('build() with one object with many registrations with default last returns namespace with default invoker', function() {
+      var registrations = [
+        {name: 'X'},
+        {name: 'Y'},
+        {name: '_default'}
+      ],
+          prop = new bar.Property('Name', function() {
+          });
+      mockConfigMgr.expects('getNs').once().returns('ns');
+      mockConfigMgr.expects('getRegistrations').withExactArgs(prop.name).once().returns(registrations);
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, registrations[0]).returns('invokerX');
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, registrations[1]).returns('invokerY');
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, registrations[2]).returns('invoker');
+
+
+      builder.add(prop);
+
+      assert.deepEqual(builder.build(), {Name: 'invoker'});
+    });
+
+    it('build() with many objects with many registrations returns namespace with invokers', function() {
+      var registrationsWithDefault = [
+        {name: '_default'},
+        {name: 'X'},
+        {name: 'Y'}
+      ],
+          registrationsWithoutDefault = [
+            {name: 'X'},
+            {name: 'Y'}
+          ],
           prop1 = new bar.Property('Name1', function() {
           }),
           prop2 = new bar.Property('Name2', function() {
@@ -762,15 +824,17 @@ describe('Barista', function() {
           });
 
       mockConfigMgr.expects('getNs').thrice().returns('ns');
-      mockConfigMgr.expects('getRegistrations').withExactArgs(prop1.name).once().returns(registrations);
-      mockConfigMgr.expects('getRegistrations').withExactArgs(prop2.name).once().returns(registrations);
-      mockConfigMgr.expects('getRegistrations').withExactArgs(prop3.name).once().returns(registrations);
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop1, registrations[0]).returns('invoker1');
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop1, registrations[1]).returns('invoker1_special');
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop2, registrations[0]).returns('invoker2');
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop2, registrations[1]).returns('invoker2_special');
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop3, registrations[0]).returns('invoker3');
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop3, registrations[1]).returns('invoker3_special');
+      mockConfigMgr.expects('getRegistrations').withExactArgs(prop1.name).once().returns(registrationsWithDefault);
+      mockConfigMgr.expects('getRegistrations').withExactArgs(prop2.name).once().returns(registrationsWithoutDefault);
+      mockConfigMgr.expects('getRegistrations').withExactArgs(prop3.name).once().returns(registrationsWithDefault);
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop1, registrationsWithDefault[0]).returns('invoker1');
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop1, registrationsWithDefault[1]).returns('invoker1X');
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop1, registrationsWithDefault[2]).returns('invoker1Y');
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop2, registrationsWithoutDefault[0]).returns('invoker2');
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop2, registrationsWithoutDefault[1]).returns('invoker2X');
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop3, registrationsWithDefault[0]).returns('invoker3');
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop3, registrationsWithDefault[1]).returns('invoker3X');
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop3, registrationsWithDefault[2]).returns('invoker3Y');
 
       builder.add(prop1);
       builder.add(prop2);
@@ -842,14 +906,14 @@ describe('Barista', function() {
   });
 
   describe('Barista Namespace', function() {
-    it('singleton and perdependecy properites are exposed and set', function() {
-      assert.equal(bar.singleton, 'singleton');
-      assert.equal(bar.perdependency, 'perdependency');
-    });
-    
-    it('serve() with simple use controls instancing', function() {
+    var nsSimple,
+        nsUtils,
+        nsResponsibilities,
+        nsWidget;
+
+    beforeEach(function() {
       bar = new Barista();
-      var ns = function(dependency) {
+      nsSimple = function(dependency) {
         var prop1 = dependency;
 
         function ObjDef1(param) {
@@ -871,26 +935,18 @@ describe('Barista', function() {
           ObjDef1: ObjDef1,
           ObjDef2: ObjDef2
         };
-      },
-          servedNs = bar.serve(new ns('depends'), {
-            ObjDef2: {type: bar.singleton}
-          }),
-          obj1Instance1 = servedNs.ObjDef1(1),
-          obj1Instance2 = servedNs.ObjDef1(2),
-          obj2Ref1 = servedNs.ObjDef2(3),
-          obj2Ref2 = servedNs.ObjDef2(4);
+      };
 
-      assert.propertyVal(servedNs, 'prop1', 'depends');
-      assert.equal(obj1Instance1.getParam(), 1);
-      assert.equal(obj1Instance2.getParam(), 2);
-      assert.equal(obj2Ref1.getParam(), 3);
-      assert.equal(obj2Ref2.getParam(), 3);
-      assert.equal(obj2Ref1, obj2Ref2);
-    });
+      nsUtils = function() {
+        function Tester(value) {
+          function test() {
+            return value;
+          }
+          return {
+            test: test
+          };
+        }
 
-    it('serve() with multiple namespaces and full dependency injection', function() {
-      bar = new Barista();
-      var nsUtils = function() {
         function Prepender(prefix) {
           function prepend(value) {
             return prefix + value;
@@ -921,104 +977,132 @@ describe('Barista', function() {
         }
 
         return {
+          Tester: Tester,
           Prepender: Prepender,
           Capitalizer: Capitalizer,
           ChainOfResponsibilities: ChainOfResponsibilities
         };
-      },
-          nsResponsibilities = function() {
-            function PrependResponsibility(prepender) {
-              function execute(context) {
-                context.value = prepender.prepend(context.value);
-              }
-              return {
-                execute: execute
-              };
-            }
+      };
 
-            function PrependAndCapitalizeResponsibility(prepender, capitalizer) {
-              function execute(context) {
-                context.value = prepender.prepend(capitalizer.capitalize(context.value));
-              }
-              return {
-                execute: execute
-              };
-            }
+      nsResponsibilities = function() {
+        function PrependResponsibility(prepender) {
+          function execute(context) {
+            context.value = prepender.prepend(context.value);
+          }
+          return {
+            execute: execute
+          };
+        }
 
-            function AddXsResponsibility(count) {
-              function execute(context) {
-                var i;
-                for (i = 0; i < count; ++i) {
-                  context.value = context.value + 'X';
-                }
-              }
-              return {
-                execute: execute
-              };
-            }
+        function PrependAndCapitalizeResponsibility(prepender, capitalizer) {
+          function execute(context) {
+            context.value = prepender.prepend(capitalizer.capitalize(context.value));
+          }
+          return {
+            execute: execute
+          };
+        }
 
-            return {
-              PrependResponsibility: PrependResponsibility,
-              PrependAndCapitalizeResponsibility: PrependAndCapitalizeResponsibility,
-              AddXsResponsibility: AddXsResponsibility
+        function AddXsResponsibility(count) {
+          function execute(context) {
+            var i;
+            for (i = 0; i < count; ++i) {
+              context.value = context.value + 'X';
+            }
+          }
+          return {
+            execute: execute
+          };
+        }
+
+        return {
+          PrependResponsibility: PrependResponsibility,
+          PrependAndCapitalizeResponsibility: PrependAndCapitalizeResponsibility,
+          AddXsResponsibility: AddXsResponsibility
+        };
+      };
+
+      nsWidget = function() {
+        function Widget1(controller) {
+          function run(value) {
+            var context = {
+              value: value
             };
-          },
-          nsWidget = function() {
-            function Widget1(controller) {
-              function run(value) {
-                var context = {
-                  value: value
-                };
-                controller.execute(context);
-                return 'Widget1' + context.value;
-              }
-              return {
-                run: run
-              };
-            }
+            controller.execute(context);
+            return 'Widget1' + context.value;
+          }
+          return {
+            run: run
+          };
+        }
 
-            function Widget2(controller) {
-              function run(value) {
-                var context = {
-                  value: value
-                };
-                controller.execute(context);
-                return 'Widget2' + context.value;
-              }
-              return {
-                run: run
-              };
-            }
-
-            return {
-              Widget1: Widget1,
-              Widget2: Widget2
+        function Widget2(controller) {
+          function run(value) {
+            var context = {
+              value: value
             };
+            controller.execute(context);
+            return 'Widget2' + context.value;
+          }
+          return {
+            run: run
+          };
+        }
+
+        return {
+          Widget1: Widget1,
+          Widget2: Widget2
+        };
+      };
+    });
+
+    it('singleton and perdependecy properites are exposed and set', function() {
+      assert.equal(bar.singleton, 'singleton');
+      assert.equal(bar.perdependency, 'perdependency');
+    });
+
+    it('serve() with simple use controls instancing', function() {
+      var servedNs = bar.serve(new nsSimple('depends'), {
+        ObjDef2: {type: bar.singleton}
+      }),
+          obj1Instance1 = servedNs.ObjDef1(1),
+          obj1Instance2 = servedNs.ObjDef1(2),
+          obj2Ref1 = servedNs.ObjDef2(3),
+          obj2Ref2 = servedNs.ObjDef2(4);
+
+      assert.propertyVal(servedNs, 'prop1', 'depends');
+      assert.equal(obj1Instance1.getParam(), 1);
+      assert.equal(obj1Instance2.getParam(), 2);
+      assert.equal(obj2Ref1.getParam(), 3);
+      assert.equal(obj2Ref2.getParam(), 3);
+      assert.equal(obj2Ref1, obj2Ref2);
+    });
+
+    it('serve() with multiple namespaces and full dependency injection', function() {
+      var servedUtilsNs = bar.serve(new nsUtils(), {
+        ns: 'Utils',
+        Prepender: {params: [{value: '+'}]},
+        Capitalizer: {type: bar.singleton},
+        ChainOfResponsibilities: [{
+            name: 'widget1Controller',
+            params: {
+              array: [
+                {resolve: 'Responsibilities.PrependResponsibility'},
+                {resolve: 'Responsibilities.PrependAndCapitalizeResponsibility'},
+                {resolve: 'Responsibilities.AddXsResponsibility.x3'}
+              ]
+            }
           },
-          servedUtilsNs = bar.serve(new nsUtils(), {
-            ns: 'Utils',
-            Prepender: {params: [{value: '+'}]},
-            Capitalizer: {type: bar.singleton},
-            ChainOfResponsibilities: [{
-                name: 'widget1Controller',
-                params: {
-                  array: [
-                    {resolve: 'Responsibilities.PrependResponsibility'},
-                    {resolve: 'Responsibilities.PrependAndCapitalizeResponsibility'},
-                    {resolve: 'Responsibilities.AddXsResponsibility.x3'}
-                  ]
-                }
-              },
-              {
-                name: 'widget2Controller',
-                params: {
-                  array: [
-                    {resolve: 'Responsibilities.PrependAndCapitalizeResponsibility'},
-                    {resolve: 'Responsibilities.AddXsResponsibility.x1'}
-                  ]
-                }
-              }]
-          }),
+          {
+            name: 'widget2Controller',
+            params: {
+              array: [
+                {resolve: 'Responsibilities.PrependAndCapitalizeResponsibility'},
+                {resolve: 'Responsibilities.AddXsResponsibility.x1'}
+              ]
+            }
+          }]
+      }),
           servedWidgetNs = bar.serve(new nsWidget(), {
             ns: 'Widget',
             Widget1: {params: {resolve: 'Utils.ChainOfResponsibilities.widget1Controller'}},
@@ -1043,6 +1127,73 @@ describe('Barista', function() {
       assert.equal(servedUtilsNs.Prepender('overriden').prepend('value'), 'overridenvalue');
       assert.equal(servedWidgetNs.Widget1().run('eleven'), 'Widget1++ELEVENXXX');
       assert.equal(servedWidgetNs.Widget2().run('tenplusone'), 'Widget2+TENPLUSONEX');
+    });
+
+    it('resolve() with multiple namespaces and full dependency injection', function() {
+      bar.serve(new nsUtils(), {
+        ns: 'Utils',
+        Tester: {
+          name: 'notdefault',
+          params: {
+            value: 'uses _default'
+          }
+        },
+        Prepender: [
+          {params: [{value: '+'}]},
+          {name: 'special', params: [{value: 'special'}]}
+        ],
+        Capitalizer: {type: bar.singleton},
+        ChainOfResponsibilities: [{
+            name: 'widget1Controller',
+            params: {
+              array: [
+                {resolve: 'Responsibilities.PrependResponsibility'},
+                {resolve: 'Responsibilities.PrependAndCapitalizeResponsibility'},
+                {resolve: 'Responsibilities.AddXsResponsibility'}
+              ]
+            }
+          },
+          {
+            name: 'widget2Controller',
+            params: {
+              array: [
+                {resolve: 'Responsibilities.PrependAndCapitalizeResponsibility'},
+                {resolve: 'Responsibilities.AddXsResponsibility.x1'}
+              ]
+            }
+          }]
+      });
+
+      bar.serve(new nsResponsibilities(), {
+        ns: 'Responsibilities',
+        PrependResponsibility: {params: [{resolve: 'Utils.Prepender'}]},
+        PrependAndCapitalizeResponsibility: {
+          params: [
+            {resolve: 'Utils.Prepender'},
+            {resolve: 'Utils.Capitalizer'}
+          ]
+        },
+        AddXsResponsibility: [
+          {name: 'x3', params: {value: 3}},
+          {name: 'x1', params: [{value: 1}]}
+        ]
+      });
+
+      bar.serve(new nsWidget(), {
+        ns: 'Widget',
+        Widget1: {params: {resolve: 'Utils.ChainOfResponsibilities.widget1Controller'}},
+        Widget2: {params: {resolve: 'Utils.ChainOfResponsibilities.widget2Controller'}}
+      });
+
+      assert.equal(bar.resolve('Utils.Tester').test(), 'uses _default');
+      assert.equal(bar.resolve('Utils.Tester.notdefault').test(), 'uses _default');
+      assert.equal(bar.resolve('Widget.Widget1').run('eleven'), 'Widget1++ELEVENXXX');
+      assert.equal(bar.resolve('Widget.Widget1').run('eleven'), 'Widget1++ELEVENXXX');
+      assert.equal(bar.resolve('Widget.Widget2').run('tenplusone'), 'Widget2+TENPLUSONEX');
+      assert.equal(bar.resolve('Widget.Widget2', bar.resolve('Utils.ChainOfResponsibilities.widget1Controller')).run('tenplusone'), 'Widget2++TENPLUSONEXXX');
+      assert.equal(bar.resolve('Utils.Prepender.special').prepend('value'), 'specialvalue');
+      assert.equal(bar.resolve('Utils.Prepender.special', 'overriden1').prepend('value'), 'overriden1value');
+      assert.equal(bar.resolve('Utils.Prepender', 'overriden2').prepend('value'), 'overriden2value');
     });
   });
 });

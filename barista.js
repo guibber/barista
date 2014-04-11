@@ -1,14 +1,15 @@
 var Barista = function(injectionMap) {
   'use strict';
   injectionMap = injectionMap || {};
-  var singleton = 'singleton',
-      perdependency = 'perdependency';
+  var _singleton = 'singleton',
+      _perdependency = 'perdependency',
+      _default = '_default';
 
   function ConfigDefaulter() {
     function setRegistrationDefaults(registrations) {
       registrations.forEach(function(registration) {
-        registration.type = registration.type || perdependency;
-        registration.name = registration.name || '_default';
+        registration.type = registration.type || _perdependency;
+        registration.name = registration.name || _default;
         registration.params = registration.params
           ? Array.isArray(registration.params)
             ? registration.params
@@ -86,13 +87,21 @@ var Barista = function(injectionMap) {
     injectionMap = overrideMap || injectionMap;
 
     function getRegName(regName) {
-      return regName || '_default';
+      return regName || _default;
     }
 
     function getChild(parent, childName, empty) {
       return parent
         ? parent[childName] || empty
         : empty;
+    }
+
+    function isDefaultName(name) {
+      return name === _default;
+    }
+
+    function defaultExists(sourceNsName, objName) {
+      return find(sourceNsName, objName, _default) ? true : false;
     }
 
     function find(sourceNsName, objName, regName) {
@@ -104,10 +113,16 @@ var Barista = function(injectionMap) {
 
     function map(sourceNsName, objName, regName, invoker) {
       var sourceNs = getChild(injectionMap, sourceNsName, {}),
-          obj = getChild(sourceNs, objName, {});
+          obj = getChild(sourceNs, objName, {}),
+          name = getRegName(regName);
+
       injectionMap[sourceNsName] = sourceNs;
       sourceNs[objName] = obj;
-      obj[getRegName(regName)] = invoker;
+      obj[name] = invoker;
+
+      if (!isDefaultName(name) && !defaultExists(sourceNsName, objName)) {
+        obj[_default] = invoker;
+      }
     }
 
     return {
@@ -153,7 +168,7 @@ var Barista = function(injectionMap) {
     return {
       namespace: values[0],
       object: values[1],
-      name: values.length > 2 ? values[2] : '_default'
+      name: values.length > 2 ? values[2] : _default
     };
   }
 
@@ -268,7 +283,7 @@ var Barista = function(injectionMap) {
           ns = configMgr.getNs();
       configMgr.getRegistrations(prop.name).forEach(function(registration) {
         var invoker = invokerBuilder.build(ns, prop, registration);
-        if (!defaultInvoker || registration.name === '_default') {
+        if (!defaultInvoker || registration.name === _default) {
           defaultInvoker = invoker;
         }
       });
@@ -332,10 +347,17 @@ var Barista = function(injectionMap) {
     ).serve(ns);
   }
 
+  function resolve(item) {
+    var resolveParam = new ResolvedParam(item),
+        invoker = new InjectionMapper().find(resolveParam.namespace, resolveParam.object, resolveParam.name);
+    return invoker ? invoker.apply(null, Array.prototype.slice.call(arguments || []).splice(1)) : null;
+  }
+
   return {
-    singleton: singleton,
-    perdependency: perdependency,
+    singleton: _singleton,
+    perdependency: _perdependency,
     serve: serve,
+    resolve: resolve,
     Barista: Barista,
     ArgsOverrider: ArgsOverrider,
     ArgsWrapper: ArgsWrapper,
