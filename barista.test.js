@@ -1,47 +1,26 @@
 describe('Barista', function() {
   describe('ConfigDefaulter', function() {
     var defaultConfig = {
-      type: bar.perdependency,
+      type: barista.perdependency,
       name: '_default',
       params: []
     };
 
     it('setRegistrationDefaults() does nothing when zero registrations', function() {
-      assert.deepEqual(new bar.ConfigDefaulter().setRegistrationDefaults([]), []);
+      assert.deepEqual(new barista.ConfigDefaulter().setRegistrationDefaults([]), []);
     });
 
     it('setRegistrationDefaults() with one registration adds type and name and params if undefined', function() {
-      assert.deepEqual(new bar.ConfigDefaulter().setRegistrationDefaults([{}]), [defaultConfig]);
+      assert.deepEqual(new barista.ConfigDefaulter().setRegistrationDefaults([{}]), [defaultConfig]);
     });
 
     it('setRegistrationDefaults() with one registration adds type or name and params if undefined', function() {
-      assert.deepEqual(new bar.ConfigDefaulter().setRegistrationDefaults([{type: bar.perdependency}]), [defaultConfig]);
-      assert.deepEqual(new bar.ConfigDefaulter().setRegistrationDefaults([{name: '_default'}]), [defaultConfig]);
+      assert.deepEqual(new barista.ConfigDefaulter().setRegistrationDefaults([{type: barista.perdependency}]), [defaultConfig]);
+      assert.deepEqual(new barista.ConfigDefaulter().setRegistrationDefaults([{name: '_default'}]), [defaultConfig]);
     });
 
     it('setRegistrationDefaults() with many registrations adds type and name if undefined', function() {
-      assert.deepEqual(new bar.ConfigDefaulter().setRegistrationDefaults([{}, {}, {}]), [defaultConfig, defaultConfig, defaultConfig]);
-    });
-
-    it('setNsDefault() with empty config gets defaulted ns', function() {
-      var config = {};
-      assert.equal(new bar.ConfigDefaulter().setNsDefault(config), 'namespace');
-      assert.deepEqual(config, {ns: 'namespace'});
-    });
-
-    it('setNsDefault() with config and ns set does not overwrite', function() {
-      var config = {ns: 'original'};
-      assert.equal(new bar.ConfigDefaulter().setNsDefault(config), 'original');
-      assert.deepEqual(config, {ns: 'original'});
-    });
-
-    it('setNsDefault() with config other properties defaults ns but does not overwrite other props', function() {
-      var config = {someProp: 'original'};
-      assert.equal(new bar.ConfigDefaulter().setNsDefault(config), 'namespace');
-      assert.deepEqual(config, {
-        ns: 'namespace',
-        someProp: 'original'
-      });
+      assert.deepEqual(new barista.ConfigDefaulter().setRegistrationDefaults([{}, {}, {}]), [defaultConfig, defaultConfig, defaultConfig]);
     });
   });
 
@@ -52,7 +31,7 @@ describe('Barista', function() {
 
     beforeEach(function() {
       sandbox = sinon.sandbox.create();
-      defaulter = new bar.ConfigDefaulter();
+      defaulter = new barista.ConfigDefaulter();
       mockDefaulter = sandbox.mock(defaulter);
 
     });
@@ -69,7 +48,7 @@ describe('Barista', function() {
         .withExactArgs([{}])
         .returns('config');
 
-      assert.deepEqual(new bar.ConfigManager(null, defaulter).getRegistrations('name'), 'config');
+      assert.deepEqual(new barista.ConfigManager(null, null, defaulter).getRegistrations('name'), 'config');
     });
 
     it('getRegistrations() returns defaulted registration when empty config', function() {
@@ -79,7 +58,7 @@ describe('Barista', function() {
         .withExactArgs([{}])
         .returns('config');
 
-      assert.deepEqual(new bar.ConfigManager({}, defaulter).getRegistrations('name'), 'config');
+      assert.deepEqual(new barista.ConfigManager(null, {}, defaulter).getRegistrations('name'), 'config');
     });
 
     it('getRegistrations() returns default registration when one non-matching config', function() {
@@ -89,7 +68,7 @@ describe('Barista', function() {
         .withExactArgs([{}])
         .returns('config');
 
-      assert.deepEqual(new bar.ConfigManager({Name: {}}, defaulter).getRegistrations('nothere'), 'config');
+      assert.deepEqual(new barista.ConfigManager(null, {Name: {}}, defaulter).getRegistrations('nothere'), 'config');
     });
 
     it('getRegistrations() returns matching registration in array when one matching config without array', function() {
@@ -99,7 +78,7 @@ describe('Barista', function() {
         .withExactArgs([{v: 1}])
         .returns('config');
 
-      assert.deepEqual(new bar.ConfigManager({Name: {v: 1}}, defaulter).getRegistrations('Name'), 'config');
+      assert.deepEqual(new barista.ConfigManager(null, {Name: {v: 1}}, defaulter).getRegistrations('Name'), 'config');
     });
 
     it('getRegistrations() returns matching registration when one matching config and already in array', function() {
@@ -109,7 +88,7 @@ describe('Barista', function() {
         .withExactArgs([{v: 1}])
         .returns('config');
 
-      assert.deepEqual(new bar.ConfigManager({Name: [{v: 1}]}, defaulter).getRegistrations('Name'), 'config');
+      assert.deepEqual(new barista.ConfigManager(null, {Name: [{v: 1}]}, defaulter).getRegistrations('Name'), 'config');
     });
 
     it('getRegistrations() returns matching registration when many configs', function() {
@@ -119,21 +98,15 @@ describe('Barista', function() {
         .withExactArgs([{x: 'configPlace'}])
         .returns('config');
 
-      assert.deepEqual(new bar.ConfigManager({
+      assert.deepEqual(new barista.ConfigManager(null, {
         Name: 'configName',
         Place: [{x: 'configPlace'}],
         Thing: 'configThing'
       }, defaulter).getRegistrations('Place'), 'config');
     });
 
-    it('getNs() returns config.ns', function() {
-      mockDefaulter
-        .expects('setNsDefault')
-        .once()
-        .withExactArgs('config')
-        .returns('ns');
-
-      assert.equal(new bar.ConfigManager('config', defaulter).getNs(), 'ns');
+    it('getNsName() returns nsName param', function() {
+      assert.equal(new barista.ConfigManager('nsName', 'config', null).getNsName(), 'nsName');
     });
   });
 
@@ -143,7 +116,7 @@ describe('Barista', function() {
         return {arg1: arg1};
       };
 
-      var property = new bar.Property('name', ObjectDef);
+      var property = new barista.Property('name', ObjectDef);
 
       assert.equal(property.name, 'name');
       assert.equal(property.implementation, ObjectDef);
@@ -152,13 +125,13 @@ describe('Barista', function() {
     it('isObject() returns true for functions starting with capital letter', function() {
       var ObjectDef = function() {
       };
-      assert.isTrue(new bar.Property('Name', ObjectDef).isObject());
+      assert.isTrue(new barista.Property('Name', ObjectDef).isObject());
     });
 
     it('isObject() returns false for functions starting with lowercase letter', function() {
       var ObjectDef = function() {
       };
-      assert.isFalse(new bar.Property('name', ObjectDef).isObject());
+      assert.isFalse(new barista.Property('name', ObjectDef).isObject());
     });
 
     it('isObject() returns false for all other types', function() {
@@ -168,13 +141,13 @@ describe('Barista', function() {
       var date = new Date();
       var obj = {};
 
-      assert.isFalse(new bar.Property('X', bool).isObject());
-      assert.isFalse(new bar.Property('X', number).isObject());
-      assert.isFalse(new bar.Property('X', str).isObject());
-      assert.isFalse(new bar.Property('X', date).isObject());
-      assert.isFalse(new bar.Property('X', obj).isObject());
-      assert.isFalse(new bar.Property('X', null).isObject());
-      assert.isFalse(new bar.Property('X').isObject());
+      assert.isFalse(new barista.Property('X', bool).isObject());
+      assert.isFalse(new barista.Property('X', number).isObject());
+      assert.isFalse(new barista.Property('X', str).isObject());
+      assert.isFalse(new barista.Property('X', date).isObject());
+      assert.isFalse(new barista.Property('X', obj).isObject());
+      assert.isFalse(new barista.Property('X', null).isObject());
+      assert.isFalse(new barista.Property('X').isObject());
     });
   });
 
@@ -192,7 +165,7 @@ describe('Barista', function() {
         };
       };
 
-      var extractor = new bar.PropertyExtractor(ns, bar.newProperty);
+      var extractor = new barista.PropertyExtractor(ns, barista.newProperty);
 
       assert.equal(extractor.extract('prop1').name, 'prop1');
       assert.equal(extractor.extract('prop2').name, 'prop2');
@@ -232,54 +205,54 @@ describe('Barista', function() {
     });
 
     it('find() on empty map returns null', function() {
-      assert.equal(new bar.InjectionMapper({}).find('s', 'o'), null);
+      assert.equal(new barista.InjectionMapper({}).find('s', 'o'), null);
     });
 
     it('find() on map with one entry returns match', function() {
-      assert.equal(new bar.InjectionMapper(oneEntryDefaultMap).find('s', 'o', '_default'), 'found');
+      assert.equal(new barista.InjectionMapper(oneEntryDefaultMap).find('s', 'o', '_default'), 'found');
     });
 
     it('find() on map with one entry with many registration returns match', function() {
       oneEntryDefaultMap.s.o.other1 = 'x';
       oneEntryDefaultMap.s.o.other2 = 'x';
-      assert.equal(new bar.InjectionMapper(oneEntryDefaultMap).find('s', 'o', '_default'), 'found');
+      assert.equal(new barista.InjectionMapper(oneEntryDefaultMap).find('s', 'o', '_default'), 'found');
     });
 
     it('find() on map with one entry returns match by defaulting default', function() {
-      assert.equal(new bar.InjectionMapper(oneEntryDefaultMap).find('s', 'o'), 'found');
+      assert.equal(new barista.InjectionMapper(oneEntryDefaultMap).find('s', 'o'), 'found');
     });
 
     it('find() on map with one entry returns returns null when no registration match', function() {
-      assert.equal(new bar.InjectionMapper(oneEntryDefaultMap).find('s', 'o', 'notfound'), null);
+      assert.equal(new barista.InjectionMapper(oneEntryDefaultMap).find('s', 'o', 'notfound'), null);
     });
 
     it('find() on map with one entry returns returns null when no object match', function() {
-      assert.equal(new bar.InjectionMapper(oneEntryDefaultMap).find('s', 'oNoMatch'), null);
+      assert.equal(new barista.InjectionMapper(oneEntryDefaultMap).find('s', 'oNoMatch'), null);
     });
 
     it('find() on map with one entry returns returns null when no sourceNs match', function() {
-      assert.equal(new bar.InjectionMapper(oneEntryDefaultMap).find('sNoMatch'), null);
+      assert.equal(new barista.InjectionMapper(oneEntryDefaultMap).find('sNoMatch'), null);
     });
 
     it('find() on map with many entries returns match', function() {
-      assert.equal(new bar.InjectionMapper(manyEntriesDefaultMap).find('s1', 'o1', '_default'), 'found');
+      assert.equal(new barista.InjectionMapper(manyEntriesDefaultMap).find('s1', 'o1', '_default'), 'found');
     });
 
     it('find() on map with many entries not found returns null', function() {
-      assert.equal(new bar.InjectionMapper(manyEntriesDefaultMap).find('s1', 'o1', 'notfound'), null);
+      assert.equal(new barista.InjectionMapper(manyEntriesDefaultMap).find('s1', 'o1', 'notfound'), null);
     });
 
     it('map() on empty map returns mapping and sets _default', function() {
       var map = {};
       oneEntryDefaultMap.s.o.name = 'found';
 
-      new bar.InjectionMapper(map).map('s', 'o', 'name', 'found');
+      new barista.InjectionMapper(map).map('s', 'o', 'name', 'found');
       assert.deepEqual(map, oneEntryDefaultMap);
     });
 
     it('map() on empty map with null regname defaults regname to _default', function() {
       var map = {};
-      new bar.InjectionMapper(map).map('s', 'o', null, 'found');
+      new barista.InjectionMapper(map).map('s', 'o', null, 'found');
       assert.deepEqual(map, oneEntryDefaultMap);
     });
 
@@ -287,7 +260,7 @@ describe('Barista', function() {
       var map = copy(oneEntryDefaultMap);
       oneEntryDefaultMap.s.o.notDefault = 'newInvoker';
 
-      new bar.InjectionMapper(map).map('s', 'o', "notDefault", 'newInvoker');
+      new barista.InjectionMapper(map).map('s', 'o', "notDefault", 'newInvoker');
 
       assert.deepEqual(map, oneEntryDefaultMap);
     });
@@ -297,7 +270,7 @@ describe('Barista', function() {
       map.s.o.existingName = 'existingName';
       oneEntryDefaultMap.s.o.existingName = 'overwritten';
 
-      new bar.InjectionMapper(map).map('s', 'o', 'existingName', 'overwritten');
+      new barista.InjectionMapper(map).map('s', 'o', 'existingName', 'overwritten');
 
       assert.deepEqual(map, oneEntryDefaultMap);
     });
@@ -311,7 +284,7 @@ describe('Barista', function() {
         }
       };
 
-      new bar.InjectionMapper(map).map('s1', 'o1', 'name', 'found');
+      new barista.InjectionMapper(map).map('s1', 'o1', 'name', 'found');
 
       assert.deepEqual(map, oneEntryDefaultMap);
     });
@@ -321,7 +294,7 @@ describe('Barista', function() {
       map.s.o.existingReg = oneEntryDefaultMap.s.o.existingReg = 'existingReg';
       oneEntryDefaultMap.s.o.regname = 'found';
 
-      new bar.InjectionMapper(map).map('s', 'o', 'regname', 'found');
+      new barista.InjectionMapper(map).map('s', 'o', 'regname', 'found');
 
       assert.deepEqual(map, oneEntryDefaultMap);
     });
@@ -335,7 +308,7 @@ describe('Barista', function() {
         }
       };
 
-      new bar.InjectionMapper(map).map('s', 'o', 'regname', 'found');
+      new barista.InjectionMapper(map).map('s', 'o', 'regname', 'found');
 
       assert.deepEqual(map, manyEntriesDefaultMap);
     });
@@ -344,7 +317,7 @@ describe('Barista', function() {
       var map = copy(manyEntriesDefaultMap);
       manyEntriesDefaultMap.s1.o1.regname = 'found';
 
-      new bar.InjectionMapper(map).map('s1', 'o1', 'regname', 'found');
+      new barista.InjectionMapper(map).map('s1', 'o1', 'regname', 'found');
 
       assert.deepEqual(map, manyEntriesDefaultMap);
     });
@@ -352,19 +325,19 @@ describe('Barista', function() {
 
   describe('ArgsWrapper', function() {
     it('wrap() null args returns empty array', function() {
-      assert.deepEqual(new bar.ArgsWrapper().wrap(), []);
+      assert.deepEqual(new barista.ArgsWrapper().wrap(), []);
     });
 
     it('wrap() empty args returns empty array', function() {
-      assert.deepEqual(new bar.ArgsWrapper().wrap([]), []);
+      assert.deepEqual(new barista.ArgsWrapper().wrap([]), []);
     });
 
     it('wrap() one arg returns wrapped arg', function() {
-      assert.deepEqual(new bar.ArgsWrapper().wrap([1]), [{value: 1}]);
+      assert.deepEqual(new barista.ArgsWrapper().wrap([1]), [{value: 1}]);
     });
 
     it('wrap() many args returns wrapped args', function() {
-      assert.deepEqual(new bar.ArgsWrapper().wrap([1, 2, 3]), [{value: 1}, {value: 2}, {value: 3}]);
+      assert.deepEqual(new barista.ArgsWrapper().wrap([1, 2, 3]), [{value: 1}, {value: 2}, {value: 3}]);
     });
   });
 
@@ -372,7 +345,7 @@ describe('Barista', function() {
     var overrider;
 
     beforeEach(function() {
-      overrider = new bar.ArgsOverrider(new bar.ArgsWrapper());
+      overrider = new barista.ArgsOverrider(new barista.ArgsWrapper());
     });
 
     it('override() with null args and null params returns empty array', function() {
@@ -418,14 +391,14 @@ describe('Barista', function() {
 
   describe('ResolvedParam', function() {
     it('namespace, object, and name properties set when all present in key', function() {
-      var key = new bar.ResolvedParam('ns.object.name');
+      var key = new barista.ResolvedParam('ns.object.name');
       assert.equal(key.namespace, 'ns');
       assert.equal(key.object, 'object');
       assert.equal(key.name, 'name');
     });
 
     it('namespace, object, and name is defaulted to _default when absent', function() {
-      var key = new bar.ResolvedParam('ns.object');
+      var key = new barista.ResolvedParam('ns.object');
       assert.equal(key.namespace, 'ns');
       assert.equal(key.object, 'object');
       assert.equal(key.name, '_default');
@@ -443,12 +416,12 @@ describe('Barista', function() {
 
     beforeEach(function() {
       sandbox = sinon.sandbox.create();
-      mapper = new bar.InjectionMapper();
+      mapper = new barista.InjectionMapper();
       mockMapper = sandbox.mock(mapper);
       stubNewInjectionResolver = sandbox.stub();
-      injectionResolver = new bar.InjectionResolver();
+      injectionResolver = new barista.InjectionResolver();
       mockInjectionResolver = sandbox.mock(injectionResolver);
-      resolver = new bar.ParamResolver(mapper, stubNewInjectionResolver);
+      resolver = new barista.ParamResolver(mapper, stubNewInjectionResolver);
     });
 
     afterEach(function() {
@@ -488,9 +461,9 @@ describe('Barista', function() {
 
     beforeEach(function() {
       sandbox = sinon.sandbox.create();
-      paramResolver = new bar.ParamResolver();
+      paramResolver = new barista.ParamResolver();
       mockParamResolver = sandbox.mock(paramResolver);
-      resolver = new bar.InjectionResolver(paramResolver);
+      resolver = new barista.InjectionResolver(paramResolver);
     });
 
     afterEach(function() {
@@ -525,11 +498,11 @@ describe('Barista', function() {
 
     beforeEach(function() {
       sandbox = sinon.sandbox.create();
-      injectionResolver = new bar.InjectionResolver();
+      injectionResolver = new barista.InjectionResolver();
       mockInjectionResolver = sandbox.mock(injectionResolver);
-      argsOverrider = new bar.ArgsOverrider();
+      argsOverrider = new barista.ArgsOverrider();
       mockArgsOverrider = sandbox.mock(argsOverrider);
-      maker = new bar.Maker(argsOverrider, injectionResolver);
+      maker = new barista.Maker(argsOverrider, injectionResolver);
     });
 
     afterEach(function() {
@@ -608,9 +581,9 @@ describe('Barista', function() {
 
     beforeEach(function() {
       sandbox = sinon.sandbox.create();
-      maker = new bar.Maker();
+      maker = new barista.Maker();
       mockMaker = sandbox.mock(maker);
-      orderTaker = new bar.OrderTaker(maker);
+      orderTaker = new barista.OrderTaker(maker);
     });
 
     afterEach(function() {
@@ -655,11 +628,11 @@ describe('Barista', function() {
 
     beforeEach(function() {
       sandbox = sinon.sandbox.create();
-      mapper = new bar.InjectionMapper();
+      mapper = new barista.InjectionMapper();
       mockMapper = sandbox.mock(mapper);
-      orderTaker = new bar.OrderTaker();
+      orderTaker = new barista.OrderTaker();
       mockOrderTaker = sandbox.mock(orderTaker);
-      builder = new bar.InvokerBuilder(orderTaker, mapper);
+      builder = new barista.InvokerBuilder(orderTaker, mapper);
     });
 
     afterEach(function() {
@@ -677,14 +650,14 @@ describe('Barista', function() {
       mockMapper.expects('find').once().withExactArgs('ns', 'propName', 'registrationName').returns(null);
       mockOrderTaker.expects("orderPerDependency").withExactArgs('implementation', 'params').once().returns('invoker');
       mockMapper.expects('map').once().withExactArgs('ns', 'propName', 'registrationName', 'invoker');
-      assert.equal(builder.build('ns', {name: 'propName', implementation: 'implementation'}, {type: bar.perdependency, name: 'registrationName', params: 'params'}), 'invoker');
+      assert.equal(builder.build('ns', {name: 'propName', implementation: 'implementation'}, {type: barista.perdependency, name: 'registrationName', params: 'params'}), 'invoker');
     });
 
     it('build() with mapper not finding invoker creates singleton invoker, maps and returns', function() {
       mockMapper.expects('find').once().withExactArgs('ns', 'propName', 'registrationName').returns(null);
       mockOrderTaker.expects("orderSingleton").withExactArgs('implementation', 'params').once().returns('invoker');
       mockMapper.expects('map').once().withExactArgs('ns', 'propName', 'registrationName', 'invoker');
-      assert.equal(builder.build('ns', {name: 'propName', implementation: 'implementation'}, {type: bar.singleton, name: 'registrationName', params: 'params'}), 'invoker');
+      assert.equal(builder.build('ns', {name: 'propName', implementation: 'implementation'}, {type: barista.singleton, name: 'registrationName', params: 'params'}), 'invoker');
     });
   });
 
@@ -698,11 +671,11 @@ describe('Barista', function() {
 
     beforeEach(function() {
       sandbox = sinon.sandbox.create();
-      configMgr = new bar.ConfigManager();
+      configMgr = new barista.ConfigManager();
       mockConfigMgr = sandbox.mock(configMgr);
-      invokerBuilder = new bar.InvokerBuilder();
+      invokerBuilder = new barista.InvokerBuilder();
       mockInvokerBuilder = sandbox.mock(invokerBuilder);
-      builder = new bar.NamespaceBuilder(configMgr, invokerBuilder);
+      builder = new barista.NamespaceBuilder(configMgr, invokerBuilder);
     });
 
     afterEach(function() {
@@ -717,7 +690,7 @@ describe('Barista', function() {
 
     it('build() with one added non-object returns namespace with prop', function() {
       var implementation = 'impl',
-          prop = new bar.Property('impl', implementation);
+          prop = new barista.Property('impl', implementation);
 
       builder.add(prop);
 
@@ -727,9 +700,9 @@ describe('Barista', function() {
     });
 
     it('build() with one object with no registrations returns empty namespace', function() {
-      var prop = new bar.Property('Name', function() {
+      var prop = new barista.Property('Name', function() {
       });
-      mockConfigMgr.expects('getNs').once().returns('ns');
+      mockConfigMgr.expects('getNsName').once().returns('ns');
       mockConfigMgr.expects('getRegistrations').withExactArgs(prop.name).once().returns([]);
 
       builder.add(prop);
@@ -741,9 +714,9 @@ describe('Barista', function() {
       var registration = {
         name: 'notdefault'
       },
-          prop = new bar.Property('Name', function() {
+          prop = new barista.Property('Name', function() {
           });
-      mockConfigMgr.expects('getNs').once().returns('ns');
+      mockConfigMgr.expects('getNsName').once().returns('ns');
       mockConfigMgr.expects('getRegistrations').withExactArgs(prop.name).once().returns([registration]);
       mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, registration).returns('invoker');
 
@@ -756,9 +729,9 @@ describe('Barista', function() {
       var registration = {
         name: '_default'
       },
-          prop = new bar.Property('Name', function() {
+          prop = new barista.Property('Name', function() {
           });
-      mockConfigMgr.expects('getNs').once().returns('ns');
+      mockConfigMgr.expects('getNsName').once().returns('ns');
       mockConfigMgr.expects('getRegistrations').withExactArgs(prop.name).once().returns([registration]);
       mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, registration).returns('invoker');
 
@@ -773,9 +746,9 @@ describe('Barista', function() {
         {name: 'X'},
         {name: 'Y'}
       ],
-          prop = new bar.Property('Name', function() {
+          prop = new barista.Property('Name', function() {
           });
-      mockConfigMgr.expects('getNs').once().returns('ns');
+      mockConfigMgr.expects('getNsName').once().returns('ns');
       mockConfigMgr.expects('getRegistrations').withExactArgs(prop.name).once().returns(registrations);
       mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, registrations[0]).returns('invoker');
       mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, registrations[1]).returns('invokerX');
@@ -792,9 +765,9 @@ describe('Barista', function() {
         {name: 'Y'},
         {name: '_default'}
       ],
-          prop = new bar.Property('Name', function() {
+          prop = new barista.Property('Name', function() {
           });
-      mockConfigMgr.expects('getNs').once().returns('ns');
+      mockConfigMgr.expects('getNsName').once().returns('ns');
       mockConfigMgr.expects('getRegistrations').withExactArgs(prop.name).once().returns(registrations);
       mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, registrations[0]).returns('invokerX');
       mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, registrations[1]).returns('invokerY');
@@ -816,14 +789,14 @@ describe('Barista', function() {
             {name: 'X'},
             {name: 'Y'}
           ],
-          prop1 = new bar.Property('Name1', function() {
+          prop1 = new barista.Property('Name1', function() {
           }),
-          prop2 = new bar.Property('Name2', function() {
+          prop2 = new barista.Property('Name2', function() {
           }),
-          prop3 = new bar.Property('Name3', function() {
+          prop3 = new barista.Property('Name3', function() {
           });
 
-      mockConfigMgr.expects('getNs').thrice().returns('ns');
+      mockConfigMgr.expects('getNsName').thrice().returns('ns');
       mockConfigMgr.expects('getRegistrations').withExactArgs(prop1.name).once().returns(registrationsWithDefault);
       mockConfigMgr.expects('getRegistrations').withExactArgs(prop2.name).once().returns(registrationsWithoutDefault);
       mockConfigMgr.expects('getRegistrations').withExactArgs(prop3.name).once().returns(registrationsWithDefault);
@@ -848,21 +821,21 @@ describe('Barista', function() {
     });
   });
 
-  describe('Barista', function() {
+  describe('Processor', function() {
     var sandbox,
         builder,
         mockBuilder,
         extractor,
         mockExtractor,
-        barista;
+        processor;
 
     beforeEach(function() {
       sandbox = sinon.sandbox.create();
-      builder = new bar.NamespaceBuilder();
+      builder = new barista.NamespaceBuilder();
       mockBuilder = sandbox.mock(builder);
-      extractor = new bar.PropertyExtractor();
+      extractor = new barista.PropertyExtractor();
       mockExtractor = sandbox.mock(extractor);
-      barista = new bar.Barista(extractor, builder);
+      processor = new barista.Processor(extractor, builder);
     });
 
     afterEach(function() {
@@ -871,22 +844,22 @@ describe('Barista', function() {
       sandbox.restore();
     });
 
-    it('serve() with zero properties returns namespace', function() {
+    it('process() with zero properties returns namespace', function() {
       mockBuilder.expects('build').once().returns('namespace');
-      assert.equal(barista.serve({}), 'namespace');
+      assert.equal(processor.process({}), 'namespace');
     });
 
-    it('serve() with one property adds to namespace', function() {
+    it('process() with one property adds to namespace', function() {
       mockExtractor.expects('extract').withExactArgs('prop1').once().returns('extracted1');
       mockBuilder.expects('add').withExactArgs('extracted1').once();
       mockBuilder.expects('build').once().returns('namespace');
 
-      assert.deepEqual(barista.serve({
+      assert.deepEqual(processor.process({
         prop1: 1
       }), 'namespace');
     });
 
-    it('serve() with many properties adds to namespace', function() {
+    it('process() with many properties adds to namespace', function() {
       mockExtractor.expects('extract').withExactArgs('prop1').once().returns('extracted1');
       mockExtractor.expects('extract').withExactArgs('prop2').once().returns('extracted2');
       mockExtractor.expects('extract').withExactArgs('prop3').once().returns('extracted3');
@@ -897,7 +870,7 @@ describe('Barista', function() {
 
       mockBuilder.expects('build').once().returns('namespace');
 
-      assert.deepEqual(barista.serve({
+      assert.deepEqual(processor.process({
         prop1: 1,
         prop2: 2,
         prop3: 3
@@ -912,7 +885,7 @@ describe('Barista', function() {
         nsWidget;
 
     beforeEach(function() {
-      bar = new Barista();
+      barista = new Barista();
       nsSimple = function(dependency) {
         var prop1 = dependency;
 
@@ -1003,7 +976,7 @@ describe('Barista', function() {
           };
         }
 
-        function AddXsResponsibility(count) {
+        function AppendXsResponsibility(count) {
           function execute(context) {
             var i;
             for (i = 0; i < count; ++i) {
@@ -1018,7 +991,7 @@ describe('Barista', function() {
         return {
           PrependResponsibility: PrependResponsibility,
           PrependAndCapitalizeResponsibility: PrependAndCapitalizeResponsibility,
-          AddXsResponsibility: AddXsResponsibility
+          AppendXsResponsibility: AppendXsResponsibility
         };
       };
 
@@ -1057,13 +1030,13 @@ describe('Barista', function() {
     });
 
     it('singleton and perdependecy properites are exposed and set', function() {
-      assert.equal(bar.singleton, 'singleton');
-      assert.equal(bar.perdependency, 'perdependency');
+      assert.equal(barista.singleton, 'singleton');
+      assert.equal(barista.perdependency, 'perdependency');
     });
 
-    it('serve() with simple use controls instancing', function() {
-      var servedNs = bar.serve(new nsSimple('depends'), {
-        ObjDef2: {type: bar.singleton}
+    it('serve() with simple use controls instancing: ObjDef2 configured as singleton', function() {
+      var servedNs = barista.serve(new nsSimple('depends'), 'Simple', {
+        ObjDef2: {type: barista.singleton}
       }),
           obj1Instance1 = servedNs.ObjDef1(1),
           obj1Instance2 = servedNs.ObjDef1(2),
@@ -1078,18 +1051,17 @@ describe('Barista', function() {
       assert.equal(obj2Ref1, obj2Ref2);
     });
 
-    it('serve() with multiple namespaces and full dependency injection', function() {
-      var servedUtilsNs = bar.serve(new nsUtils(), {
-        ns: 'Utils',
+    it('serve() using multiple namespaces directly, including various instancing configurations, and full dependency injection', function() {
+      var servedUtilsNs = barista.serve(new nsUtils(), 'Utils', {
         Prepender: {params: [{value: '+'}]},
-        Capitalizer: {type: bar.singleton},
+        Capitalizer: {type: barista.singleton},
         ChainOfResponsibilities: [{
             name: 'widget1Controller',
             params: {
               array: [
                 {resolve: 'Responsibilities.PrependResponsibility'},
                 {resolve: 'Responsibilities.PrependAndCapitalizeResponsibility'},
-                {resolve: 'Responsibilities.AddXsResponsibility.x3'}
+                {resolve: 'Responsibilities.AppendXsResponsibility.x3'}
               ]
             }
           },
@@ -1098,19 +1070,17 @@ describe('Barista', function() {
             params: {
               array: [
                 {resolve: 'Responsibilities.PrependAndCapitalizeResponsibility'},
-                {resolve: 'Responsibilities.AddXsResponsibility.x1'}
+                {resolve: 'Responsibilities.AppendXsResponsibility.x1'}
               ]
             }
           }]
       }),
-          servedWidgetNs = bar.serve(new nsWidget(), {
-            ns: 'Widget',
+          servedWidgetNs = barista.serve(new nsWidget(), 'Widget', {
             Widget1: {params: {resolve: 'Utils.ChainOfResponsibilities.widget1Controller'}},
             Widget2: {params: {resolve: 'Utils.ChainOfResponsibilities.widget2Controller'}}
           });
 
-      bar.serve(new nsResponsibilities(), {
-        ns: 'Responsibilities',
+      barista.serve(new nsResponsibilities(), 'Responsibilities', {
         PrependResponsibility: {params: [{resolve: 'Utils.Prepender'}]},
         PrependAndCapitalizeResponsibility: {
           params: [
@@ -1118,7 +1088,7 @@ describe('Barista', function() {
             {resolve: 'Utils.Capitalizer'}
           ]
         },
-        AddXsResponsibility: [
+        AppendXsResponsibility: [
           {name: 'x3', params: {value: 3}},
           {name: 'x1', params: [{value: 1}]}
         ]
@@ -1129,9 +1099,8 @@ describe('Barista', function() {
       assert.equal(servedWidgetNs.Widget2().run('tenplusone'), 'Widget2+TENPLUSONEX');
     });
 
-    it('resolve() with multiple namespaces and full dependency injection', function() {
-      bar.serve(new nsUtils(), {
-        ns: 'Utils',
+    it('resolve() instead of using namespaces directly', function() {
+      barista.serve(new nsUtils(), 'Utils', {
         Tester: {
           name: 'notdefault',
           params: {
@@ -1142,14 +1111,14 @@ describe('Barista', function() {
           {params: [{value: '+'}]},
           {name: 'special', params: [{value: 'special'}]}
         ],
-        Capitalizer: {type: bar.singleton},
+        Capitalizer: {type: barista.singleton},
         ChainOfResponsibilities: [{
             name: 'widget1Controller',
             params: {
               array: [
                 {resolve: 'Responsibilities.PrependResponsibility'},
                 {resolve: 'Responsibilities.PrependAndCapitalizeResponsibility'},
-                {resolve: 'Responsibilities.AddXsResponsibility'}
+                {resolve: 'Responsibilities.AppendXsResponsibility'}
               ]
             }
           },
@@ -1158,14 +1127,13 @@ describe('Barista', function() {
             params: {
               array: [
                 {resolve: 'Responsibilities.PrependAndCapitalizeResponsibility'},
-                {resolve: 'Responsibilities.AddXsResponsibility.x1'}
+                {resolve: 'Responsibilities.AppendXsResponsibility.x1'}
               ]
             }
           }]
       });
 
-      bar.serve(new nsResponsibilities(), {
-        ns: 'Responsibilities',
+      barista.serve(new nsResponsibilities(), 'Responsibilities', {
         PrependResponsibility: {params: [{resolve: 'Utils.Prepender'}]},
         PrependAndCapitalizeResponsibility: {
           params: [
@@ -1173,27 +1141,26 @@ describe('Barista', function() {
             {resolve: 'Utils.Capitalizer'}
           ]
         },
-        AddXsResponsibility: [
+        AppendXsResponsibility: [
           {name: 'x3', params: {value: 3}},
           {name: 'x1', params: [{value: 1}]}
         ]
       });
 
-      bar.serve(new nsWidget(), {
-        ns: 'Widget',
+      barista.serve(new nsWidget(), 'Widget', {
         Widget1: {params: {resolve: 'Utils.ChainOfResponsibilities.widget1Controller'}},
         Widget2: {params: {resolve: 'Utils.ChainOfResponsibilities.widget2Controller'}}
       });
 
-      assert.equal(bar.resolve('Utils.Tester').test(), 'uses _default');
-      assert.equal(bar.resolve('Utils.Tester.notdefault').test(), 'uses _default');
-      assert.equal(bar.resolve('Widget.Widget1').run('eleven'), 'Widget1++ELEVENXXX');
-      assert.equal(bar.resolve('Widget.Widget1').run('eleven'), 'Widget1++ELEVENXXX');
-      assert.equal(bar.resolve('Widget.Widget2').run('tenplusone'), 'Widget2+TENPLUSONEX');
-      assert.equal(bar.resolve('Widget.Widget2', bar.resolve('Utils.ChainOfResponsibilities.widget1Controller')).run('tenplusone'), 'Widget2++TENPLUSONEXXX');
-      assert.equal(bar.resolve('Utils.Prepender.special').prepend('value'), 'specialvalue');
-      assert.equal(bar.resolve('Utils.Prepender.special', 'overriden1').prepend('value'), 'overriden1value');
-      assert.equal(bar.resolve('Utils.Prepender', 'overriden2').prepend('value'), 'overriden2value');
+      assert.equal(barista.resolve('Utils.Tester').test(), 'uses _default');
+      assert.equal(barista.resolve('Utils.Tester.notdefault').test(), 'uses _default');
+      assert.equal(barista.resolve('Widget.Widget1').run('eleven'), 'Widget1++ELEVENXXX');
+      assert.equal(barista.resolve('Widget.Widget1').run('eleven'), 'Widget1++ELEVENXXX');
+      assert.equal(barista.resolve('Widget.Widget2').run('tenplusone'), 'Widget2+TENPLUSONEX');
+      assert.equal(barista.resolve('Widget.Widget2', barista.resolve('Utils.ChainOfResponsibilities.widget1Controller')).run('tenplusone'), 'Widget2++TENPLUSONEXXX');
+      assert.equal(barista.resolve('Utils.Prepender.special').prepend('value'), 'specialvalue');
+      assert.equal(barista.resolve('Utils.Prepender.special', 'overriden1').prepend('value'), 'overriden1value');
+      assert.equal(barista.resolve('Utils.Prepender', 'overriden2').prepend('value'), 'overriden2value');
     });
   });
 });

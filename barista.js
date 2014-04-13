@@ -19,21 +19,15 @@ var Barista = function(injectionMap) {
       return registrations;
     }
 
-    function setNsDefault(config) {
-      config.ns = config.ns || 'namespace';
-      return config.ns;
-    }
-
     return {
-      setNsDefault: setNsDefault,
       setRegistrationDefaults: setRegistrationDefaults
     };
   }
 
-  function ConfigManager(config, configDefaulter) {
+  function ConfigManager(nsName, config, configDefaulter) {
     config = config || {};
-    function getNs() {
-      return configDefaulter.setNsDefault(config);
+    function getNsName() {
+      return nsName;
     }
 
     function getRegistrations(name) {
@@ -45,7 +39,7 @@ var Barista = function(injectionMap) {
 
     return {
       getRegistrations: getRegistrations,
-      getNs: getNs
+      getNsName: getNsName
     };
   }
 
@@ -261,11 +255,11 @@ var Barista = function(injectionMap) {
       'singleton': function(i, p) { return orderTaker.orderSingleton(i, p); }
     };
 
-    function build(ns, prop, registration) {
-      var invoker = injectionMapper.find(ns, prop.name, registration.name);
+    function build(nsName, prop, registration) {
+      var invoker = injectionMapper.find(nsName, prop.name, registration.name);
       if (!invoker) {
         invoker = typeMap[registration.type](prop.implementation, registration.params);
-        injectionMapper.map(ns, prop.name, registration.name, invoker);
+        injectionMapper.map(nsName, prop.name, registration.name, invoker);
       }
       return invoker;
     }
@@ -280,9 +274,9 @@ var Barista = function(injectionMap) {
 
     function addObject(prop) {
       var defaultInvoker,
-          ns = configMgr.getNs();
+          nsName = configMgr.getNsName();
       configMgr.getRegistrations(prop.name).forEach(function(registration) {
-        var invoker = invokerBuilder.build(ns, prop, registration);
+        var invoker = invokerBuilder.build(nsName, prop, registration);
         if (!defaultInvoker || registration.name === _default) {
           defaultInvoker = invoker;
         }
@@ -314,8 +308,8 @@ var Barista = function(injectionMap) {
     };
   }
 
-  function Barista(extractor, namespaceBuilder) {
-    function serve(ns) {
+  function Processor(extractor, namespaceBuilder) {
+    function process(ns) {
       var name;
       for (name in ns) {
         if (ns.hasOwnProperty(name)) {
@@ -326,16 +320,16 @@ var Barista = function(injectionMap) {
     }
 
     return {
-      serve: serve
+      process: process
     };
   }
 
-  function serve(ns, config) {
+  function serve(ns, nsName, config) {
     var injectionMapper = new InjectionMapper();
-    return new Barista(
+    return new Processor(
       new PropertyExtractor(ns, newProperty),
       new NamespaceBuilder(
-        new ConfigManager(config, new ConfigDefaulter()),
+        new ConfigManager(nsName, config, new ConfigDefaulter()),
         new InvokerBuilder(
           new OrderTaker(new Maker(
             new ArgsOverrider(new ArgsWrapper()),
@@ -344,7 +338,7 @@ var Barista = function(injectionMap) {
           injectionMapper
         )
       )
-    ).serve(ns);
+    ).process(ns);
   }
 
   function resolve(item) {
@@ -358,7 +352,7 @@ var Barista = function(injectionMap) {
     perdependency: _perdependency,
     serve: serve,
     resolve: resolve,
-    Barista: Barista,
+    Processor: Processor,
     ArgsOverrider: ArgsOverrider,
     ArgsWrapper: ArgsWrapper,
     InjectionResolver: InjectionResolver,
