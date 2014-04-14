@@ -1060,7 +1060,6 @@ describe('Barista', function() {
             params: {
               array: [
                 {resolve: 'Responsibilities.PrependResponsibility'},
-                {resolve: 'Responsibilities.PrependAndCapitalizeResponsibility'},
                 {resolve: 'Responsibilities.AppendXsResponsibility.x3'}
               ]
             }
@@ -1095,8 +1094,8 @@ describe('Barista', function() {
       });
 
       assert.equal(servedUtilsNs.Prepender('overriden').prepend('value'), 'overridenvalue');
-      assert.equal(servedWidgetNs.Widget1().run('eleven'), 'Widget1++ELEVENXXX');
-      assert.equal(servedWidgetNs.Widget2().run('tenplusone'), 'Widget2+TENPLUSONEX');
+      assert.equal(servedWidgetNs.Widget1().run('initial_value'), 'Widget1+initial_valueXXX');
+      assert.equal(servedWidgetNs.Widget2().run('initial_value'), 'Widget2+INITIAL_VALUEX');
     });
 
     it('resolve() instead of using namespaces directly', function() {
@@ -1117,7 +1116,6 @@ describe('Barista', function() {
             params: {
               array: [
                 {resolve: 'Responsibilities.PrependResponsibility'},
-                {resolve: 'Responsibilities.PrependAndCapitalizeResponsibility'},
                 {resolve: 'Responsibilities.AppendXsResponsibility'}
               ]
             }
@@ -1154,10 +1152,10 @@ describe('Barista', function() {
 
       assert.equal(barista.resolve('Utils.Tester').test(), 'uses _default');
       assert.equal(barista.resolve('Utils.Tester.notdefault').test(), 'uses _default');
-      assert.equal(barista.resolve('Widget.Widget1').run('eleven'), 'Widget1++ELEVENXXX');
-      assert.equal(barista.resolve('Widget.Widget1').run('eleven'), 'Widget1++ELEVENXXX');
-      assert.equal(barista.resolve('Widget.Widget2').run('tenplusone'), 'Widget2+TENPLUSONEX');
-      assert.equal(barista.resolve('Widget.Widget2', barista.resolve('Utils.ChainOfResponsibilities.widget1Controller')).run('tenplusone'), 'Widget2++TENPLUSONEXXX');
+      assert.equal(barista.resolve('Widget.Widget1').run('initial_value'), 'Widget1+initial_valueXXX');
+      assert.equal(barista.resolve('Widget.Widget1').run('initial_value'), 'Widget1+initial_valueXXX');
+      assert.equal(barista.resolve('Widget.Widget2').run('initial_value'), 'Widget2+INITIAL_VALUEX');
+      assert.equal(barista.resolve('Widget.Widget2', barista.resolve('Utils.ChainOfResponsibilities.widget1Controller')).run('initial_value'), 'Widget2+initial_valueXXX');
       assert.equal(barista.resolve('Utils.Prepender.special').prepend('value'), 'specialvalue');
       assert.equal(barista.resolve('Utils.Prepender.special', 'overriden1').prepend('value'), 'overriden1value');
       assert.equal(barista.resolve('Utils.Prepender', 'overriden2').prepend('value'), 'overriden2value');
