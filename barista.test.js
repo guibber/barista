@@ -976,12 +976,21 @@ describe('Barista', function() {
           };
         }
 
-        function AppendXsResponsibility(count) {
+        function AppendPlusesResponsibility(count) {
           function execute(context) {
             var i;
             for (i = 0; i < count; ++i) {
-              context.value = context.value + 'X';
+              context.value = context.value + '+';
             }
+          }
+          return {
+            execute: execute
+          };
+        }
+
+        function WrapResponsibility() {
+          function execute(context) {
+            context.value = '[' + context.value + ']';
           }
           return {
             execute: execute
@@ -991,7 +1000,8 @@ describe('Barista', function() {
         return {
           PrependResponsibility: PrependResponsibility,
           PrependAndCapitalizeResponsibility: PrependAndCapitalizeResponsibility,
-          AppendXsResponsibility: AppendXsResponsibility
+          AppendPlusesResponsibility: AppendPlusesResponsibility,
+          WrapResponsibility: WrapResponsibility
         };
       };
 
@@ -1053,14 +1063,15 @@ describe('Barista', function() {
 
     it('serve() using multiple namespaces directly, including various instancing configurations, and full dependency injection', function() {
       var servedUtilsNs = barista.serve(new nsUtils(), 'Utils', {
-        Prepender: {params: [{value: '+'}]},
+        Prepender: {params: [{value: '-'}]},
         Capitalizer: {type: barista.singleton},
         ChainOfResponsibilities: [{
             name: 'widget1Controller',
             params: {
               array: [
                 {resolve: 'Responsibilities.PrependResponsibility'},
-                {resolve: 'Responsibilities.AppendXsResponsibility.x3'}
+                {resolve: 'Responsibilities.AppendPlusesResponsibility.p3'},
+                {resolve: 'Responsibilities.WrapResponsibility'}
               ]
             }
           },
@@ -1069,7 +1080,8 @@ describe('Barista', function() {
             params: {
               array: [
                 {resolve: 'Responsibilities.PrependAndCapitalizeResponsibility'},
-                {resolve: 'Responsibilities.AppendXsResponsibility.x1'}
+                {resolve: 'Responsibilities.AppendPlusesResponsibility.p1'},
+                {resolve: 'Responsibilities.WrapResponsibility'}
               ]
             }
           }]
@@ -1087,15 +1099,15 @@ describe('Barista', function() {
             {resolve: 'Utils.Capitalizer'}
           ]
         },
-        AppendXsResponsibility: [
-          {name: 'x3', params: {value: 3}},
-          {name: 'x1', params: [{value: 1}]}
+        AppendPlusesResponsibility: [
+          {name: 'p3', params: {value: 3}},
+          {name: 'p1', params: [{value: 1}]}
         ]
       });
 
       assert.equal(servedUtilsNs.Prepender('overriden').prepend('value'), 'overridenvalue');
-      assert.equal(servedWidgetNs.Widget1().run('initial_value'), 'Widget1+initial_valueXXX');
-      assert.equal(servedWidgetNs.Widget2().run('initial_value'), 'Widget2+INITIAL_VALUEX');
+      assert.equal(servedWidgetNs.Widget1().run('initial_value'), 'Widget1[-initial_value+++]');
+      assert.equal(servedWidgetNs.Widget2().run('initial_value'), 'Widget2[-INITIAL_VALUE+]');
     });
 
     it('resolve() instead of using namespaces directly', function() {
@@ -1107,7 +1119,7 @@ describe('Barista', function() {
           }
         },
         Prepender: [
-          {params: [{value: '+'}]},
+          {params: [{value: '-'}]},
           {name: 'special', params: [{value: 'special'}]}
         ],
         Capitalizer: {type: barista.singleton},
@@ -1116,7 +1128,8 @@ describe('Barista', function() {
             params: {
               array: [
                 {resolve: 'Responsibilities.PrependResponsibility'},
-                {resolve: 'Responsibilities.AppendXsResponsibility'}
+                {resolve: 'Responsibilities.AppendPlusesResponsibility'},
+                {resolve: 'Responsibilities.WrapResponsibility'}
               ]
             }
           },
@@ -1125,7 +1138,8 @@ describe('Barista', function() {
             params: {
               array: [
                 {resolve: 'Responsibilities.PrependAndCapitalizeResponsibility'},
-                {resolve: 'Responsibilities.AppendXsResponsibility.x1'}
+                {resolve: 'Responsibilities.AppendPlusesResponsibility.p1'},
+                {resolve: 'Responsibilities.WrapResponsibility'}
               ]
             }
           }]
@@ -1139,9 +1153,9 @@ describe('Barista', function() {
             {resolve: 'Utils.Capitalizer'}
           ]
         },
-        AppendXsResponsibility: [
-          {name: 'x3', params: {value: 3}},
-          {name: 'x1', params: [{value: 1}]}
+        AppendPlusesResponsibility: [
+          {name: 'p3', params: {value: 3}},
+          {name: 'p1', params: [{value: 1}]}
         ]
       });
 
@@ -1152,10 +1166,10 @@ describe('Barista', function() {
 
       assert.equal(barista.resolve('Utils.Tester').test(), 'uses _default');
       assert.equal(barista.resolve('Utils.Tester.notdefault').test(), 'uses _default');
-      assert.equal(barista.resolve('Widget.Widget1').run('initial_value'), 'Widget1+initial_valueXXX');
-      assert.equal(barista.resolve('Widget.Widget1').run('initial_value'), 'Widget1+initial_valueXXX');
-      assert.equal(barista.resolve('Widget.Widget2').run('initial_value'), 'Widget2+INITIAL_VALUEX');
-      assert.equal(barista.resolve('Widget.Widget2', barista.resolve('Utils.ChainOfResponsibilities.widget1Controller')).run('initial_value'), 'Widget2+initial_valueXXX');
+      assert.equal(barista.resolve('Widget.Widget1').run('initial_value'), 'Widget1[-initial_value+++]');
+      assert.equal(barista.resolve('Widget.Widget1').run('initial_value'), 'Widget1[-initial_value+++]');
+      assert.equal(barista.resolve('Widget.Widget2').run('initial_value'), 'Widget2[-INITIAL_VALUE+]');
+      assert.equal(barista.resolve('Widget.Widget2', barista.resolve('Utils.ChainOfResponsibilities.widget1Controller')).run('initial_value'), 'Widget2[-initial_value+++]');
       assert.equal(barista.resolve('Utils.Prepender.special').prepend('value'), 'specialvalue');
       assert.equal(barista.resolve('Utils.Prepender.special', 'overriden1').prepend('value'), 'overriden1value');
       assert.equal(barista.resolve('Utils.Prepender', 'overriden2').prepend('value'), 'overriden2value');
