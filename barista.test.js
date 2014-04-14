@@ -884,14 +884,17 @@ describe('Barista', function() {
   });
 
   describe('Barista Namespace', function() {
-    var nsSimple,
-        nsUtils,
-        nsResponsibilities,
-        nsWidget;
-
     beforeEach(function() {
       barista = new Barista();
-      nsSimple = function(dependency) {
+    });
+
+    it('singleton and perdependecy properites are exposed and set', function() {
+      assert.equal(barista.singleton, 'singleton');
+      assert.equal(barista.perdependency, 'perdependency');
+    });
+
+    it('serve() with simple use controls instancing: ObjDef2 configured as singleton', function() {
+      var nsSimple = function(dependency) {
         var prop1 = dependency;
 
         function ObjDef1(param) {
@@ -913,9 +916,25 @@ describe('Barista', function() {
           ObjDef1: ObjDef1,
           ObjDef2: ObjDef2
         };
-      };
+      },
+          servedNs = barista.serve(new nsSimple('depends'), 'Simple', {
+            ObjDef2: {type: barista.singleton}
+          }),
+          obj1Instance1 = servedNs.ObjDef1(1),
+          obj1Instance2 = servedNs.ObjDef1(2),
+          obj2Ref1 = servedNs.ObjDef2(3),
+          obj2Ref2 = servedNs.ObjDef2(4);
 
-      nsUtils = function() {
+      assert.propertyVal(servedNs, 'prop1', 'depends');
+      assert.equal(obj1Instance1.getParam(), 1);
+      assert.equal(obj1Instance2.getParam(), 2);
+      assert.equal(obj2Ref1.getParam(), 3);
+      assert.equal(obj2Ref2.getParam(), 3);
+      assert.equal(obj2Ref1, obj2Ref2);
+    });
+
+    it('serve() and resolve using multiple namespaces directly, including various instancing configurations, and full dependency injection', function() {
+      var nsUtils = function() {
         function Tester(value) {
           function test() {
             return value;
@@ -954,7 +973,18 @@ describe('Barista', function() {
           };
         }
 
+
+        function addAlternatingChar(value, character) {
+          var i,
+              ret = '';
+          for (i = 0; i < value.length; ++i) {
+            ret += value.charAt(i) + character;
+          }
+          return ret;
+        }
+
         return {
+          addAlternatingChar: addAlternatingChar,
           Tester: Tester,
           Prepender: Prepender,
           Capitalizer: Capitalizer,
@@ -1041,34 +1071,24 @@ describe('Barista', function() {
           Widget1: Widget1,
           Widget2: Widget2
         };
-      };
-    });
-
-    it('singleton and perdependecy properites are exposed and set', function() {
-      assert.equal(barista.singleton, 'singleton');
-      assert.equal(barista.perdependency, 'perdependency');
-    });
-
-    it('serve() with simple use controls instancing: ObjDef2 configured as singleton', function() {
-      var servedNs = barista.serve(new nsSimple('depends'), 'Simple', {
-        ObjDef2: {type: barista.singleton}
-      }),
-          obj1Instance1 = servedNs.ObjDef1(1),
-          obj1Instance2 = servedNs.ObjDef1(2),
-          obj2Ref1 = servedNs.ObjDef2(3),
-          obj2Ref2 = servedNs.ObjDef2(4);
-
-      assert.propertyVal(servedNs, 'prop1', 'depends');
-      assert.equal(obj1Instance1.getParam(), 1);
-      assert.equal(obj1Instance2.getParam(), 2);
-      assert.equal(obj2Ref1.getParam(), 3);
-      assert.equal(obj2Ref2.getParam(), 3);
-      assert.equal(obj2Ref1, obj2Ref2);
-    });
-
-    it('serve() using multiple namespaces directly, including various instancing configurations, and full dependency injection', function() {
-      var servedUtilsNs = barista.serve(new nsUtils(), 'Utils', {
-        Prepender: {params: [{value: '-'}]},
+      },
+      servedUtilsNs = barista.serve(new nsUtils(), 'Utils', {
+        addAlternatingChar: {
+          params: [
+            {value: 'default'},
+            {value: ' '}
+          ]
+        },
+        Tester: {
+          name: 'notdefault',
+          params: {
+            value: 'uses _default'
+          }
+        },
+        Prepender: [
+          {params: [{value: '-'}]},
+          {name: 'special', params: [{value: 'special'}]}
+        ],
         Capitalizer: {type: barista.singleton},
         ChainOfResponsibilities: [{
             name: 'widget1Controller',
@@ -1091,10 +1111,10 @@ describe('Barista', function() {
             }
           }]
       }),
-          servedWidgetNs = barista.serve(new nsWidget(), 'Widget', {
-            Widget1: {params: {resolve: 'Utils.ChainOfResponsibilities.widget1Controller'}},
-            Widget2: {params: {resolve: 'Utils.ChainOfResponsibilities.widget2Controller'}}
-          });
+      servedWidgetNs = barista.serve(new nsWidget(), 'Widget', {
+        Widget1: {params: {resolve: 'Utils.ChainOfResponsibilities.widget1Controller'}},
+        Widget2: {params: {resolve: 'Utils.ChainOfResponsibilities.widget2Controller'}}
+      });
 
       barista.serve(new nsResponsibilities(), 'Responsibilities', {
         PrependResponsibility: {params: [{resolve: 'Utils.Prepender'}]},
@@ -1113,61 +1133,8 @@ describe('Barista', function() {
       assert.equal(servedUtilsNs.Prepender('overriden').prepend('value'), 'overridenvalue');
       assert.equal(servedWidgetNs.Widget1().run('initial_value'), 'Widget1[-initial_value+++]');
       assert.equal(servedWidgetNs.Widget2().run('initial_value'), 'Widget2[-INITIAL_VALUE+]');
-    });
-
-    it('resolve() instead of using namespaces directly', function() {
-      barista.serve(new nsUtils(), 'Utils', {
-        Tester: {
-          name: 'notdefault',
-          params: {
-            value: 'uses _default'
-          }
-        },
-        Prepender: [
-          {params: [{value: '-'}]},
-          {name: 'special', params: [{value: 'special'}]}
-        ],
-        Capitalizer: {type: barista.singleton},
-        ChainOfResponsibilities: [{
-            name: 'widget1Controller',
-            params: {
-              array: [
-                {resolve: 'Responsibilities.PrependResponsibility'},
-                {resolve: 'Responsibilities.AppendPlusesResponsibility'},
-                {resolve: 'Responsibilities.WrapResponsibility'}
-              ]
-            }
-          },
-          {
-            name: 'widget2Controller',
-            params: {
-              array: [
-                {resolve: 'Responsibilities.PrependAndCapitalizeResponsibility'},
-                {resolve: 'Responsibilities.AppendPlusesResponsibility.p1'},
-                {resolve: 'Responsibilities.WrapResponsibility'}
-              ]
-            }
-          }]
-      });
-
-      barista.serve(new nsResponsibilities(), 'Responsibilities', {
-        PrependResponsibility: {params: [{resolve: 'Utils.Prepender'}]},
-        PrependAndCapitalizeResponsibility: {
-          params: [
-            {resolve: 'Utils.Prepender'},
-            {resolve: 'Utils.Capitalizer'}
-          ]
-        },
-        AppendPlusesResponsibility: [
-          {name: 'p3', params: {value: 3}},
-          {name: 'p1', params: [{value: 1}]}
-        ]
-      });
-
-      barista.serve(new nsWidget(), 'Widget', {
-        Widget1: {params: {resolve: 'Utils.ChainOfResponsibilities.widget1Controller'}},
-        Widget2: {params: {resolve: 'Utils.ChainOfResponsibilities.widget2Controller'}}
-      });
+      assert.equal(servedUtilsNs.addAlternatingChar('value'), 'v a l u e ');
+      assert.equal(servedUtilsNs.addAlternatingChar('value', '-'), 'v-a-l-u-e-');
 
       assert.equal(barista.resolve('Utils.Tester').test(), 'uses _default');
       assert.equal(barista.resolve('Utils.Tester.notdefault').test(), 'uses _default');
@@ -1178,29 +1145,8 @@ describe('Barista', function() {
       assert.equal(barista.resolve('Utils.Prepender.special').prepend('value'), 'specialvalue');
       assert.equal(barista.resolve('Utils.Prepender.special', 'overriden1').prepend('value'), 'overriden1value');
       assert.equal(barista.resolve('Utils.Prepender', 'overriden2').prepend('value'), 'overriden2value');
-    });
-
-    it('serve() and resolve() namespace functions execute function with configured params or overriden args', function() {
-      var ns = function() {
-        function onePlusX(x) {
-          return 1 + x;
-        }
-
-        function TwoPlusTwoer() {
-          return {sum: 4};
-        }
-        return {
-          onePlusX: onePlusX,
-          TwoPlusTwoer: TwoPlusTwoer
-        };
-      },
-          servedNs = barista.serve(new ns(), 'Test', {
-            onePlusX: {params: {value: 5}}
-          });
-
-      assert.equal(servedNs.onePlusX(), 6);
-      assert.equal(servedNs.onePlusX(4), 5);
-      assert.equal(barista.resolve('Test.onePlusX'), 6);
+      assert.equal(barista.resolve('Utils.addAlternatingChar', 'value'), 'v a l u e ');
+      assert.equal(barista.resolve('Utils.addAlternatingChar', 'value', '-'), 'v-a-l-u-e-');
     });
   });
 });
