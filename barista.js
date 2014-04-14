@@ -48,12 +48,8 @@ var Barista = function(injectionMap) {
       return typeof(implementation) === 'function';
     }
 
-    function isFirstLetterCapital() {
-      return (/^[A-Z]/).test(name);
-    }
-
     function isObject() {
-      return isFunction() && isFirstLetterCapital();
+      return isFunction();
     }
 
     return {
@@ -217,7 +213,7 @@ var Barista = function(injectionMap) {
       var proto = Object(implementation.prototype) === implementation.prototype ? implementation.prototype : {}.prototype,
           obj = Object.create(proto),
           ret = implementation.apply(obj, injectionResolver.resolve(argsOverrider.override(params, args)));
-      return Object(ret) === ret ? ret : obj;
+      return ret && (Object(ret) === ret || typeof(ret) !== 'object') ? ret : obj;
     }
 
     return {

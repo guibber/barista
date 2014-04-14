@@ -122,16 +122,10 @@ describe('Barista', function() {
       assert.equal(property.implementation, ObjectDef);
     });
 
-    it('isObject() returns true for functions starting with capital letter', function() {
-      var ObjectDef = function() {
+    it('isObject() returns true for functions', function() {
+      var objectDef = function() {
       };
-      assert.isTrue(new barista.Property('Name', ObjectDef).isObject());
-    });
-
-    it('isObject() returns false for functions starting with lowercase letter', function() {
-      var ObjectDef = function() {
-      };
-      assert.isFalse(new barista.Property('name', ObjectDef).isObject());
+      assert.isTrue(new barista.Property('Name', objectDef).isObject());
     });
 
     it('isObject() returns false for all other types', function() {
@@ -570,6 +564,17 @@ describe('Barista', function() {
       assert.equal(actual.getValue(), 'resolved1X');
       assert.equal(actual.getValue(), expected.getValue());
       assert.deepEqual(actual, expected);
+    });
+
+    it('make() on function execution result', function() {
+      var someFunc = function(args1) {
+        return args1;
+      };
+
+      mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns('overriden_params');
+      mockInjectionResolver.expects('resolve').once().withExactArgs('overriden_params').returns(['resolved1']);
+
+      assert.equal(maker.make(someFunc, ['param1'], ['arg1']), 'resolved1');
     });
   });
 
@@ -1173,6 +1178,29 @@ describe('Barista', function() {
       assert.equal(barista.resolve('Utils.Prepender.special').prepend('value'), 'specialvalue');
       assert.equal(barista.resolve('Utils.Prepender.special', 'overriden1').prepend('value'), 'overriden1value');
       assert.equal(barista.resolve('Utils.Prepender', 'overriden2').prepend('value'), 'overriden2value');
+    });
+
+    it('serve() and resolve() namespace functions execute function with configured params or overriden args', function() {
+      var ns = function() {
+        function onePlusX(x) {
+          return 1 + x;
+        }
+
+        function TwoPlusTwoer() {
+          return {sum: 4};
+        }
+        return {
+          onePlusX: onePlusX,
+          TwoPlusTwoer: TwoPlusTwoer
+        };
+      },
+          servedNs = barista.serve(new ns(), 'Test', {
+            onePlusX: {params: {value: 5}}
+          });
+
+      assert.equal(servedNs.onePlusX(), 6);
+      assert.equal(servedNs.onePlusX(4), 5);
+      assert.equal(barista.resolve('Test.onePlusX'), 6);
     });
   });
 });
