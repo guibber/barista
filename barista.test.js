@@ -1,4 +1,245 @@
 describe('Barista', function() {
+  describe('Configuration', function() {
+    it('get() with nothing configured returns empty object', function() {
+      assert.deepEqual(barista.configuration().get(), {});
+    });
+
+    it('get() with one configure() returns defaulted name, params, and type', function() {
+      assert.deepEqual(barista.configuration()
+        .configure('one')
+        .get(), {one: [{name: '_default', params: [], type: 'perdependency'}]});
+    });
+
+    it('get() with one configure.asSingleton() is configured as singleton', function() {
+      assert.deepEqual(barista.configuration()
+        .configure('one')
+        .asSingleton()
+        .get(), {one: [{name: '_default', params: [], type: 'singleton'}]});
+    });
+
+    it('get() with one configure.asPerDependency() is configured as perdependency', function() {
+      assert.deepEqual(barista.configuration()
+        .configure('one')
+        .asPerDependency()
+        .get(), {one: [{name: '_default', params: [], type: 'perdependency'}]});
+    });
+
+    it('get() with one configure.asName() configures name', function() {
+      assert.deepEqual(barista.configuration()
+        .configure('one')
+        .asName('name')
+        .get(), {one: [{name: 'name', params: [], type: 'perdependency'}]});
+    });
+
+    it('get() with one configure.withValueParam() sets value param', function() {
+      assert.deepEqual(barista.configuration()
+        .configure('one')
+        .withValueParam('value')
+        .get(), {one: [{name: '_default', params: [{value: 'value'}], type: 'perdependency'}]});
+    });
+
+    it('get() with one configure.withResolveParam() sets resolve param', function() {
+      assert.deepEqual(barista.configuration()
+        .configure('one')
+        .withResolveParam('resolve')
+        .get(), {one: [{name: '_default', params: [{resolve: 'resolve'}], type: 'perdependency'}]});
+    });
+
+    it('get() with one configure.withFuncParam() sets func param', function() {
+      assert.deepEqual(barista.configuration()
+        .configure('one')
+        .withFuncParam('func')
+        .get(), {one: [{name: '_default', params: [{func: 'func'}], type: 'perdependency'}]});
+    });
+
+    it('get() with one configure.withArrayParam() sets empty array param', function() {
+      assert.deepEqual(barista.configuration()
+        .configure('one')
+        .withArrayParam()
+        .get(), {one: [{name: '_default', params: [{array: []}], type: 'perdependency'}]});
+    });
+
+    it('get() with one configure.withArrayParam.includingResolveParam() sets array param with one resolve param', function() {
+      assert.deepEqual(barista.configuration()
+        .configure('one')
+        .withArrayParam()
+        .includingResolveParam('resolve1')
+        .get(), {one: [{name: '_default', params: [{array: [{resolve: 'resolve1'}]}], type: 'perdependency'}]});
+    });
+
+    it('get() with one configure.withArrayParam.includingValueParam() sets array param with one value param', function() {
+      assert.deepEqual(barista.configuration()
+        .configure('one')
+        .withArrayParam()
+        .includingValueParam('value1')
+        .get(), {one: [{name: '_default', params: [{array: [{value: 'value1'}]}], type: 'perdependency'}]});
+    });
+
+    it('get() with one configure.withArrayParam.includingFuncParam() sets array param with one func param', function() {
+      assert.deepEqual(barista.configuration()
+        .configure('one')
+        .withArrayParam()
+        .includingFuncParam('func1')
+        .get(), {one: [{name: '_default', params: [{array: [{func: 'func1'}]}], type: 'perdependency'}]});
+    });
+
+    it('get() with many configure() of same object sets array of default configs', function() {
+      assert.deepEqual(barista.configuration()
+        .configure('one')
+        .configure('one')
+        .configure('one')
+        .get(), {
+          one: [{name: '_default', params: [], type: 'perdependency'},
+            {name: '_default', params: [], type: 'perdependency'},
+            {name: '_default', params: [], type: 'perdependency'}]
+        });
+    });
+
+    it('get() with many configure() sets defaults', function() {
+      assert.deepEqual(barista.configuration()
+        .configure('one')
+        .configure('two')
+        .configure('three')
+        .get(), {
+          one: [{name: '_default', params: [], type: 'perdependency'}],
+          two: [{name: '_default', params: [], type: 'perdependency'}],
+          three: [{name: '_default', params: [], type: 'perdependency'}]
+        });
+    });
+
+    it('get() with many configure using all options configures correctly', function() {
+      assert.deepEqual(barista.configuration()
+        .configure('one')
+        .asName('one')
+        .asSingleton()
+        .withValueParam('one-value')
+        .withFuncParam('one-func')
+        .withResolveParam('one-resolve')
+        .withArrayParam()
+        .includingValueParam('array-value')
+        .includingFuncParam('array-func')
+        .includingResolveParam('array-resolve')
+        .configure('two')
+        .asName('two')
+        .asPerDependency()
+        .withValueParam('two-value')
+        .withFuncParam('two-func')
+        .withResolveParam('two-resolve')
+        .withArrayParam()
+        .includingValueParam('array-value')
+        .includingFuncParam('array-func')
+        .includingResolveParam('array-resolve')
+        .configure('three')
+        .withValueParam('three-value')
+        .withFuncParam('three-func')
+        .withResolveParam('three-resolve')
+        .withArrayParam()
+        .includingValueParam('array-value')
+        .includingFuncParam('array-func')
+        .includingResolveParam('array-resolve')
+        .get(), {
+          one: [{
+            name: 'one',
+            params: [
+              {value: 'one-value'},
+              {func: 'one-func'},
+              {resolve: 'one-resolve'},
+              {
+                array: [
+                  {value: 'array-value'},
+                  {func: 'array-func'},
+                  {resolve: 'array-resolve'}
+                ]
+              }
+            ],
+            type: 'singleton'
+          }],
+          two: [{
+            name: 'two',
+            params: [
+              {value: 'two-value'},
+              {func: 'two-func'},
+              {resolve: 'two-resolve'},
+              {
+                array: [
+                  {value: 'array-value'},
+                  {func: 'array-func'},
+                  {resolve: 'array-resolve'}
+                ]
+              }
+            ],
+            type: 'perdependency'
+          }],
+          three: [{
+            name: '_default',
+            params: [
+              {value: 'three-value'},
+              {func: 'three-func'},
+              {resolve: 'three-resolve'},
+              {
+                array: [
+                  {value: 'array-value'},
+                  {func: 'array-func'},
+                  {resolve: 'array-resolve'}
+                ]
+              }
+            ],
+            type: 'perdependency'
+          }]
+        });
+    });
+    
+    it('calling asName() without configure() throws', function() {
+      assert.throw(function() {barista.configuration().asName();}, 'call to asName() without call to configure() is invalid');
+    });
+    
+    it('calling asSingleton() without configure() throws', function() {
+      assert.throw(function() {barista.configuration().asSingleton();}, 'call to asSingleton() without call to configure() is invalid');
+    });
+    
+    it('calling asPerDependency() without configure() throws', function() {
+      assert.throw(function() {barista.configuration().asPerDependency();}, 'call to asPerDependency() without call to configure() is invalid');
+    });
+    
+    it('calling withResolveParam() without configure() throws', function() {
+      assert.throw(function() {barista.configuration().withResolveParam();}, 'call to withResolveParam() without call to configure() is invalid');
+    });
+    
+    it('calling withValueParam() without configure() throws', function() {
+      assert.throw(function() {barista.configuration().withValueParam();}, 'call to withValueParam() without call to configure() is invalid');
+    });
+    
+    it('calling withFuncParam() without configure() throws', function() {
+      assert.throw(function() {barista.configuration().withFuncParam();}, 'call to withFuncParam() without call to configure() is invalid');
+    });
+    
+    it('calling withArrayParam() without configure() throws', function() {
+      assert.throw(function() {barista.configuration().withArrayParam();}, 'call to withArrayParam() without call to configure() is invalid');
+    });
+    
+    it('calling includingResolveParam() without withArrayParam() throws', function() {
+      assert.throw(function() {barista.configuration().includingResolveParam();}, 'call to includingResolveParam() without call to withArrayParam() is invalid');
+    });
+    
+    it('calling includingValueParam() without withArrayParam() throws', function() {
+      assert.throw(function() {barista.configuration().includingValueParam();}, 'call to includingValueParam() without call to withArrayParam() is invalid');
+    });
+    
+    it('calling includingFuncParam() without withArrayParam() throws', function() {
+      assert.throw(function() {barista.configuration().includingFuncParam();}, 'call to includingFuncParam() without call to withArrayParam() is invalid');
+    });
+    
+    it('calling includingResolveParam() after configure() without withArrayParam() throws', function() {
+      assert.throw(function() {barista.configuration()
+        .configure('one')
+        .withArrayParam()
+        .includingResolveParam('resolve')
+        .configure('one')
+        .includingResolveParam('resolve');
+      }, 'call to includingResolveParam() without call to withArrayParam() is invalid');
+    });
+  });
+
   describe('ConfigDefaulter', function() {
     var defaultConfig = {
       type: barista.perdependency,
@@ -917,9 +1158,7 @@ describe('Barista', function() {
           ObjDef2: ObjDef2
         };
       },
-          servedNs = barista.serve(new nsSimple('depends'), 'Simple', {
-            ObjDef2: {type: barista.singleton}
-          }),
+          servedNs = barista.serve(new nsSimple('depends'), 'Simple', barista.configuration().configure('ObjDef2').asSingleton().get()),
           obj1Instance1 = servedNs.ObjDef1(1),
           obj1Instance2 = servedNs.ObjDef1(2),
           obj2Ref1 = servedNs.ObjDef2(3),
@@ -1072,63 +1311,37 @@ describe('Barista', function() {
           Widget2: Widget2
         };
       },
-      servedUtilsNs = barista.serve(new nsUtils(), 'Utils', {
-        addAlternatingChar: {
-          params: [
-            {value: 'default'},
-            {value: ' '}
-          ]
-        },
-        Tester: {
-          name: 'notdefault',
-          params: {
-            value: 'uses _default'
-          }
-        },
-        Prepender: [
-          {params: [{value: '-'}]},
-          {name: 'special', params: [{value: 'special'}]}
-        ],
-        Capitalizer: {type: barista.singleton},
-        ChainOfResponsibilities: [{
-            name: 'widget1Controller',
-            params: {
-              array: [
-                {resolve: 'Responsibilities.PrependResponsibility'},
-                {resolve: 'Responsibilities.AppendPlusesResponsibility.p3'},
-                {resolve: 'Responsibilities.WrapResponsibility'}
-              ]
-            }
-          },
-          {
-            name: 'widget2Controller',
-            params: {
-              array: [
-                {resolve: 'Responsibilities.PrependAndCapitalizeResponsibility'},
-                {resolve: 'Responsibilities.AppendPlusesResponsibility.p1'},
-                {resolve: 'Responsibilities.WrapResponsibility'}
-              ]
-            }
-          }]
-      }),
-      servedWidgetNs = barista.serve(new nsWidget(), 'Widget', {
-        Widget1: {params: {resolve: 'Utils.ChainOfResponsibilities.widget1Controller'}},
-        Widget2: {params: {resolve: 'Utils.ChainOfResponsibilities.widget2Controller'}}
-      });
+      servedUtilsNs = barista.serve(new nsUtils(), 'Utils', barista.configuration()
+        .configure('addAlternatingChar').withValueParam('default').withValueParam(' ')
+        .configure('Tester').asName('notdefault').withValueParam('uses _default')
+        .configure('Prepender').withValueParam('-')
+        .configure('Prepender').asName('special').withValueParam('special')
+        .configure('Capitalizer').asSingleton()
+        .configure('ChainOfResponsibilities').asName('widget1Controller')
+        .withArrayParam()
+        .includingResolveParam('Responsibilities.PrependResponsibility')
+        .includingResolveParam('Responsibilities.AppendPlusesResponsibility.p3')
+        .includingResolveParam('Responsibilities.WrapResponsibility')
+        .configure('ChainOfResponsibilities').asName('widget2Controller')
+        .withArrayParam()
+        .includingResolveParam('Responsibilities.PrependAndCapitalizeResponsibility')
+        .includingResolveParam('Responsibilities.AppendPlusesResponsibility.p1')
+        .includingResolveParam('Responsibilities.WrapResponsibility')
+        .get()
+      ),
+      servedWidgetNs = barista.serve(new nsWidget(), 'Widget', barista.configuration()
+        .configure('Widget1').withResolveParam('Utils.ChainOfResponsibilities.widget1Controller')
+        .configure('Widget2').withResolveParam('Utils.ChainOfResponsibilities.widget2Controller')
+        .get()
+      );
 
-      barista.serve(new nsResponsibilities(), 'Responsibilities', {
-        PrependResponsibility: {params: [{resolve: 'Utils.Prepender'}]},
-        PrependAndCapitalizeResponsibility: {
-          params: [
-            {resolve: 'Utils.Prepender'},
-            {resolve: 'Utils.Capitalizer'}
-          ]
-        },
-        AppendPlusesResponsibility: [
-          {name: 'p3', params: {value: 3}},
-          {name: 'p1', params: [{value: 1}]}
-        ]
-      });
+      barista.serve(new nsResponsibilities(), 'Responsibilities', barista.configuration()
+        .configure('PrependResponsibility').withResolveParam('Utils.Prepender')
+        .configure('PrependAndCapitalizeResponsibility').withResolveParam('Utils.Prepender').withResolveParam('Utils.Capitalizer')
+        .configure('AppendPlusesResponsibility').asName('p3').withValueParam(3)
+        .configure('AppendPlusesResponsibility').asName('p1').withValueParam(1)
+        .get()
+      );
 
       assert.equal(servedUtilsNs.Prepender('overriden').prepend('value'), 'overridenvalue');
       assert.equal(servedWidgetNs.Widget1().run('initial_value'), 'Widget1[-initial_value+++]');

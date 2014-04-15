@@ -5,6 +5,100 @@ var Barista = function(injectionMap) {
       _perdependency = 'perdependency',
       _default = '_default';
 
+  function Configuration() {
+    var config = {},
+        currentObjArray,
+        currentObjConfig,
+        currentParamArray,
+        getDefaultObjConfig = function() {
+          return {name: _default, params: [], type: _perdependency};
+        },
+        verifyObjConfig = function(throwMessage) {
+          if (!currentObjConfig)
+            throw throwMessage;
+        },
+        verifyParamArray = function(throwMessage) {
+          if (!currentParamArray)
+            throw throwMessage;
+        };
+
+    this.get = function() {
+      return config;
+    };
+
+    this.configure = function(objectName) {
+      if (!config[objectName]) {
+        currentObjArray = [];
+        config[objectName] = currentObjArray;
+      }
+      currentObjConfig = getDefaultObjConfig();
+      currentObjArray.push(currentObjConfig);
+      currentParamArray = null;
+      return this;
+    };
+
+    this.asName = function(name) {
+      verifyObjConfig('call to asName() without call to configure() is invalid');
+      currentObjConfig.name = name;
+      return this;
+    };
+
+    this.asSingleton = function() {
+      verifyObjConfig('call to asSingleton() without call to configure() is invalid');
+      currentObjConfig.type = _singleton;
+      return this;
+    };
+
+    this.asPerDependency = function() {
+      verifyObjConfig('call to asPerDependency() without call to configure() is invalid');
+      currentObjConfig.type = _perdependency;
+      return this;
+    };
+
+    this.withResolveParam = function(resolve) {
+      verifyObjConfig('call to withResolveParam() without call to configure() is invalid');
+      currentObjConfig.params.push({resolve: resolve});
+      return this;
+    };
+
+    this.withValueParam = function(value) {
+      verifyObjConfig('call to withValueParam() without call to configure() is invalid');
+      currentObjConfig.params.push({value: value});
+      return this;
+    };
+
+    this.withFuncParam = function(func) {
+      verifyObjConfig('call to withFuncParam() without call to configure() is invalid');
+      currentObjConfig.params.push({func: func});
+      return this;
+    };
+
+    this.withArrayParam = function() {
+      verifyObjConfig('call to withArrayParam() without call to configure() is invalid');
+      currentParamArray = [];
+      currentObjConfig.params.push({array: currentParamArray});
+      return this;
+    };
+
+    this.includingResolveParam = function(resolveString) {
+      verifyParamArray('call to includingResolveParam() without call to withArrayParam() is invalid');
+      currentParamArray.push({resolve: resolveString});
+      return this;
+    };
+
+    this.includingValueParam = function(value) {
+      verifyParamArray('call to includingValueParam() without call to withArrayParam() is invalid');
+      currentParamArray.push({value: value});
+      return this;
+    };
+
+    this.includingFuncParam = function(func) {
+      verifyParamArray('call to includingFuncParam() without call to withArrayParam() is invalid');
+      currentParamArray.push({func: func});
+      return this;
+    };
+  }
+
   function ConfigDefaulter() {
     function setRegistrationDefaults(registrations) {
       registrations.forEach(function(registration) {
@@ -346,6 +440,8 @@ var Barista = function(injectionMap) {
   return {
     singleton: _singleton,
     perdependency: _perdependency,
+    Configuration: Configuration,
+    configuration: function() { return new Configuration(); },
     serve: serve,
     resolve: resolve,
     Processor: Processor,
