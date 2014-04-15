@@ -438,12 +438,10 @@ var Barista = function(injectionMap) {
   }
 
   return {
-    singleton: _singleton,
-    perdependency: _perdependency,
-    Configuration: Configuration,
     configuration: function() { return new Configuration(); },
     serve: serve,
     resolve: resolve,
+    Configuration: Configuration,
     Processor: Processor,
     ArgsOverrider: ArgsOverrider,
     ArgsWrapper: ArgsWrapper,

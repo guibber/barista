@@ -242,7 +242,7 @@ describe('Barista', function() {
 
   describe('ConfigDefaulter', function() {
     var defaultConfig = {
-      type: barista.perdependency,
+      type: 'perdependency',
       name: '_default',
       params: []
     };
@@ -256,7 +256,7 @@ describe('Barista', function() {
     });
 
     it('setRegistrationDefaults() with one registration adds type or name and params if undefined', function() {
-      assert.deepEqual(new barista.ConfigDefaulter().setRegistrationDefaults([{type: barista.perdependency}]), [defaultConfig]);
+      assert.deepEqual(new barista.ConfigDefaulter().setRegistrationDefaults([{type: 'perdependency'}]), [defaultConfig]);
       assert.deepEqual(new barista.ConfigDefaulter().setRegistrationDefaults([{name: '_default'}]), [defaultConfig]);
     });
 
@@ -896,14 +896,14 @@ describe('Barista', function() {
       mockMapper.expects('find').once().withExactArgs('ns', 'propName', 'registrationName').returns(null);
       mockOrderTaker.expects("orderPerDependency").withExactArgs('implementation', 'params').once().returns('invoker');
       mockMapper.expects('map').once().withExactArgs('ns', 'propName', 'registrationName', 'invoker');
-      assert.equal(builder.build('ns', {name: 'propName', implementation: 'implementation'}, {type: barista.perdependency, name: 'registrationName', params: 'params'}), 'invoker');
+      assert.equal(builder.build('ns', {name: 'propName', implementation: 'implementation'}, {type: 'perdependency', name: 'registrationName', params: 'params'}), 'invoker');
     });
 
     it('build() with mapper not finding invoker creates singleton invoker, maps and returns', function() {
       mockMapper.expects('find').once().withExactArgs('ns', 'propName', 'registrationName').returns(null);
       mockOrderTaker.expects("orderSingleton").withExactArgs('implementation', 'params').once().returns('invoker');
       mockMapper.expects('map').once().withExactArgs('ns', 'propName', 'registrationName', 'invoker');
-      assert.equal(builder.build('ns', {name: 'propName', implementation: 'implementation'}, {type: barista.singleton, name: 'registrationName', params: 'params'}), 'invoker');
+      assert.equal(builder.build('ns', {name: 'propName', implementation: 'implementation'}, {type: 'singleton', name: 'registrationName', params: 'params'}), 'invoker');
     });
   });
 
@@ -1127,11 +1127,6 @@ describe('Barista', function() {
   describe('Barista Namespace', function() {
     beforeEach(function() {
       barista = new Barista();
-    });
-
-    it('singleton and perdependecy properites are exposed and set', function() {
-      assert.equal(barista.singleton, 'singleton');
-      assert.equal(barista.perdependency, 'perdependency');
     });
 
     it('serve() with simple use controls instancing: ObjDef2 configured as singleton', function() {
