@@ -304,8 +304,7 @@ var Barista = function(injectionMap) {
 
   function Maker(argsOverrider, injectionResolver) {
     function make(implementation, params, args) {
-      var proto = Object(implementation.prototype) === implementation.prototype ? implementation.prototype : {}.prototype,
-          obj = Object.create(proto),
+      var obj = Object.create(implementation.prototype),
           ret = implementation.apply(obj, injectionResolver.resolve(argsOverrider.override(params, args)));
       return ret && (Object(ret) === ret || typeof(ret) !== 'object') ? ret : obj;
     }

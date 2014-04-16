@@ -764,8 +764,29 @@ describe('Barista', function() {
       assert.equal(actual.prototype, expected.prototype);
       assert.deepEqual(actual, expected);
     });
+    
+    it('make() creates named object like new operator', function() {
+      var
+          actual,
+          expected;
+      
+      function ObjectDef (arg1) {
+        return {value1: arg1};
+      }
+      
+      mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns('overriden_params');
+      mockInjectionResolver.expects('resolve').once().withExactArgs('overriden_params').returns(['resolved1']);
 
-    it('make() creates standard object using "this" just like new operator', function() {
+      expected = new ObjectDef('resolved1');
+      actual = maker.make(ObjectDef, ['param1'], ['arg1']);
+
+      assert.equal(actual.value1, expected.value1);
+      assert.equal(actual.prototype, expected.prototype);
+      assert.deepEqual(actual, expected);
+    });
+    
+    it('make() creates anonymous object using "this" just like new operator', function() {
+        
       var ObjectDef = function(arg1) {
         this.value1 = arg1;
       },
@@ -783,7 +804,27 @@ describe('Barista', function() {
       assert.deepEqual(actual, expected);
     });
 
-    it('make() creates externally set prototype object just like new operator', function() {
+    it('make() creates named object using "this" just like new operator', function() {
+      var
+          actual,
+          expected;
+
+      function ObjectDef(arg1) {
+        this.value1 = arg1;
+      }
+
+      mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns('overriden_params');
+      mockInjectionResolver.expects('resolve').once().withExactArgs('overriden_params').returns(['resolved1']);
+
+      expected = new ObjectDef('resolved1');
+      actual = maker.make(ObjectDef, ['param1'], ['arg1']);
+
+      assert.equal(actual.value1, expected.value1);
+      assert.equal(actual.prototype, expected.prototype);
+      assert.deepEqual(actual, expected);
+    });
+    
+    it('make() creates anonymous externally set prototype object just like new operator', function() {
       var ObjectDef = function(arg1) {
         this.value1 = arg1;
       },
@@ -800,6 +841,67 @@ describe('Barista', function() {
       expected = new ObjectDef('resolved1');
       actual = maker.make(ObjectDef, ['param1'], ['arg1']);
 
+      assert.equal(actual.value1, 'resolved1');
+      assert.equal(actual.value1, expected.value1);
+      assert.equal(actual.prototype, expected.prototype);
+      assert.equal(actual.getValue(), 'resolved1X');
+      assert.equal(actual.getValue(), expected.getValue());
+      assert.deepEqual(actual, expected);
+    });
+    
+    it('make() creates named externally set prototype object just like new operator', function() {
+      var
+          actual,
+          expected;
+      
+      function ObjectDef(arg1) {
+        this.value1 = arg1;
+      }
+
+      ObjectDef.prototype.getValue = function() {
+        return this.value1 + 'X';
+      };
+
+      mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns('overriden_params');
+      mockInjectionResolver.expects('resolve').once().withExactArgs('overriden_params').returns(['resolved1']);
+
+      expected = new ObjectDef('resolved1');
+      actual = maker.make(ObjectDef, ['param1'], ['arg1']);
+
+      assert.equal(actual.value1, 'resolved1');
+      assert.equal(actual.value1, expected.value1);
+      assert.equal(actual.prototype, expected.prototype);
+      assert.equal(actual.getValue(), 'resolved1X');
+      assert.equal(actual.getValue(), expected.getValue());
+      assert.deepEqual(actual, expected);
+    });
+    
+    it('make() creates inheritted object just like new operator', function() {
+      var
+          actual,
+          expected;
+      
+      function ObjectDefSuper(arg1) {
+        this.value1 = arg1;
+      }
+
+      ObjectDefSuper.prototype.getValue = function() {
+        return this.value1 + 'X';
+      };
+      
+      function ObjectDef(arg1) {
+        ObjectDefSuper.call(this, arg1);
+      }
+      
+      ObjectDef.prototype = Object.create(ObjectDefSuper.prototype);
+      ObjectDef.prototype.constructor = ObjectDef;
+      
+      mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns('overriden_params');
+      mockInjectionResolver.expects('resolve').once().withExactArgs('overriden_params').returns(['resolved1']);
+
+      expected = new ObjectDef('resolved1');
+      actual = maker.make(ObjectDef, ['param1'], ['arg1']);
+      
       assert.equal(actual.value1, 'resolved1');
       assert.equal(actual.value1, expected.value1);
       assert.equal(actual.prototype, expected.prototype);
