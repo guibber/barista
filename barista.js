@@ -5,8 +5,8 @@ var Barista = function(injectionMap) {
       _perdependency = 'perdependency',
       _default = '_default';
 
-  function Config() {
-    var config = {},
+  function Registry() {
+    var registry = {},
         currentObjArray,
         currentObjConfig,
         currentParamArray,
@@ -23,13 +23,13 @@ var Barista = function(injectionMap) {
         };
 
     this.get = function() {
-      return config;
+      return registry;
     };
 
-    this.configure = function(objectName) {
-      if (!config[objectName]) {
+    this.register = function(objectName) {
+      if (!registry[objectName]) {
         currentObjArray = [];
-        config[objectName] = currentObjArray;
+        registry[objectName] = currentObjArray;
       }
       currentObjConfig = getDefaultObjConfig();
       currentObjArray.push(currentObjConfig);
@@ -38,43 +38,43 @@ var Barista = function(injectionMap) {
     };
 
     this.asName = function(name) {
-      verifyObjConfig('call to asName() without call to configure() is invalid');
+      verifyObjConfig('call to asName() without call to register() is invalid');
       currentObjConfig.name = name;
       return this;
     };
 
     this.asSingleton = function() {
-      verifyObjConfig('call to asSingleton() without call to configure() is invalid');
+      verifyObjConfig('call to asSingleton() without call to register() is invalid');
       currentObjConfig.type = _singleton;
       return this;
     };
 
     this.asPerDependency = function() {
-      verifyObjConfig('call to asPerDependency() without call to configure() is invalid');
+      verifyObjConfig('call to asPerDependency() without call to register() is invalid');
       currentObjConfig.type = _perdependency;
       return this;
     };
 
     this.withResolveParam = function(resolve) {
-      verifyObjConfig('call to withResolveParam() without call to configure() is invalid');
+      verifyObjConfig('call to withResolveParam() without call to register() is invalid');
       currentObjConfig.params.push({resolve: resolve});
       return this;
     };
 
     this.withValueParam = function(value) {
-      verifyObjConfig('call to withValueParam() without call to configure() is invalid');
+      verifyObjConfig('call to withValueParam() without call to register() is invalid');
       currentObjConfig.params.push({value: value});
       return this;
     };
 
     this.withFuncParam = function(func) {
-      verifyObjConfig('call to withFuncParam() without call to configure() is invalid');
+      verifyObjConfig('call to withFuncParam() without call to register() is invalid');
       currentObjConfig.params.push({func: func});
       return this;
     };
 
     this.withArrayParam = function() {
-      verifyObjConfig('call to withArrayParam() without call to configure() is invalid');
+      verifyObjConfig('call to withArrayParam() without call to register() is invalid');
       currentParamArray = [];
       currentObjConfig.params.push({array: currentParamArray});
       return this;
@@ -118,14 +118,14 @@ var Barista = function(injectionMap) {
     };
   }
 
-  function ConfigManager(nsName, config, configDefaulter) {
-    config = config || {};
+  function ConfigManager(nsName, registry, configDefaulter) {
+    registry = registry || {};
     function getNsName() {
       return nsName;
     }
 
     function getRegistrations(name) {
-      var registrations = config[name] || [{}];
+      var registrations = registry[name] || [{}];
       return Array.isArray(registrations)
         ? configDefaulter.setRegistrationDefaults(registrations)
         : configDefaulter.setRegistrationDefaults([registrations]);
@@ -413,12 +413,12 @@ var Barista = function(injectionMap) {
     };
   }
 
-  function serve(ns, nsName, config) {
+  function serve(ns, nsName, registry) {
     var injectionMapper = new InjectionMapper();
     return new Processor(
       new PropertyExtractor(ns, newProperty),
       new NamespaceBuilder(
-        new ConfigManager(nsName, config, new ConfigDefaulter()),
+        new ConfigManager(nsName, registry, new ConfigDefaulter()),
         new InvokerBuilder(
           new OrderTaker(new Maker(
             new ArgsOverrider(new ArgsWrapper()),
@@ -437,7 +437,7 @@ var Barista = function(injectionMap) {
   }
 
   return {
-    config: function() { return new Config(); },
+    registry: function() { return new Registry(); },
     serve: serve,
     resolve: resolve,
     Processor: Processor,
