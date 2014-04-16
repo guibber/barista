@@ -808,7 +808,7 @@ describe('Barista', function() {
       assert.deepEqual(actual, expected);
     });
 
-    it('make() on function execution result', function() {
+    it('make() on function returns execution result', function() {
       var someFunc = function(args1) {
         return args1;
       };
@@ -1212,7 +1212,6 @@ describe('Barista', function() {
           };
         }
 
-
         function addAlternatingChar(value, character) {
           var i,
               ret = '';
@@ -1229,8 +1228,7 @@ describe('Barista', function() {
           Capitalizer: Capitalizer,
           ChainOfResponsibilities: ChainOfResponsibilities
         };
-      };
-
+      },
       nsResponsibilities = function() {
         function PrependResponsibility(prepender) {
           function execute(context) {
@@ -1277,8 +1275,7 @@ describe('Barista', function() {
           AppendPlusesResponsibility: AppendPlusesResponsibility,
           WrapResponsibility: WrapResponsibility
         };
-      };
-
+      },
       nsWidget = function() {
         function Widget1(controller) {
           function run(value) {
