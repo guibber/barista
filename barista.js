@@ -5,7 +5,7 @@ var Barista = function(injectionMap) {
       _perdependency = 'perdependency',
       _default = '_default';
 
-  function Configuration() {
+  function Config() {
     var config = {},
         currentObjArray,
         currentObjConfig,
@@ -438,10 +438,9 @@ var Barista = function(injectionMap) {
   }
 
   return {
-    configuration: function() { return new Configuration(); },
+    config: function() { return new Config(); },
     serve: serve,
     resolve: resolve,
-    Configuration: Configuration,
     Processor: Processor,
     ArgsOverrider: ArgsOverrider,
     ArgsWrapper: ArgsWrapper,

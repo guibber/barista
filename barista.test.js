@@ -1,66 +1,66 @@
 describe('Barista', function() {
-  describe('Configuration', function() {
+  describe('Config', function() {
     it('get() with nothing configured returns empty object', function() {
-      assert.deepEqual(barista.configuration().get(), {});
+      assert.deepEqual(barista.config().get(), {});
     });
 
     it('get() with one configure() returns defaulted name, params, and type', function() {
-      assert.deepEqual(barista.configuration()
+      assert.deepEqual(barista.config()
         .configure('one')
         .get(), {one: [{name: '_default', params: [], type: 'perdependency'}]});
     });
 
     it('get() with one configure.asSingleton() is configured as singleton', function() {
-      assert.deepEqual(barista.configuration()
+      assert.deepEqual(barista.config()
         .configure('one')
         .asSingleton()
         .get(), {one: [{name: '_default', params: [], type: 'singleton'}]});
     });
 
     it('get() with one configure.asPerDependency() is configured as perdependency', function() {
-      assert.deepEqual(barista.configuration()
+      assert.deepEqual(barista.config()
         .configure('one')
         .asPerDependency()
         .get(), {one: [{name: '_default', params: [], type: 'perdependency'}]});
     });
 
     it('get() with one configure.asName() configures name', function() {
-      assert.deepEqual(barista.configuration()
+      assert.deepEqual(barista.config()
         .configure('one')
         .asName('name')
         .get(), {one: [{name: 'name', params: [], type: 'perdependency'}]});
     });
 
     it('get() with one configure.withValueParam() sets value param', function() {
-      assert.deepEqual(barista.configuration()
+      assert.deepEqual(barista.config()
         .configure('one')
         .withValueParam('value')
         .get(), {one: [{name: '_default', params: [{value: 'value'}], type: 'perdependency'}]});
     });
 
     it('get() with one configure.withResolveParam() sets resolve param', function() {
-      assert.deepEqual(barista.configuration()
+      assert.deepEqual(barista.config()
         .configure('one')
         .withResolveParam('resolve')
         .get(), {one: [{name: '_default', params: [{resolve: 'resolve'}], type: 'perdependency'}]});
     });
 
     it('get() with one configure.withFuncParam() sets func param', function() {
-      assert.deepEqual(barista.configuration()
+      assert.deepEqual(barista.config()
         .configure('one')
         .withFuncParam('func')
         .get(), {one: [{name: '_default', params: [{func: 'func'}], type: 'perdependency'}]});
     });
 
     it('get() with one configure.withArrayParam() sets empty array param', function() {
-      assert.deepEqual(barista.configuration()
+      assert.deepEqual(barista.config()
         .configure('one')
         .withArrayParam()
         .get(), {one: [{name: '_default', params: [{array: []}], type: 'perdependency'}]});
     });
 
     it('get() with one configure.withArrayParam.includingResolveParam() sets array param with one resolve param', function() {
-      assert.deepEqual(barista.configuration()
+      assert.deepEqual(barista.config()
         .configure('one')
         .withArrayParam()
         .includingResolveParam('resolve1')
@@ -68,7 +68,7 @@ describe('Barista', function() {
     });
 
     it('get() with one configure.withArrayParam.includingValueParam() sets array param with one value param', function() {
-      assert.deepEqual(barista.configuration()
+      assert.deepEqual(barista.config()
         .configure('one')
         .withArrayParam()
         .includingValueParam('value1')
@@ -76,7 +76,7 @@ describe('Barista', function() {
     });
 
     it('get() with one configure.withArrayParam.includingFuncParam() sets array param with one func param', function() {
-      assert.deepEqual(barista.configuration()
+      assert.deepEqual(barista.config()
         .configure('one')
         .withArrayParam()
         .includingFuncParam('func1')
@@ -84,7 +84,7 @@ describe('Barista', function() {
     });
 
     it('get() with many configure() of same object sets array of default configs', function() {
-      assert.deepEqual(barista.configuration()
+      assert.deepEqual(barista.config()
         .configure('one')
         .configure('one')
         .configure('one')
@@ -96,7 +96,7 @@ describe('Barista', function() {
     });
 
     it('get() with many configure() sets defaults', function() {
-      assert.deepEqual(barista.configuration()
+      assert.deepEqual(barista.config()
         .configure('one')
         .configure('two')
         .configure('three')
@@ -108,7 +108,7 @@ describe('Barista', function() {
     });
 
     it('get() with many configure using all options configures correctly', function() {
-      assert.deepEqual(barista.configuration()
+      assert.deepEqual(barista.config()
         .configure('one')
         .asName('one')
         .asSingleton()
@@ -188,54 +188,55 @@ describe('Barista', function() {
           }]
         });
     });
-    
+
     it('calling asName() without configure() throws', function() {
-      assert.throw(function() {barista.configuration().asName();}, 'call to asName() without call to configure() is invalid');
+      assert.throw(function() { barista.config().asName(); }, 'call to asName() without call to configure() is invalid');
     });
-    
+
     it('calling asSingleton() without configure() throws', function() {
-      assert.throw(function() {barista.configuration().asSingleton();}, 'call to asSingleton() without call to configure() is invalid');
+      assert.throw(function() { barista.config().asSingleton(); }, 'call to asSingleton() without call to configure() is invalid');
     });
-    
+
     it('calling asPerDependency() without configure() throws', function() {
-      assert.throw(function() {barista.configuration().asPerDependency();}, 'call to asPerDependency() without call to configure() is invalid');
+      assert.throw(function() { barista.config().asPerDependency(); }, 'call to asPerDependency() without call to configure() is invalid');
     });
-    
+
     it('calling withResolveParam() without configure() throws', function() {
-      assert.throw(function() {barista.configuration().withResolveParam();}, 'call to withResolveParam() without call to configure() is invalid');
+      assert.throw(function() { barista.config().withResolveParam(); }, 'call to withResolveParam() without call to configure() is invalid');
     });
-    
+
     it('calling withValueParam() without configure() throws', function() {
-      assert.throw(function() {barista.configuration().withValueParam();}, 'call to withValueParam() without call to configure() is invalid');
+      assert.throw(function() { barista.config().withValueParam(); }, 'call to withValueParam() without call to configure() is invalid');
     });
-    
+
     it('calling withFuncParam() without configure() throws', function() {
-      assert.throw(function() {barista.configuration().withFuncParam();}, 'call to withFuncParam() without call to configure() is invalid');
+      assert.throw(function() { barista.config().withFuncParam(); }, 'call to withFuncParam() without call to configure() is invalid');
     });
-    
+
     it('calling withArrayParam() without configure() throws', function() {
-      assert.throw(function() {barista.configuration().withArrayParam();}, 'call to withArrayParam() without call to configure() is invalid');
+      assert.throw(function() { barista.config().withArrayParam(); }, 'call to withArrayParam() without call to configure() is invalid');
     });
-    
+
     it('calling includingResolveParam() without withArrayParam() throws', function() {
-      assert.throw(function() {barista.configuration().includingResolveParam();}, 'call to includingResolveParam() without call to withArrayParam() is invalid');
+      assert.throw(function() { barista.config().includingResolveParam(); }, 'call to includingResolveParam() without call to withArrayParam() is invalid');
     });
-    
+
     it('calling includingValueParam() without withArrayParam() throws', function() {
-      assert.throw(function() {barista.configuration().includingValueParam();}, 'call to includingValueParam() without call to withArrayParam() is invalid');
+      assert.throw(function() { barista.config().includingValueParam(); }, 'call to includingValueParam() without call to withArrayParam() is invalid');
     });
-    
+
     it('calling includingFuncParam() without withArrayParam() throws', function() {
-      assert.throw(function() {barista.configuration().includingFuncParam();}, 'call to includingFuncParam() without call to withArrayParam() is invalid');
+      assert.throw(function() { barista.config().includingFuncParam(); }, 'call to includingFuncParam() without call to withArrayParam() is invalid');
     });
-    
+
     it('calling includingResolveParam() after configure() without withArrayParam() throws', function() {
-      assert.throw(function() {barista.configuration()
-        .configure('one')
-        .withArrayParam()
-        .includingResolveParam('resolve')
-        .configure('one')
-        .includingResolveParam('resolve');
+      assert.throw(function() {
+        barista.config()
+          .configure('one')
+          .withArrayParam()
+          .includingResolveParam('resolve')
+          .configure('one')
+          .includingResolveParam('resolve');
       }, 'call to includingResolveParam() without call to withArrayParam() is invalid');
     });
   });
@@ -1129,7 +1130,11 @@ describe('Barista', function() {
       barista = new Barista();
     });
 
-    it('serve() with simple use controls instancing: ObjDef2 configured as singleton', function() {
+    it('config() returns new Config for each call', function() {
+      assert.notEqual(barista.config(), barista.config());
+    });
+
+    it('serve() with simple namespace, non-dependency injection, controls instancing where ObjDef2 configured as singleton', function() {
       var nsSimple = function(dependency) {
         var prop1 = dependency;
 
@@ -1153,7 +1158,7 @@ describe('Barista', function() {
           ObjDef2: ObjDef2
         };
       },
-          servedNs = barista.serve(new nsSimple('depends'), 'Simple', barista.configuration().configure('ObjDef2').asSingleton().get()),
+          servedNs = barista.serve(new nsSimple('depends'), 'Simple', barista.config().configure('ObjDef2').asSingleton().get()),
           obj1Instance1 = servedNs.ObjDef1(1),
           obj1Instance2 = servedNs.ObjDef1(2),
           obj2Ref1 = servedNs.ObjDef2(3),
@@ -1167,7 +1172,7 @@ describe('Barista', function() {
       assert.equal(obj2Ref1, obj2Ref2);
     });
 
-    it('serve() and resolve using multiple namespaces directly, including various instancing configurations, and full dependency injection', function() {
+    it('serve() and resolve using multiple namespaces, including various instancing configurations, and full dependency injection', function() {
       var nsUtils = function() {
         function Tester(value) {
           function test() {
@@ -1306,7 +1311,7 @@ describe('Barista', function() {
           Widget2: Widget2
         };
       },
-      servedUtilsNs = barista.serve(new nsUtils(), 'Utils', barista.configuration()
+      servedUtilsNs = barista.serve(new nsUtils(), 'Utils', barista.config()
         .configure('addAlternatingChar').withValueParam('default').withValueParam(' ')
         .configure('Tester').asName('notdefault').withValueParam('uses _default')
         .configure('Prepender').withValueParam('-')
@@ -1324,13 +1329,13 @@ describe('Barista', function() {
         .includingResolveParam('Responsibilities.WrapResponsibility')
         .get()
       ),
-      servedWidgetNs = barista.serve(new nsWidget(), 'Widget', barista.configuration()
+      servedWidgetNs = barista.serve(new nsWidget(), 'Widget', barista.config()
         .configure('Widget1').withResolveParam('Utils.ChainOfResponsibilities.widget1Controller')
         .configure('Widget2').withResolveParam('Utils.ChainOfResponsibilities.widget2Controller')
         .get()
       );
 
-      barista.serve(new nsResponsibilities(), 'Responsibilities', barista.configuration()
+      barista.serve(new nsResponsibilities(), 'Responsibilities', barista.config()
         .configure('PrependResponsibility').withResolveParam('Utils.Prepender')
         .configure('PrependAndCapitalizeResponsibility').withResolveParam('Utils.Prepender').withResolveParam('Utils.Capitalizer')
         .configure('AppendPlusesResponsibility').asName('p3').withValueParam(3)
