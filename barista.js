@@ -9,7 +9,7 @@ var Barista = function(config) {
       _default = '_default';
 
   function Menu(itemDefaulter) {
-    var menu = {},
+    var menu = {details: {}},
         currentItemArray,
         currentItem,
         currentParamArray,
@@ -27,11 +27,24 @@ var Barista = function(config) {
     this.get = function() {
       return menu;
     };
+    
+    this.forNamespace = function (name) {
+      menu.name = name;
+      return this;
+    };
+    
+    this.getNamespace = function(){
+      return menu.name;
+    };
+    
+    this.getItems = function(name) {
+      return itemDefaulter.setItemDefaults(menu.details[name] || [{}]);
+    };
 
     this.withItem = function(objectName) {
-      if (!menu[objectName]) {
+      if (!menu.details[objectName]) {
         currentItemArray = [];
-        menu[objectName] = currentItemArray;
+        menu.details[objectName] = currentItemArray;
       }
       currentItem = itemDefaulter.getDefaultItem();
       currentItemArray.push(currentItem);
@@ -100,6 +113,10 @@ var Barista = function(config) {
       return this;
     };
   }
+  
+  function newMenu() {
+    return new Menu(new ItemDefaulter());
+  }
 
   function ItemDefaulter() {
     function getDefaultItem() {
@@ -122,25 +139,6 @@ var Barista = function(config) {
     return {
       getDefaultItem: getDefaultItem,
       setItemDefaults: setItemDefaults
-    };
-  }
-
-  function ConfigManager(nsName, menu, itemDefaulter) {
-    menu = menu || {};
-    function getNsName() {
-      return nsName;
-    }
-
-    function getItems(name) {
-      var items = menu[name] || [{}];
-      return Array.isArray(items)
-        ? itemDefaulter.setItemDefaults(items)
-        : itemDefaulter.setItemDefaults([items]);
-    }
-
-    return {
-      getItems: getItems,
-      getNsName: getNsName
     };
   }
 
@@ -371,13 +369,13 @@ var Barista = function(config) {
     };
   }
 
-  function NamespaceBuilder(configMgr, invokerBuilder) {
+  function NamespaceBuilder(menu, invokerBuilder) {
     var retNs = {};
 
     function addObject(prop) {
       var defaultInvoker,
-          nsName = configMgr.getNsName();
-      configMgr.getItems(prop.name).forEach(function(item) {
+          nsName = menu.getNamespace();
+      menu.getItems(prop.name).forEach(function(item) {
         var invoker = invokerBuilder.build(nsName, prop, item);
         if (!defaultInvoker || item.name === _default) {
           defaultInvoker = invoker;
@@ -426,12 +424,12 @@ var Barista = function(config) {
     };
   }
 
-  function serve(ns, nsName, menu) {
+  function serve(ns, menu) {
     var injectionMapper = new InjectionMapper();
     return new Processor(
       new PropertyExtractor(ns, newProperty),
       new NamespaceBuilder(
-        new ConfigManager(nsName, menu.get(), new ItemDefaulter()),
+        menu || newMenu(),
         new InvokerBuilder(
           new OrderTaker(new Maker(
             new ArgsOverrider(new ArgsWrapper()),
@@ -450,7 +448,7 @@ var Barista = function(config) {
   }
 
   return {
-    menu: function() { return new Menu(new ItemDefaulter()); },
+    menu: newMenu,
     serve: serve,
     make: make,
     Menu: Menu,
@@ -468,7 +466,6 @@ var Barista = function(config) {
     ResolvedParam: ResolvedParam,
     ParamResolver: ParamResolver,
     InvokerBuilder: InvokerBuilder,
-    NamespaceBuilder: NamespaceBuilder,
-    ConfigManager: ConfigManager
+    NamespaceBuilder: NamespaceBuilder
   };
 };
