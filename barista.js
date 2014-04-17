@@ -1,25 +1,27 @@
-var Barista = function(injectionMap) {
+var Barista = function(config) {
   'use strict';
-  injectionMap = injectionMap || {};
-  var _singleton = 'singleton',
+  config = config || {};
+  var injectionMap = config.injectionMap || {},
+      useStrict = config.useStrict || false,
+      _singleton = 'singleton',
       _perdependency = 'perdependency',
+      _not_set = 'not_set',
       _default = '_default';
 
-  function Registry() {
+  function Registry(configDefaulter) {
     var registry = {},
         currentObjArray,
         currentObjConfig,
         currentParamArray,
-        getDefaultObjConfig = function() {
-          return {name: _default, params: [], type: _perdependency};
-        },
         verifyObjConfig = function(throwMessage) {
-          if (!currentObjConfig)
+          if (!currentObjConfig) {
             throw throwMessage;
+          }
         },
         verifyParamArray = function(throwMessage) {
-          if (!currentParamArray)
+          if (!currentParamArray) {
             throw throwMessage;
+          }
         };
 
     this.get = function() {
@@ -31,7 +33,7 @@ var Barista = function(injectionMap) {
         currentObjArray = [];
         registry[objectName] = currentObjArray;
       }
-      currentObjConfig = getDefaultObjConfig();
+      currentObjConfig = configDefaulter.getDefaultRegistration();
       currentObjArray.push(currentObjConfig);
       currentParamArray = null;
       return this;
@@ -100,20 +102,25 @@ var Barista = function(injectionMap) {
   }
 
   function ConfigDefaulter() {
+    function getDefaultRegistration() {
+      return {name: _default, params: [], type: useStrict ? _not_set : _perdependency};
+    }
+
     function setRegistrationDefaults(registrations) {
       registrations.forEach(function(registration) {
-        registration.type = registration.type || _perdependency;
-        registration.name = registration.name || _default;
+        registration.type = registration.type || getDefaultRegistration().type;
+        registration.name = registration.name || getDefaultRegistration().name;
         registration.params = registration.params
           ? Array.isArray(registration.params)
             ? registration.params
             : [registration.params]
-          : [];
+          : getDefaultRegistration().params;
       });
       return registrations;
     }
 
     return {
+      getDefaultRegistration: getDefaultRegistration,
       setRegistrationDefaults: setRegistrationDefaults
     };
   }
@@ -167,9 +174,7 @@ var Barista = function(injectionMap) {
     };
   }
 
-  function InjectionMapper(overrideMap) {
-    injectionMap = overrideMap || injectionMap;
-
+  function InjectionMapper() {
     function getRegName(regName) {
       return regName || _default;
     }
@@ -332,16 +337,24 @@ var Barista = function(injectionMap) {
       };
     }
 
+    function orderNotRegistered(implementation) {
+      return function() {
+        throw 'using barista in strict mode requires that you register ' + implementation;
+      };
+    }
+
     return {
       orderPerDependency: orderPerDependency,
-      orderSingleton: orderSingleton
+      orderSingleton: orderSingleton,
+      orderNotRegistered: orderNotRegistered
     };
   }
 
   function InvokerBuilder(orderTaker, injectionMapper) {
     var typeMap = {
       'perdependency': function(i, p) { return orderTaker.orderPerDependency(i, p); },
-      'singleton': function(i, p) { return orderTaker.orderSingleton(i, p); }
+      'singleton': function(i, p) { return orderTaker.orderSingleton(i, p); },
+      'not_set': function(i, p) { return orderTaker.orderNotRegistered(i, p); }
     };
 
     function build(nsName, prop, registration) {
@@ -437,9 +450,10 @@ var Barista = function(injectionMap) {
   }
 
   return {
-    registry: function() { return new Registry(); },
+    registry: function() { return new Registry(new ConfigDefaulter()); },
     serve: serve,
     resolve: resolve,
+    Registry: Registry,
     Processor: Processor,
     ArgsOverrider: ArgsOverrider,
     ArgsWrapper: ArgsWrapper,

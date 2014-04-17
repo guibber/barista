@@ -1,114 +1,146 @@
 describe('Barista', function() {
   describe('Registry', function() {
-    it('get() with nothing registered returns empty object', function() {
-      assert.deepEqual(barista.registry().get(), {});
+    var sandbox,
+        defaulter,
+        mockDefaulter,
+        registry;
+
+    beforeEach(function() {
+      sandbox = sinon.sandbox.create();
+      defaulter = new barista.ConfigDefaulter();
+      mockDefaulter = sandbox.mock(defaulter);
+      registry = new barista.Registry(defaulter);
     });
 
-    it('get() with one register() returns defaulted name, params, and type', function() {
-      assert.deepEqual(barista.registry()
+    afterEach(function() {
+      mockDefaulter.verify();
+      sandbox.restore();
+    });
+
+    it('get() with nothing registered returns empty object', function() {
+      assert.deepEqual(registry.get(), {});
+    });
+
+    it('get() with one register() returns default from configDefaulter', function() {
+      mockDefaulter.expects('getDefaultRegistration').once().returns('defaultReg');
+      assert.deepEqual(registry
         .register('one')
-        .get(), {one: [{name: '_default', params: [], type: 'perdependency'}]});
+        .get(), {one: ['defaultReg']});
     });
 
     it('get() with one register.asSingleton() is registered as singleton', function() {
-      assert.deepEqual(barista.registry()
+      mockDefaulter.expects('getDefaultRegistration').once().returns({});
+      assert.deepEqual(registry
         .register('one')
         .asSingleton()
-        .get(), {one: [{name: '_default', params: [], type: 'singleton'}]});
+        .get(), {one: [{type: 'singleton'}]});
     });
 
     it('get() with one register.asPerDependency() is registered as perdependency', function() {
-      assert.deepEqual(barista.registry()
+      mockDefaulter.expects('getDefaultRegistration').once().returns({});
+      assert.deepEqual(registry
         .register('one')
         .asPerDependency()
-        .get(), {one: [{name: '_default', params: [], type: 'perdependency'}]});
+        .get(), {one: [{type: 'perdependency'}]});
     });
 
     it('get() with one register.asName() configures name', function() {
-      assert.deepEqual(barista.registry()
+      mockDefaulter.expects('getDefaultRegistration').once().returns({});
+      assert.deepEqual(registry
         .register('one')
         .asName('name')
-        .get(), {one: [{name: 'name', params: [], type: 'perdependency'}]});
+        .get(), {one: [{name: 'name'}]});
     });
 
     it('get() with one register.withValueParam() sets value param', function() {
-      assert.deepEqual(barista.registry()
+      mockDefaulter.expects('getDefaultRegistration').once().returns({params: []});
+      assert.deepEqual(registry
         .register('one')
         .withValueParam('value')
-        .get(), {one: [{name: '_default', params: [{value: 'value'}], type: 'perdependency'}]});
+        .get(), {one: [{params: [{value: 'value'}]}]});
     });
 
     it('get() with one register.withResolveParam() sets resolve param', function() {
-      assert.deepEqual(barista.registry()
+      mockDefaulter.expects('getDefaultRegistration').once().returns({params: []});
+      assert.deepEqual(registry
         .register('one')
         .withResolveParam('resolve')
-        .get(), {one: [{name: '_default', params: [{resolve: 'resolve'}], type: 'perdependency'}]});
+        .get(), {one: [{params: [{resolve: 'resolve'}]}]});
     });
 
     it('get() with one register.withFuncParam() sets func param', function() {
-      assert.deepEqual(barista.registry()
+      mockDefaulter.expects('getDefaultRegistration').once().returns({params: []});
+      assert.deepEqual(registry
         .register('one')
         .withFuncParam('func')
-        .get(), {one: [{name: '_default', params: [{func: 'func'}], type: 'perdependency'}]});
+        .get(), {one: [{params: [{func: 'func'}]}]});
     });
 
     it('get() with one register.withArrayParam() sets empty array param', function() {
-      assert.deepEqual(barista.registry()
+      mockDefaulter.expects('getDefaultRegistration').once().returns({params: []});
+      assert.deepEqual(registry
         .register('one')
         .withArrayParam()
-        .get(), {one: [{name: '_default', params: [{array: []}], type: 'perdependency'}]});
+        .get(), {one: [{params: [{array: []}]}]});
     });
 
     it('get() with one register.withArrayParam.includingResolveParam() sets array param with one resolve param', function() {
-      assert.deepEqual(barista.registry()
+      mockDefaulter.expects('getDefaultRegistration').once().returns({params: []});
+      assert.deepEqual(registry
         .register('one')
         .withArrayParam()
         .includingResolveParam('resolve1')
-        .get(), {one: [{name: '_default', params: [{array: [{resolve: 'resolve1'}]}], type: 'perdependency'}]});
+        .get(), {one: [{params: [{array: [{resolve: 'resolve1'}]}]}]});
     });
 
     it('get() with one register.withArrayParam.includingValueParam() sets array param with one value param', function() {
-      assert.deepEqual(barista.registry()
+      mockDefaulter.expects('getDefaultRegistration').once().returns({params: []});
+      assert.deepEqual(registry
         .register('one')
         .withArrayParam()
         .includingValueParam('value1')
-        .get(), {one: [{name: '_default', params: [{array: [{value: 'value1'}]}], type: 'perdependency'}]});
+        .get(), {one: [{params: [{array: [{value: 'value1'}]}]}]});
     });
 
     it('get() with one register.withArrayParam.includingFuncParam() sets array param with one func param', function() {
-      assert.deepEqual(barista.registry()
+      mockDefaulter.expects('getDefaultRegistration').once().returns({params: []});
+      assert.deepEqual(registry
         .register('one')
         .withArrayParam()
         .includingFuncParam('func1')
-        .get(), {one: [{name: '_default', params: [{array: [{func: 'func1'}]}], type: 'perdependency'}]});
+        .get(), {one: [{params: [{array: [{func: 'func1'}]}],}]});
     });
 
-    it('get() with many register() of same object sets array of default configs', function() {
-      assert.deepEqual(barista.registry()
+    it('get() with many register() of same object sets array of default registrations', function() {
+      mockDefaulter.expects('getDefaultRegistration').thrice().returns('defaultReg');
+      assert.deepEqual(registry
         .register('one')
         .register('one')
         .register('one')
         .get(), {
-          one: [{name: '_default', params: [], type: 'perdependency'},
-            {name: '_default', params: [], type: 'perdependency'},
-            {name: '_default', params: [], type: 'perdependency'}]
+          one: ['defaultReg', 'defaultReg', 'defaultReg']
         });
     });
 
-    it('get() with many register() sets defaults', function() {
-      assert.deepEqual(barista.registry()
+    it('get() with many register() sets default registrations', function() {
+      mockDefaulter.expects('getDefaultRegistration').thrice().returns('defaultReg');
+      assert.deepEqual(registry
         .register('one')
         .register('two')
         .register('three')
         .get(), {
-          one: [{name: '_default', params: [], type: 'perdependency'}],
-          two: [{name: '_default', params: [], type: 'perdependency'}],
-          three: [{name: '_default', params: [], type: 'perdependency'}]
+          one: ['defaultReg'],
+          two: ['defaultReg'],
+          three: ['defaultReg']
         });
     });
 
     it('get() with many configure using all options configures correctly', function() {
-      assert.deepEqual(barista.registry()
+      mockDefaulter.expects('getDefaultRegistration').once().returns({name: 'unset', params: [], type: 'unset'});
+      mockDefaulter.expects('getDefaultRegistration').once().returns({name: 'unset', params: [], type: 'unset'});
+      mockDefaulter.expects('getDefaultRegistration').once().returns({name: 'unset', params: [], type: 'unset'});
+
+      assert.deepEqual(registry
         .register('one')
         .asName('one')
         .asSingleton()
@@ -171,7 +203,7 @@ describe('Barista', function() {
             type: 'perdependency'
           }],
           three: [{
-            name: '_default',
+            name: 'unset',
             params: [
               {value: 'three-value'},
               {func: 'three-func'},
@@ -184,54 +216,54 @@ describe('Barista', function() {
                 ]
               }
             ],
-            type: 'perdependency'
+            type: 'unset'
           }]
         });
     });
 
     it('calling asName() without register() throws', function() {
-      assert.throw(function() { barista.registry().asName(); }, 'call to asName() without call to register() is invalid');
+      assert.throw(function() { registry.asName(); }, 'call to asName() without call to register() is invalid');
     });
 
     it('calling asSingleton() without register() throws', function() {
-      assert.throw(function() { barista.registry().asSingleton(); }, 'call to asSingleton() without call to register() is invalid');
+      assert.throw(function() { registry.asSingleton(); }, 'call to asSingleton() without call to register() is invalid');
     });
 
     it('calling asPerDependency() without register() throws', function() {
-      assert.throw(function() { barista.registry().asPerDependency(); }, 'call to asPerDependency() without call to register() is invalid');
+      assert.throw(function() { registry.asPerDependency(); }, 'call to asPerDependency() without call to register() is invalid');
     });
 
     it('calling withResolveParam() without register() throws', function() {
-      assert.throw(function() { barista.registry().withResolveParam(); }, 'call to withResolveParam() without call to register() is invalid');
+      assert.throw(function() { registry.withResolveParam(); }, 'call to withResolveParam() without call to register() is invalid');
     });
 
     it('calling withValueParam() without register() throws', function() {
-      assert.throw(function() { barista.registry().withValueParam(); }, 'call to withValueParam() without call to register() is invalid');
+      assert.throw(function() { registry.withValueParam(); }, 'call to withValueParam() without call to register() is invalid');
     });
 
     it('calling withFuncParam() without register() throws', function() {
-      assert.throw(function() { barista.registry().withFuncParam(); }, 'call to withFuncParam() without call to register() is invalid');
+      assert.throw(function() { registry.withFuncParam(); }, 'call to withFuncParam() without call to register() is invalid');
     });
 
     it('calling withArrayParam() without register() throws', function() {
-      assert.throw(function() { barista.registry().withArrayParam(); }, 'call to withArrayParam() without call to register() is invalid');
+      assert.throw(function() { registry.withArrayParam(); }, 'call to withArrayParam() without call to register() is invalid');
     });
 
     it('calling includingResolveParam() without withArrayParam() throws', function() {
-      assert.throw(function() { barista.registry().includingResolveParam(); }, 'call to includingResolveParam() without call to withArrayParam() is invalid');
+      assert.throw(function() { registry.includingResolveParam(); }, 'call to includingResolveParam() without call to withArrayParam() is invalid');
     });
 
     it('calling includingValueParam() without withArrayParam() throws', function() {
-      assert.throw(function() { barista.registry().includingValueParam(); }, 'call to includingValueParam() without call to withArrayParam() is invalid');
+      assert.throw(function() { registry.includingValueParam(); }, 'call to includingValueParam() without call to withArrayParam() is invalid');
     });
 
     it('calling includingFuncParam() without withArrayParam() throws', function() {
-      assert.throw(function() { barista.registry().includingFuncParam(); }, 'call to includingFuncParam() without call to withArrayParam() is invalid');
+      assert.throw(function() { registry.includingFuncParam(); }, 'call to includingFuncParam() without call to withArrayParam() is invalid');
     });
 
     it('calling includingResolveParam() after register() without withArrayParam() throws', function() {
       assert.throw(function() {
-        barista.registry()
+        registry
           .register('one')
           .withArrayParam()
           .includingResolveParam('resolve')
@@ -241,28 +273,65 @@ describe('Barista', function() {
     });
   });
 
-  describe('ConfigDefaulter', function() {
-    var defaultConfig = {
+  describe('ConfigDefaulter (default mode of not strict)', function() {
+    var defaultRegistration = {
       type: 'perdependency',
       name: '_default',
       params: []
     };
+
+    it('getDefaultRegistration() returns object with type, name and params set', function() {
+      assert.deepEqual(new barista.ConfigDefaulter().getDefaultRegistration(), defaultRegistration);
+    });
 
     it('setRegistrationDefaults() does nothing when zero registrations', function() {
       assert.deepEqual(new barista.ConfigDefaulter().setRegistrationDefaults([]), []);
     });
 
     it('setRegistrationDefaults() with one registration adds type and name and params if undefined', function() {
-      assert.deepEqual(new barista.ConfigDefaulter().setRegistrationDefaults([{}]), [defaultConfig]);
+      assert.deepEqual(new barista.ConfigDefaulter().setRegistrationDefaults([{}]), [defaultRegistration]);
     });
 
     it('setRegistrationDefaults() with one registration adds type or name and params if undefined', function() {
-      assert.deepEqual(new barista.ConfigDefaulter().setRegistrationDefaults([{type: 'perdependency'}]), [defaultConfig]);
-      assert.deepEqual(new barista.ConfigDefaulter().setRegistrationDefaults([{name: '_default'}]), [defaultConfig]);
+      assert.deepEqual(new barista.ConfigDefaulter().setRegistrationDefaults([{type: 'perdependency'}]), [defaultRegistration]);
+      assert.deepEqual(new barista.ConfigDefaulter().setRegistrationDefaults([{name: '_default'}]), [defaultRegistration]);
     });
 
     it('setRegistrationDefaults() with many registrations adds type and name if undefined', function() {
-      assert.deepEqual(new barista.ConfigDefaulter().setRegistrationDefaults([{}, {}, {}]), [defaultConfig, defaultConfig, defaultConfig]);
+      assert.deepEqual(new barista.ConfigDefaulter().setRegistrationDefaults([{}, {}, {}]), [defaultRegistration, defaultRegistration, defaultRegistration]);
+    });
+  });
+
+  describe('ConfigDefaulter (strict mode)', function() {
+    var defaultRegistration = {
+      type: 'not_set',
+      name: '_default',
+      params: []
+    };
+
+    beforeEach(function() {
+      barista = new Barista({useStrict: true});
+    });
+
+    it('getDefaultRegistration() returns object with type, name and params set', function() {
+      assert.deepEqual(new barista.ConfigDefaulter().getDefaultRegistration(), defaultRegistration);
+    });
+
+    it('setRegistrationDefaults() does nothing when zero registrations', function() {
+      assert.deepEqual(new barista.ConfigDefaulter().setRegistrationDefaults([]), []);
+    });
+
+    it('setRegistrationDefaults() with one registration adds type and name and params if undefined', function() {
+      assert.deepEqual(new barista.ConfigDefaulter().setRegistrationDefaults([{}]), [defaultRegistration]);
+    });
+
+    it('setRegistrationDefaults() with one registration adds type or name and params if undefined', function() {
+      assert.deepEqual(new barista.ConfigDefaulter().setRegistrationDefaults([{type: 'not_set'}]), [defaultRegistration]);
+      assert.deepEqual(new barista.ConfigDefaulter().setRegistrationDefaults([{name: '_default'}]), [defaultRegistration]);
+    });
+
+    it('setRegistrationDefaults() with many registrations adds type and name if undefined', function() {
+      assert.deepEqual(new barista.ConfigDefaulter().setRegistrationDefaults([{}, {}, {}]), [defaultRegistration, defaultRegistration, defaultRegistration]);
     });
   });
 
@@ -275,7 +344,6 @@ describe('Barista', function() {
       sandbox = sinon.sandbox.create();
       defaulter = new barista.ConfigDefaulter();
       mockDefaulter = sandbox.mock(defaulter);
-
     });
 
     afterEach(function() {
@@ -441,62 +509,74 @@ describe('Barista', function() {
     });
 
     it('find() on empty map returns null', function() {
-      assert.equal(new barista.InjectionMapper({}).find('s', 'o'), null);
+      barista = new Barista({injectionMap: {}});
+      assert.equal(new barista.InjectionMapper().find('s', 'o'), null);
     });
 
     it('find() on map with one entry returns match', function() {
-      assert.equal(new barista.InjectionMapper(oneEntryDefaultMap).find('s', 'o', '_default'), 'found');
+      barista = new Barista({injectionMap: oneEntryDefaultMap});
+      assert.equal(new barista.InjectionMapper().find('s', 'o', '_default'), 'found');
     });
 
     it('find() on map with one entry with many registration returns match', function() {
       oneEntryDefaultMap.s.o.other1 = 'x';
       oneEntryDefaultMap.s.o.other2 = 'x';
-      assert.equal(new barista.InjectionMapper(oneEntryDefaultMap).find('s', 'o', '_default'), 'found');
+      barista = new Barista({injectionMap: oneEntryDefaultMap});
+      assert.equal(new barista.InjectionMapper().find('s', 'o', '_default'), 'found');
     });
 
     it('find() on map with one entry returns match by defaulting default', function() {
-      assert.equal(new barista.InjectionMapper(oneEntryDefaultMap).find('s', 'o'), 'found');
+      barista = new Barista({injectionMap: oneEntryDefaultMap});
+      assert.equal(new barista.InjectionMapper().find('s', 'o'), 'found');
     });
 
     it('find() on map with one entry returns returns null when no registration match', function() {
-      assert.equal(new barista.InjectionMapper(oneEntryDefaultMap).find('s', 'o', 'notfound'), null);
+      barista = new Barista({injectionMap: oneEntryDefaultMap});
+      assert.equal(new barista.InjectionMapper().find('s', 'o', 'notfound'), null);
     });
 
     it('find() on map with one entry returns returns null when no object match', function() {
-      assert.equal(new barista.InjectionMapper(oneEntryDefaultMap).find('s', 'oNoMatch'), null);
+      barista = new Barista({injectionMap: oneEntryDefaultMap});
+      assert.equal(new barista.InjectionMapper().find('s', 'oNoMatch'), null);
     });
 
     it('find() on map with one entry returns returns null when no sourceNs match', function() {
-      assert.equal(new barista.InjectionMapper(oneEntryDefaultMap).find('sNoMatch'), null);
+      barista = new Barista({injectionMap: oneEntryDefaultMap});
+      assert.equal(new barista.InjectionMapper().find('sNoMatch'), null);
     });
 
     it('find() on map with many entries returns match', function() {
-      assert.equal(new barista.InjectionMapper(manyEntriesDefaultMap).find('s1', 'o1', '_default'), 'found');
+      barista = new Barista({injectionMap: manyEntriesDefaultMap});
+      assert.equal(new barista.InjectionMapper().find('s1', 'o1', '_default'), 'found');
     });
 
     it('find() on map with many entries not found returns null', function() {
-      assert.equal(new barista.InjectionMapper(manyEntriesDefaultMap).find('s1', 'o1', 'notfound'), null);
+      barista = new Barista({injectionMap: manyEntriesDefaultMap});
+      assert.equal(new barista.InjectionMapper().find('s1', 'o1', 'notfound'), null);
     });
 
     it('map() on empty map returns mapping and sets _default', function() {
       var map = {};
+      barista = new Barista({injectionMap: map});
       oneEntryDefaultMap.s.o.name = 'found';
 
-      new barista.InjectionMapper(map).map('s', 'o', 'name', 'found');
+      new barista.InjectionMapper().map('s', 'o', 'name', 'found');
       assert.deepEqual(map, oneEntryDefaultMap);
     });
 
     it('map() on empty map with null regname defaults regname to _default', function() {
       var map = {};
-      new barista.InjectionMapper(map).map('s', 'o', null, 'found');
+      barista = new Barista({injectionMap: map});
+      new barista.InjectionMapper().map('s', 'o', null, 'found');
       assert.deepEqual(map, oneEntryDefaultMap);
     });
 
     it('map() non-default regname maps, but does not overwrite existing _default', function() {
       var map = copy(oneEntryDefaultMap);
+      barista = new Barista({injectionMap: map});
       oneEntryDefaultMap.s.o.notDefault = 'newInvoker';
 
-      new barista.InjectionMapper(map).map('s', 'o', "notDefault", 'newInvoker');
+      new barista.InjectionMapper().map('s', 'o', "notDefault", 'newInvoker');
 
       assert.deepEqual(map, oneEntryDefaultMap);
     });
@@ -504,15 +584,17 @@ describe('Barista', function() {
     it('map() on map with one existing entry overwrites regname', function() {
       var map = copy(oneEntryDefaultMap);
       map.s.o.existingName = 'existingName';
+      barista = new Barista({injectionMap: map});
       oneEntryDefaultMap.s.o.existingName = 'overwritten';
 
-      new barista.InjectionMapper(map).map('s', 'o', 'existingName', 'overwritten');
+      new barista.InjectionMapper().map('s', 'o', 'existingName', 'overwritten');
 
       assert.deepEqual(map, oneEntryDefaultMap);
     });
 
     it('map() on map with one existing entry maps correctly', function() {
       var map = copy(oneEntryDefaultMap);
+      barista = new Barista({injectionMap: map});
       oneEntryDefaultMap.s1 = {
         o1: {
           _default: 'found',
@@ -520,7 +602,7 @@ describe('Barista', function() {
         }
       };
 
-      new barista.InjectionMapper(map).map('s1', 'o1', 'name', 'found');
+      new barista.InjectionMapper().map('s1', 'o1', 'name', 'found');
 
       assert.deepEqual(map, oneEntryDefaultMap);
     });
@@ -528,15 +610,17 @@ describe('Barista', function() {
     it('map() on map with one entry and many existing regnames maps correctly', function() {
       var map = copy(oneEntryDefaultMap);
       map.s.o.existingReg = oneEntryDefaultMap.s.o.existingReg = 'existingReg';
+      barista = new Barista({injectionMap: map});
       oneEntryDefaultMap.s.o.regname = 'found';
 
-      new barista.InjectionMapper(map).map('s', 'o', 'regname', 'found');
+      new barista.InjectionMapper().map('s', 'o', 'regname', 'found');
 
       assert.deepEqual(map, oneEntryDefaultMap);
     });
 
     it('map() on map with many entries maps new entry correctly', function() {
       var map = copy(manyEntriesDefaultMap);
+      barista = new Barista({injectionMap: map});
       manyEntriesDefaultMap.s = {
         o: {
           _default: 'found',
@@ -544,16 +628,17 @@ describe('Barista', function() {
         }
       };
 
-      new barista.InjectionMapper(map).map('s', 'o', 'regname', 'found');
+      new barista.InjectionMapper().map('s', 'o', 'regname', 'found');
 
       assert.deepEqual(map, manyEntriesDefaultMap);
     });
 
     it('map() on map with many entries maps additional regname correctly', function() {
       var map = copy(manyEntriesDefaultMap);
+      barista = new Barista({injectionMap: map});
       manyEntriesDefaultMap.s1.o1.regname = 'found';
 
-      new barista.InjectionMapper(map).map('s1', 'o1', 'regname', 'found');
+      new barista.InjectionMapper().map('s1', 'o1', 'regname', 'found');
 
       assert.deepEqual(map, manyEntriesDefaultMap);
     });
@@ -764,16 +849,15 @@ describe('Barista', function() {
       assert.equal(actual.prototype, expected.prototype);
       assert.deepEqual(actual, expected);
     });
-    
+
     it('make() creates named object like new operator', function() {
-      var
-          actual,
+      var actual,
           expected;
-      
-      function ObjectDef (arg1) {
+
+      function ObjectDef(arg1) {
         return {value1: arg1};
       }
-      
+
       mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns('overriden_params');
       mockInjectionResolver.expects('resolve').once().withExactArgs('overriden_params').returns(['resolved1']);
 
@@ -784,9 +868,9 @@ describe('Barista', function() {
       assert.equal(actual.prototype, expected.prototype);
       assert.deepEqual(actual, expected);
     });
-    
+
     it('make() creates anonymous object using "this" just like new operator', function() {
-        
+
       var ObjectDef = function(arg1) {
         this.value1 = arg1;
       },
@@ -805,8 +889,7 @@ describe('Barista', function() {
     });
 
     it('make() creates named object using "this" just like new operator', function() {
-      var
-          actual,
+      var actual,
           expected;
 
       function ObjectDef(arg1) {
@@ -823,7 +906,7 @@ describe('Barista', function() {
       assert.equal(actual.prototype, expected.prototype);
       assert.deepEqual(actual, expected);
     });
-    
+
     it('make() creates anonymous externally set prototype object just like new operator', function() {
       var ObjectDef = function(arg1) {
         this.value1 = arg1;
@@ -848,12 +931,11 @@ describe('Barista', function() {
       assert.equal(actual.getValue(), expected.getValue());
       assert.deepEqual(actual, expected);
     });
-    
+
     it('make() creates named externally set prototype object just like new operator', function() {
-      var
-          actual,
+      var actual,
           expected;
-      
+
       function ObjectDef(arg1) {
         this.value1 = arg1;
       }
@@ -875,12 +957,11 @@ describe('Barista', function() {
       assert.equal(actual.getValue(), expected.getValue());
       assert.deepEqual(actual, expected);
     });
-    
+
     it('make() creates inheritted object just like new operator', function() {
-      var
-          actual,
+      var actual,
           expected;
-      
+
       function ObjectDefSuper(arg1) {
         this.value1 = arg1;
       }
@@ -888,20 +969,20 @@ describe('Barista', function() {
       ObjectDefSuper.prototype.getValue = function() {
         return this.value1 + 'X';
       };
-      
+
       function ObjectDef(arg1) {
         ObjectDefSuper.call(this, arg1);
       }
-      
+
       ObjectDef.prototype = Object.create(ObjectDefSuper.prototype);
       ObjectDef.prototype.constructor = ObjectDef;
-      
+
       mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns('overriden_params');
       mockInjectionResolver.expects('resolve').once().withExactArgs('overriden_params').returns(['resolved1']);
 
       expected = new ObjectDef('resolved1');
       actual = maker.make(ObjectDef, ['param1'], ['arg1']);
-      
+
       assert.equal(actual.value1, 'resolved1');
       assert.equal(actual.value1, expected.value1);
       assert.equal(actual.prototype, expected.prototype);
@@ -944,10 +1025,10 @@ describe('Barista', function() {
       mockMaker
         .expects('make')
         .once()
-        .withExactArgs('obj', 'params', match({0: "arg1", 1: "arg2", 2: "arg3"}))
+        .withExactArgs('impl', 'params', match({0: "arg1", 1: "arg2", 2: "arg3"}))
         .returns('instance');
 
-      var instance = orderTaker.orderPerDependency('obj', 'params')('arg1', 'arg2', 'arg3');
+      var instance = orderTaker.orderPerDependency('impl', 'params')('arg1', 'arg2', 'arg3');
       assert.equal(instance, 'instance');
     });
 
@@ -955,16 +1036,20 @@ describe('Barista', function() {
       mockMaker
         .expects('make')
         .once()
-        .withExactArgs('obj', 'params', match({0: "arg1", 1: "arg2", 2: "arg3"}))
+        .withExactArgs('impl', 'params', match({0: "arg1", 1: "arg2", 2: "arg3"}))
         .returns('instance');
 
-      var func = orderTaker.orderSingleton('obj', 'params');
+      var func = orderTaker.orderSingleton('impl', 'params');
       var instance = func('arg1', 'arg2', 'arg3');
       var instance2 = func('argOther');
       assert.equal(instance, 'instance');
       assert.equal(instance, instance2);
     });
 
+    it('orderNotRegistered() returns func, executing it throws', function() {
+      var func = orderTaker.orderNotRegistered('impl');
+      assert.throw(function() { func(); }, 'using barista in strict mode requires that you register impl');
+    });
   });
 
   describe('InvokerBuilder', function() {
@@ -1007,6 +1092,13 @@ describe('Barista', function() {
       mockOrderTaker.expects("orderSingleton").withExactArgs('implementation', 'params').once().returns('invoker');
       mockMapper.expects('map').once().withExactArgs('ns', 'propName', 'registrationName', 'invoker');
       assert.equal(builder.build('ns', {name: 'propName', implementation: 'implementation'}, {type: 'singleton', name: 'registrationName', params: 'params'}), 'invoker');
+    });
+
+    it('build() with mapper not finding invoker creates not_set invoker, maps and returns', function() {
+      mockMapper.expects('find').once().withExactArgs('ns', 'propName', 'registrationName').returns(null);
+      mockOrderTaker.expects("orderNotRegistered").withExactArgs('implementation', 'params').once().returns('invoker');
+      mockMapper.expects('map').once().withExactArgs('ns', 'propName', 'registrationName', 'invoker');
+      assert.equal(builder.build('ns', {name: 'propName', implementation: 'implementation'}, {type: 'not_set', name: 'registrationName', params: 'params'}), 'invoker');
     });
   });
 
@@ -1232,6 +1324,10 @@ describe('Barista', function() {
       barista = new Barista();
     });
 
+    it('registry() returns new Registry with new ConfigDefaulter', function() {
+      assert.deepEqual(barista.registry().register('one').get(), {one: [{name: '_default', params: [], type: 'perdependency'}]});
+    });
+
     it('registry() returns new Registry for each call', function() {
       assert.notEqual(barista.registry(), barista.registry());
     });
@@ -1260,7 +1356,11 @@ describe('Barista', function() {
           ObjDef2: ObjDef2
         };
       },
-          servedNs = barista.serve(new nsSimple('depends'), 'Simple', barista.registry().register('ObjDef2').asSingleton().get()),
+          servedNs = barista.serve(new nsSimple('depends'), 'Simple', barista.registry()
+            .register('ObjDef2')
+            .asSingleton()
+            .get()
+          ),
           obj1Instance1 = servedNs.ObjDef1(1),
           obj1Instance2 = servedNs.ObjDef1(2),
           obj2Ref1 = servedNs.ObjDef2(3),
@@ -1331,108 +1431,108 @@ describe('Barista', function() {
           ChainOfResponsibilities: ChainOfResponsibilities
         };
       },
-      nsResponsibilities = function() {
-        function PrependResponsibility(prepender) {
-          function execute(context) {
-            context.value = prepender.prepend(context.value);
-          }
-          return {
-            execute: execute
-          };
-        }
-
-        function PrependAndCapitalizeResponsibility(prepender, capitalizer) {
-          function execute(context) {
-            context.value = prepender.prepend(capitalizer.capitalize(context.value));
-          }
-          return {
-            execute: execute
-          };
-        }
-
-        function AppendPlusesResponsibility(count) {
-          function execute(context) {
-            var i;
-            for (i = 0; i < count; ++i) {
-              context.value = context.value + '+';
+          nsResponsibilities = function() {
+            function PrependResponsibility(prepender) {
+              function execute(context) {
+                context.value = prepender.prepend(context.value);
+              }
+              return {
+                execute: execute
+              };
             }
-          }
-          return {
-            execute: execute
-          };
-        }
 
-        function WrapResponsibility() {
-          function execute(context) {
-            context.value = '[' + context.value + ']';
-          }
-          return {
-            execute: execute
-          };
-        }
+            function PrependAndCapitalizeResponsibility(prepender, capitalizer) {
+              function execute(context) {
+                context.value = prepender.prepend(capitalizer.capitalize(context.value));
+              }
+              return {
+                execute: execute
+              };
+            }
 
-        return {
-          PrependResponsibility: PrependResponsibility,
-          PrependAndCapitalizeResponsibility: PrependAndCapitalizeResponsibility,
-          AppendPlusesResponsibility: AppendPlusesResponsibility,
-          WrapResponsibility: WrapResponsibility
-        };
-      },
-      nsWidget = function() {
-        function Widget1(controller) {
-          function run(value) {
-            var context = {
-              value: value
+            function AppendPlusesResponsibility(count) {
+              function execute(context) {
+                var i;
+                for (i = 0; i < count; ++i) {
+                  context.value = context.value + '+';
+                }
+              }
+              return {
+                execute: execute
+              };
+            }
+
+            function WrapResponsibility() {
+              function execute(context) {
+                context.value = '[' + context.value + ']';
+              }
+              return {
+                execute: execute
+              };
+            }
+
+            return {
+              PrependResponsibility: PrependResponsibility,
+              PrependAndCapitalizeResponsibility: PrependAndCapitalizeResponsibility,
+              AppendPlusesResponsibility: AppendPlusesResponsibility,
+              WrapResponsibility: WrapResponsibility
             };
-            controller.execute(context);
-            return 'Widget1' + context.value;
-          }
-          return {
-            run: run
-          };
-        }
+          },
+          nsWidget = function() {
+            function Widget1(controller) {
+              function run(value) {
+                var context = {
+                  value: value
+                };
+                controller.execute(context);
+                return 'Widget1' + context.value;
+              }
+              return {
+                run: run
+              };
+            }
 
-        function Widget2(controller) {
-          function run(value) {
-            var context = {
-              value: value
+            function Widget2(controller) {
+              function run(value) {
+                var context = {
+                  value: value
+                };
+                controller.execute(context);
+                return 'Widget2' + context.value;
+              }
+              return {
+                run: run
+              };
+            }
+
+            return {
+              Widget1: Widget1,
+              Widget2: Widget2
             };
-            controller.execute(context);
-            return 'Widget2' + context.value;
-          }
-          return {
-            run: run
-          };
-        }
-
-        return {
-          Widget1: Widget1,
-          Widget2: Widget2
-        };
-      },
-      servedUtilsNs = barista.serve(new nsUtils(), 'Utils', barista.registry()
-        .register('addAlternatingChar').withValueParam('default').withValueParam(' ')
-        .register('Tester').asName('notdefault').withValueParam('uses _default')
-        .register('Prepender').withValueParam('-')
-        .register('Prepender').asName('special').withValueParam('special')
-        .register('Capitalizer').asSingleton()
-        .register('ChainOfResponsibilities').asName('widget1Controller')
-        .withArrayParam()
-        .includingResolveParam('Responsibilities.PrependResponsibility')
-        .includingResolveParam('Responsibilities.AppendPlusesResponsibility.p3')
-        .includingResolveParam('Responsibilities.WrapResponsibility')
-        .register('ChainOfResponsibilities').asName('widget2Controller')
-        .withArrayParam()
-        .includingResolveParam('Responsibilities.PrependAndCapitalizeResponsibility')
-        .includingResolveParam('Responsibilities.AppendPlusesResponsibility.p1')
-        .includingResolveParam('Responsibilities.WrapResponsibility')
-        .get()
-      ),
-      servedWidgetNs = barista.serve(new nsWidget(), 'Widget', barista.registry()
-        .register('Widget1').withResolveParam('Utils.ChainOfResponsibilities.widget1Controller')
-        .register('Widget2').withResolveParam('Utils.ChainOfResponsibilities.widget2Controller')
-        .get()
-      );
+          },
+          servedUtilsNs = barista.serve(new nsUtils(), 'Utils', barista.registry()
+            .register('addAlternatingChar').withValueParam('default').withValueParam(' ')
+            .register('Tester').asName('notdefault').withValueParam('uses _default')
+            .register('Prepender').withValueParam('-')
+            .register('Prepender').asName('special').withValueParam('special')
+            .register('Capitalizer').asSingleton()
+            .register('ChainOfResponsibilities').asName('widget1Controller')
+            .withArrayParam()
+            .includingResolveParam('Responsibilities.PrependResponsibility')
+            .includingResolveParam('Responsibilities.AppendPlusesResponsibility.p3')
+            .includingResolveParam('Responsibilities.WrapResponsibility')
+            .register('ChainOfResponsibilities').asName('widget2Controller')
+            .withArrayParam()
+            .includingResolveParam('Responsibilities.PrependAndCapitalizeResponsibility')
+            .includingResolveParam('Responsibilities.AppendPlusesResponsibility.p1')
+            .includingResolveParam('Responsibilities.WrapResponsibility')
+            .get()
+          ),
+          servedWidgetNs = barista.serve(new nsWidget(), 'Widget', barista.registry()
+            .register('Widget1').withResolveParam('Utils.ChainOfResponsibilities.widget1Controller')
+            .register('Widget2').withResolveParam('Utils.ChainOfResponsibilities.widget2Controller')
+            .get()
+          );
 
       barista.serve(new nsResponsibilities(), 'Responsibilities', barista.registry()
         .register('PrependResponsibility').withResolveParam('Utils.Prepender')
@@ -1459,6 +1559,31 @@ describe('Barista', function() {
       assert.equal(barista.resolve('Utils.Prepender', 'overriden2').prepend('value'), 'overriden2value');
       assert.equal(barista.resolve('Utils.addAlternatingChar', 'value'), 'v a l u e ');
       assert.equal(barista.resolve('Utils.addAlternatingChar', 'value', '-'), 'v-a-l-u-e-');
+    });
+
+    it('serve() and resolve() throw when using strict mode involving not fully registered object', function() {
+      barista = new Barista({useStrict: true});
+      var nsSimple = function() {
+        function ObjNoRegistration() { return {}; }
+        function ObjNoType() { return {}; }
+        function ObjDependentUponObjNoRegistration(obj) { return {obj: obj}; }
+        return {
+          ObjNoRegistration: ObjNoRegistration,
+          ObjNoType: ObjNoType,
+          ObjDependentUponObjNoRegistration: ObjDependentUponObjNoRegistration
+        };
+      },
+          servedNs = barista.serve(new nsSimple(), 'Simple', barista.registry()
+            .register('ObjNoType')
+            .register('ObjDependentUponObjNoRegistration').asPerDependency().withResolveParam('Simple.ObjNoRegistration')
+            .get()
+          );
+      assert.throw(function() { servedNs.ObjNoRegistration(); }, 'using barista in strict mode requires that you register function ObjNoRegistration() { return {}; }');
+      assert.throw(function() { servedNs.ObjNoType(); }, 'using barista in strict mode requires that you register function ObjNoType() { return {}; }');
+      assert.throw(function() { servedNs.ObjDependentUponObjNoRegistration(); }, 'using barista in strict mode requires that you register function ObjNoRegistration() { return {}; }');
+      assert.throw(function() { barista.resolve('Simple.ObjNoRegistration'); }, 'using barista in strict mode requires that you register function ObjNoRegistration() { return {}; }');
+      assert.throw(function() { barista.resolve('Simple.ObjNoType'); }, 'using barista in strict mode requires that you register function ObjNoType() { return {}; }');
+      assert.throw(function() { barista.resolve('Simple.ObjDependentUponObjNoRegistration'); }, 'using barista in strict mode requires that you register function ObjNoRegistration() { return {}; }');
     });
   });
 });
