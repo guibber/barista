@@ -8,13 +8,13 @@ var Barista = function(config) {
       _not_set = 'not_set',
       _default = '_default';
 
-  function Registry(configDefaulter) {
-    var registry = {},
-        currentObjArray,
-        currentObjConfig,
+  function Menu(itemDefaulter) {
+    var menu = {},
+        currentItemArray,
+        currentItem,
         currentParamArray,
-        verifyObjConfig = function(throwMessage) {
-          if (!currentObjConfig) {
+        verifyItem = function(throwMessage) {
+          if (!currentItem) {
             throw throwMessage;
           }
         },
@@ -25,60 +25,60 @@ var Barista = function(config) {
         };
 
     this.get = function() {
-      return registry;
+      return menu;
     };
 
-    this.register = function(objectName) {
-      if (!registry[objectName]) {
-        currentObjArray = [];
-        registry[objectName] = currentObjArray;
+    this.withItem = function(objectName) {
+      if (!menu[objectName]) {
+        currentItemArray = [];
+        menu[objectName] = currentItemArray;
       }
-      currentObjConfig = configDefaulter.getDefaultRegistration();
-      currentObjArray.push(currentObjConfig);
+      currentItem = itemDefaulter.getDefaultItem();
+      currentItemArray.push(currentItem);
       currentParamArray = null;
       return this;
     };
 
-    this.asName = function(name) {
-      verifyObjConfig('call to asName() without call to register() is invalid');
-      currentObjConfig.name = name;
+    this.named = function(name) {
+      verifyItem('call to named() without call to withItem() is invalid');
+      currentItem.name = name;
       return this;
     };
 
     this.asSingleton = function() {
-      verifyObjConfig('call to asSingleton() without call to register() is invalid');
-      currentObjConfig.type = _singleton;
+      verifyItem('call to asSingleton() without call to withItem() is invalid');
+      currentItem.type = _singleton;
       return this;
     };
 
     this.asPerDependency = function() {
-      verifyObjConfig('call to asPerDependency() without call to register() is invalid');
-      currentObjConfig.type = _perdependency;
+      verifyItem('call to asPerDependency() without call to withItem() is invalid');
+      currentItem.type = _perdependency;
       return this;
     };
 
     this.withResolveParam = function(resolve) {
-      verifyObjConfig('call to withResolveParam() without call to register() is invalid');
-      currentObjConfig.params.push({resolve: resolve});
+      verifyItem('call to withResolveParam() without call to withItem() is invalid');
+      currentItem.params.push({resolve: resolve});
       return this;
     };
 
     this.withValueParam = function(value) {
-      verifyObjConfig('call to withValueParam() without call to register() is invalid');
-      currentObjConfig.params.push({value: value});
+      verifyItem('call to withValueParam() without call to withItem() is invalid');
+      currentItem.params.push({value: value});
       return this;
     };
 
     this.withFuncParam = function(func) {
-      verifyObjConfig('call to withFuncParam() without call to register() is invalid');
-      currentObjConfig.params.push({func: func});
+      verifyItem('call to withFuncParam() without call to withItem() is invalid');
+      currentItem.params.push({func: func});
       return this;
     };
 
     this.withArrayParam = function() {
-      verifyObjConfig('call to withArrayParam() without call to register() is invalid');
+      verifyItem('call to withArrayParam() without call to withItem() is invalid');
       currentParamArray = [];
-      currentObjConfig.params.push({array: currentParamArray});
+      currentItem.params.push({array: currentParamArray});
       return this;
     };
 
@@ -101,45 +101,45 @@ var Barista = function(config) {
     };
   }
 
-  function ConfigDefaulter() {
-    function getDefaultRegistration() {
+  function ItemDefaulter() {
+    function getDefaultItem() {
       return {name: _default, params: [], type: useStrict ? _not_set : _perdependency};
     }
 
-    function setRegistrationDefaults(registrations) {
-      registrations.forEach(function(registration) {
-        registration.type = registration.type || getDefaultRegistration().type;
-        registration.name = registration.name || getDefaultRegistration().name;
-        registration.params = registration.params
-          ? Array.isArray(registration.params)
-            ? registration.params
-            : [registration.params]
-          : getDefaultRegistration().params;
+    function setItemDefaults(items) {
+      items.forEach(function(item) {
+        item.type = item.type || getDefaultItem().type;
+        item.name = item.name || getDefaultItem().name;
+        item.params = item.params
+          ? Array.isArray(item.params)
+            ? item.params
+            : [item.params]
+          : getDefaultItem().params;
       });
-      return registrations;
+      return items;
     }
 
     return {
-      getDefaultRegistration: getDefaultRegistration,
-      setRegistrationDefaults: setRegistrationDefaults
+      getDefaultItem: getDefaultItem,
+      setItemDefaults: setItemDefaults
     };
   }
 
-  function ConfigManager(nsName, registry, configDefaulter) {
-    registry = registry || {};
+  function ConfigManager(nsName, menu, itemDefaulter) {
+    menu = menu || {};
     function getNsName() {
       return nsName;
     }
 
-    function getRegistrations(name) {
-      var registrations = registry[name] || [{}];
-      return Array.isArray(registrations)
-        ? configDefaulter.setRegistrationDefaults(registrations)
-        : configDefaulter.setRegistrationDefaults([registrations]);
+    function getItems(name) {
+      var items = menu[name] || [{}];
+      return Array.isArray(items)
+        ? itemDefaulter.setItemDefaults(items)
+        : itemDefaulter.setItemDefaults([items]);
     }
 
     return {
-      getRegistrations: getRegistrations,
+      getItems: getItems,
       getNsName: getNsName
     };
   }
@@ -337,16 +337,16 @@ var Barista = function(config) {
       };
     }
 
-    function orderNotRegistered(implementation) {
+    function orderNotSet(implementation) {
       return function() {
-        throw 'using barista in strict mode requires that you register ' + implementation;
+        throw('using barista in strict mode requires that you register "' + implementation + '" using menu.withItem and specifying asSingleton or asPerDependency');
       };
     }
 
     return {
       orderPerDependency: orderPerDependency,
       orderSingleton: orderSingleton,
-      orderNotRegistered: orderNotRegistered
+      orderNotSet: orderNotSet
     };
   }
 
@@ -354,14 +354,14 @@ var Barista = function(config) {
     var typeMap = {
       'perdependency': function(i, p) { return orderTaker.orderPerDependency(i, p); },
       'singleton': function(i, p) { return orderTaker.orderSingleton(i, p); },
-      'not_set': function(i, p) { return orderTaker.orderNotRegistered(i, p); }
+      'not_set': function(i, p) { return orderTaker.orderNotSet(i, p); }
     };
 
-    function build(nsName, prop, registration) {
-      var invoker = injectionMapper.find(nsName, prop.name, registration.name);
+    function build(nsName, prop, item) {
+      var invoker = injectionMapper.find(nsName, prop.name, item.name);
       if (!invoker) {
-        invoker = typeMap[registration.type](prop.implementation, registration.params);
-        injectionMapper.map(nsName, prop.name, registration.name, invoker);
+        invoker = typeMap[item.type](prop.implementation, item.params);
+        injectionMapper.map(nsName, prop.name, item.name, invoker);
       }
       return invoker;
     }
@@ -377,9 +377,9 @@ var Barista = function(config) {
     function addObject(prop) {
       var defaultInvoker,
           nsName = configMgr.getNsName();
-      configMgr.getRegistrations(prop.name).forEach(function(registration) {
-        var invoker = invokerBuilder.build(nsName, prop, registration);
-        if (!defaultInvoker || registration.name === _default) {
+      configMgr.getItems(prop.name).forEach(function(item) {
+        var invoker = invokerBuilder.build(nsName, prop, item);
+        if (!defaultInvoker || item.name === _default) {
           defaultInvoker = invoker;
         }
       });
@@ -426,12 +426,12 @@ var Barista = function(config) {
     };
   }
 
-  function serve(ns, nsName, registry) {
+  function serve(ns, nsName, menu) {
     var injectionMapper = new InjectionMapper();
     return new Processor(
       new PropertyExtractor(ns, newProperty),
       new NamespaceBuilder(
-        new ConfigManager(nsName, registry, new ConfigDefaulter()),
+        new ConfigManager(nsName, menu.get(), new ItemDefaulter()),
         new InvokerBuilder(
           new OrderTaker(new Maker(
             new ArgsOverrider(new ArgsWrapper()),
@@ -443,17 +443,17 @@ var Barista = function(config) {
     ).process(ns);
   }
 
-  function resolve(item) {
+  function make(item) {
     var resolveParam = new ResolvedParam(item),
         invoker = new InjectionMapper().find(resolveParam.namespace, resolveParam.object, resolveParam.name);
     return invoker ? invoker.apply(null, Array.prototype.slice.call(arguments || []).splice(1)) : null;
   }
 
   return {
-    registry: function() { return new Registry(new ConfigDefaulter()); },
+    menu: function() { return new Menu(new ItemDefaulter()); },
     serve: serve,
-    resolve: resolve,
-    Registry: Registry,
+    make: make,
+    Menu: Menu,
     Processor: Processor,
     ArgsOverrider: ArgsOverrider,
     ArgsWrapper: ArgsWrapper,
@@ -463,7 +463,7 @@ var Barista = function(config) {
     Property: Property,
     newProperty: newProperty,
     PropertyExtractor: PropertyExtractor,
-    ConfigDefaulter: ConfigDefaulter,
+    ItemDefaulter: ItemDefaulter,
     InjectionMapper: InjectionMapper,
     ResolvedParam: ResolvedParam,
     ParamResolver: ParamResolver,

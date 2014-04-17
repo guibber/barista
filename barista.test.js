@@ -1,15 +1,15 @@
-describe('Barista', function() {
-  describe('Registry', function() {
+describe('Barista Tests', function() {
+  describe('Menu', function() {
     var sandbox,
         defaulter,
         mockDefaulter,
-        registry;
+        menu;
 
     beforeEach(function() {
       sandbox = sinon.sandbox.create();
-      defaulter = new barista.ConfigDefaulter();
+      defaulter = new barista.ItemDefaulter();
       mockDefaulter = sandbox.mock(defaulter);
-      registry = new barista.Registry(defaulter);
+      menu = new barista.Menu(defaulter);
     });
 
     afterEach(function() {
@@ -17,117 +17,117 @@ describe('Barista', function() {
       sandbox.restore();
     });
 
-    it('get() with nothing registered returns empty object', function() {
-      assert.deepEqual(registry.get(), {});
+    it('get() without withItem() returns empty', function() {
+      assert.deepEqual(menu.get(), {});
     });
 
-    it('get() with one register() returns default from configDefaulter', function() {
-      mockDefaulter.expects('getDefaultRegistration').once().returns('defaultReg');
-      assert.deepEqual(registry
-        .register('one')
+    it('get() with one withItem() returns default from itemDefaulter', function() {
+      mockDefaulter.expects('getDefaultItem').once().returns('defaultReg');
+      assert.deepEqual(menu
+        .withItem('one')
         .get(), {one: ['defaultReg']});
     });
 
-    it('get() with one register.asSingleton() is registered as singleton', function() {
-      mockDefaulter.expects('getDefaultRegistration').once().returns({});
-      assert.deepEqual(registry
-        .register('one')
+    it('get() with one withItem.asSingleton() is registered as singleton', function() {
+      mockDefaulter.expects('getDefaultItem').once().returns({});
+      assert.deepEqual(menu
+        .withItem('one')
         .asSingleton()
         .get(), {one: [{type: 'singleton'}]});
     });
 
-    it('get() with one register.asPerDependency() is registered as perdependency', function() {
-      mockDefaulter.expects('getDefaultRegistration').once().returns({});
-      assert.deepEqual(registry
-        .register('one')
+    it('get() with one withItem.asPerDependency() is registered as perdependency', function() {
+      mockDefaulter.expects('getDefaultItem').once().returns({});
+      assert.deepEqual(menu
+        .withItem('one')
         .asPerDependency()
         .get(), {one: [{type: 'perdependency'}]});
     });
 
-    it('get() with one register.asName() configures name', function() {
-      mockDefaulter.expects('getDefaultRegistration').once().returns({});
-      assert.deepEqual(registry
-        .register('one')
-        .asName('name')
+    it('get() with one withItem.named() configures name', function() {
+      mockDefaulter.expects('getDefaultItem').once().returns({});
+      assert.deepEqual(menu
+        .withItem('one')
+        .named('name')
         .get(), {one: [{name: 'name'}]});
     });
 
-    it('get() with one register.withValueParam() sets value param', function() {
-      mockDefaulter.expects('getDefaultRegistration').once().returns({params: []});
-      assert.deepEqual(registry
-        .register('one')
+    it('get() with one withItem.withValueParam() sets value param', function() {
+      mockDefaulter.expects('getDefaultItem').once().returns({params: []});
+      assert.deepEqual(menu
+        .withItem('one')
         .withValueParam('value')
         .get(), {one: [{params: [{value: 'value'}]}]});
     });
 
-    it('get() with one register.withResolveParam() sets resolve param', function() {
-      mockDefaulter.expects('getDefaultRegistration').once().returns({params: []});
-      assert.deepEqual(registry
-        .register('one')
+    it('get() with one withItem.withResolveParam() sets resolve param', function() {
+      mockDefaulter.expects('getDefaultItem').once().returns({params: []});
+      assert.deepEqual(menu
+        .withItem('one')
         .withResolveParam('resolve')
         .get(), {one: [{params: [{resolve: 'resolve'}]}]});
     });
 
-    it('get() with one register.withFuncParam() sets func param', function() {
-      mockDefaulter.expects('getDefaultRegistration').once().returns({params: []});
-      assert.deepEqual(registry
-        .register('one')
+    it('get() with one withItem.withFuncParam() sets func param', function() {
+      mockDefaulter.expects('getDefaultItem').once().returns({params: []});
+      assert.deepEqual(menu
+        .withItem('one')
         .withFuncParam('func')
         .get(), {one: [{params: [{func: 'func'}]}]});
     });
 
-    it('get() with one register.withArrayParam() sets empty array param', function() {
-      mockDefaulter.expects('getDefaultRegistration').once().returns({params: []});
-      assert.deepEqual(registry
-        .register('one')
+    it('get() with one withItem.withArrayParam() sets empty array param', function() {
+      mockDefaulter.expects('getDefaultItem').once().returns({params: []});
+      assert.deepEqual(menu
+        .withItem('one')
         .withArrayParam()
         .get(), {one: [{params: [{array: []}]}]});
     });
 
-    it('get() with one register.withArrayParam.includingResolveParam() sets array param with one resolve param', function() {
-      mockDefaulter.expects('getDefaultRegistration').once().returns({params: []});
-      assert.deepEqual(registry
-        .register('one')
+    it('get() with one withItem.withArrayParam.includingResolveParam() sets array param with one resolve param', function() {
+      mockDefaulter.expects('getDefaultItem').once().returns({params: []});
+      assert.deepEqual(menu
+        .withItem('one')
         .withArrayParam()
         .includingResolveParam('resolve1')
         .get(), {one: [{params: [{array: [{resolve: 'resolve1'}]}]}]});
     });
 
-    it('get() with one register.withArrayParam.includingValueParam() sets array param with one value param', function() {
-      mockDefaulter.expects('getDefaultRegistration').once().returns({params: []});
-      assert.deepEqual(registry
-        .register('one')
+    it('get() with one withItem.withArrayParam.includingValueParam() sets array param with one value param', function() {
+      mockDefaulter.expects('getDefaultItem').once().returns({params: []});
+      assert.deepEqual(menu
+        .withItem('one')
         .withArrayParam()
         .includingValueParam('value1')
         .get(), {one: [{params: [{array: [{value: 'value1'}]}]}]});
     });
 
-    it('get() with one register.withArrayParam.includingFuncParam() sets array param with one func param', function() {
-      mockDefaulter.expects('getDefaultRegistration').once().returns({params: []});
-      assert.deepEqual(registry
-        .register('one')
+    it('get() with one withItem.withArrayParam.includingFuncParam() sets array param with one func param', function() {
+      mockDefaulter.expects('getDefaultItem').once().returns({params: []});
+      assert.deepEqual(menu
+        .withItem('one')
         .withArrayParam()
         .includingFuncParam('func1')
         .get(), {one: [{params: [{array: [{func: 'func1'}]}],}]});
     });
 
-    it('get() with many register() of same object sets array of default registrations', function() {
-      mockDefaulter.expects('getDefaultRegistration').thrice().returns('defaultReg');
-      assert.deepEqual(registry
-        .register('one')
-        .register('one')
-        .register('one')
+    it('get() with many withItem() of same object sets array of default items', function() {
+      mockDefaulter.expects('getDefaultItem').thrice().returns('defaultReg');
+      assert.deepEqual(menu
+        .withItem('one')
+        .withItem('one')
+        .withItem('one')
         .get(), {
           one: ['defaultReg', 'defaultReg', 'defaultReg']
         });
     });
 
-    it('get() with many register() sets default registrations', function() {
-      mockDefaulter.expects('getDefaultRegistration').thrice().returns('defaultReg');
-      assert.deepEqual(registry
-        .register('one')
-        .register('two')
-        .register('three')
+    it('get() with many withItem() sets default items', function() {
+      mockDefaulter.expects('getDefaultItem').thrice().returns('defaultReg');
+      assert.deepEqual(menu
+        .withItem('one')
+        .withItem('two')
+        .withItem('three')
         .get(), {
           one: ['defaultReg'],
           two: ['defaultReg'],
@@ -136,13 +136,13 @@ describe('Barista', function() {
     });
 
     it('get() with many configure using all options configures correctly', function() {
-      mockDefaulter.expects('getDefaultRegistration').once().returns({name: 'unset', params: [], type: 'unset'});
-      mockDefaulter.expects('getDefaultRegistration').once().returns({name: 'unset', params: [], type: 'unset'});
-      mockDefaulter.expects('getDefaultRegistration').once().returns({name: 'unset', params: [], type: 'unset'});
+      mockDefaulter.expects('getDefaultItem').once().returns({name: 'unset', params: [], type: 'unset'});
+      mockDefaulter.expects('getDefaultItem').once().returns({name: 'unset', params: [], type: 'unset'});
+      mockDefaulter.expects('getDefaultItem').once().returns({name: 'unset', params: [], type: 'unset'});
 
-      assert.deepEqual(registry
-        .register('one')
-        .asName('one')
+      assert.deepEqual(menu
+        .withItem('one')
+        .named('one')
         .asSingleton()
         .withValueParam('one-value')
         .withFuncParam('one-func')
@@ -151,8 +151,8 @@ describe('Barista', function() {
         .includingValueParam('array-value')
         .includingFuncParam('array-func')
         .includingResolveParam('array-resolve')
-        .register('two')
-        .asName('two')
+        .withItem('two')
+        .named('two')
         .asPerDependency()
         .withValueParam('two-value')
         .withFuncParam('two-func')
@@ -161,7 +161,7 @@ describe('Barista', function() {
         .includingValueParam('array-value')
         .includingFuncParam('array-func')
         .includingResolveParam('array-resolve')
-        .register('three')
+        .withItem('three')
         .withValueParam('three-value')
         .withFuncParam('three-func')
         .withResolveParam('three-resolve')
@@ -221,88 +221,88 @@ describe('Barista', function() {
         });
     });
 
-    it('calling asName() without register() throws', function() {
-      assert.throw(function() { registry.asName(); }, 'call to asName() without call to register() is invalid');
+    it('calling named() without withItem() throws', function() {
+      assert.throw(function() { menu.named(); }, 'call to named() without call to withItem() is invalid');
     });
 
-    it('calling asSingleton() without register() throws', function() {
-      assert.throw(function() { registry.asSingleton(); }, 'call to asSingleton() without call to register() is invalid');
+    it('calling asSingleton() without withItem() throws', function() {
+      assert.throw(function() { menu.asSingleton(); }, 'call to asSingleton() without call to withItem() is invalid');
     });
 
-    it('calling asPerDependency() without register() throws', function() {
-      assert.throw(function() { registry.asPerDependency(); }, 'call to asPerDependency() without call to register() is invalid');
+    it('calling asPerDependency() without withItem() throws', function() {
+      assert.throw(function() { menu.asPerDependency(); }, 'call to asPerDependency() without call to withItem() is invalid');
     });
 
-    it('calling withResolveParam() without register() throws', function() {
-      assert.throw(function() { registry.withResolveParam(); }, 'call to withResolveParam() without call to register() is invalid');
+    it('calling withResolveParam() without withItem() throws', function() {
+      assert.throw(function() { menu.withResolveParam(); }, 'call to withResolveParam() without call to withItem() is invalid');
     });
 
-    it('calling withValueParam() without register() throws', function() {
-      assert.throw(function() { registry.withValueParam(); }, 'call to withValueParam() without call to register() is invalid');
+    it('calling withValueParam() without withItem() throws', function() {
+      assert.throw(function() { menu.withValueParam(); }, 'call to withValueParam() without call to withItem() is invalid');
     });
 
-    it('calling withFuncParam() without register() throws', function() {
-      assert.throw(function() { registry.withFuncParam(); }, 'call to withFuncParam() without call to register() is invalid');
+    it('calling withFuncParam() without withItem() throws', function() {
+      assert.throw(function() { menu.withFuncParam(); }, 'call to withFuncParam() without call to withItem() is invalid');
     });
 
-    it('calling withArrayParam() without register() throws', function() {
-      assert.throw(function() { registry.withArrayParam(); }, 'call to withArrayParam() without call to register() is invalid');
+    it('calling withArrayParam() without withItem() throws', function() {
+      assert.throw(function() { menu.withArrayParam(); }, 'call to withArrayParam() without call to withItem() is invalid');
     });
 
     it('calling includingResolveParam() without withArrayParam() throws', function() {
-      assert.throw(function() { registry.includingResolveParam(); }, 'call to includingResolveParam() without call to withArrayParam() is invalid');
+      assert.throw(function() { menu.includingResolveParam(); }, 'call to includingResolveParam() without call to withArrayParam() is invalid');
     });
 
     it('calling includingValueParam() without withArrayParam() throws', function() {
-      assert.throw(function() { registry.includingValueParam(); }, 'call to includingValueParam() without call to withArrayParam() is invalid');
+      assert.throw(function() { menu.includingValueParam(); }, 'call to includingValueParam() without call to withArrayParam() is invalid');
     });
 
     it('calling includingFuncParam() without withArrayParam() throws', function() {
-      assert.throw(function() { registry.includingFuncParam(); }, 'call to includingFuncParam() without call to withArrayParam() is invalid');
+      assert.throw(function() { menu.includingFuncParam(); }, 'call to includingFuncParam() without call to withArrayParam() is invalid');
     });
 
-    it('calling includingResolveParam() after register() without withArrayParam() throws', function() {
+    it('calling includingResolveParam() after withItem() without withArrayParam() throws', function() {
       assert.throw(function() {
-        registry
-          .register('one')
+        menu
+          .withItem('one')
           .withArrayParam()
           .includingResolveParam('resolve')
-          .register('one')
+          .withItem('one')
           .includingResolveParam('resolve');
       }, 'call to includingResolveParam() without call to withArrayParam() is invalid');
     });
   });
 
-  describe('ConfigDefaulter (default mode of not strict)', function() {
+  describe('ItemDefaulter (default mode of not strict)', function() {
     var defaultRegistration = {
       type: 'perdependency',
       name: '_default',
       params: []
     };
 
-    it('getDefaultRegistration() returns object with type, name and params set', function() {
-      assert.deepEqual(new barista.ConfigDefaulter().getDefaultRegistration(), defaultRegistration);
+    it('getDefaultItem() returns object with type, name and params set', function() {
+      assert.deepEqual(new barista.ItemDefaulter().getDefaultItem(), defaultRegistration);
     });
 
-    it('setRegistrationDefaults() does nothing when zero registrations', function() {
-      assert.deepEqual(new barista.ConfigDefaulter().setRegistrationDefaults([]), []);
+    it('setItemDefaults() does nothing when zero items', function() {
+      assert.deepEqual(new barista.ItemDefaulter().setItemDefaults([]), []);
     });
 
-    it('setRegistrationDefaults() with one registration adds type and name and params if undefined', function() {
-      assert.deepEqual(new barista.ConfigDefaulter().setRegistrationDefaults([{}]), [defaultRegistration]);
+    it('setItemDefaults() with one item adds type and name and params if undefined', function() {
+      assert.deepEqual(new barista.ItemDefaulter().setItemDefaults([{}]), [defaultRegistration]);
     });
 
-    it('setRegistrationDefaults() with one registration adds type or name and params if undefined', function() {
-      assert.deepEqual(new barista.ConfigDefaulter().setRegistrationDefaults([{type: 'perdependency'}]), [defaultRegistration]);
-      assert.deepEqual(new barista.ConfigDefaulter().setRegistrationDefaults([{name: '_default'}]), [defaultRegistration]);
+    it('setItemDefaults() with one item adds type or name and params if undefined', function() {
+      assert.deepEqual(new barista.ItemDefaulter().setItemDefaults([{type: 'perdependency'}]), [defaultRegistration]);
+      assert.deepEqual(new barista.ItemDefaulter().setItemDefaults([{name: '_default'}]), [defaultRegistration]);
     });
 
-    it('setRegistrationDefaults() with many registrations adds type and name if undefined', function() {
-      assert.deepEqual(new barista.ConfigDefaulter().setRegistrationDefaults([{}, {}, {}]), [defaultRegistration, defaultRegistration, defaultRegistration]);
+    it('setItemDefaults() with many items adds type and name if undefined', function() {
+      assert.deepEqual(new barista.ItemDefaulter().setItemDefaults([{}, {}, {}]), [defaultRegistration, defaultRegistration, defaultRegistration]);
     });
   });
 
-  describe('ConfigDefaulter (strict mode)', function() {
+  describe('ItemDefaulter (strict mode)', function() {
     var defaultRegistration = {
       type: 'not_set',
       name: '_default',
@@ -313,25 +313,25 @@ describe('Barista', function() {
       barista = new Barista({useStrict: true});
     });
 
-    it('getDefaultRegistration() returns object with type, name and params set', function() {
-      assert.deepEqual(new barista.ConfigDefaulter().getDefaultRegistration(), defaultRegistration);
+    it('getDefaultItem() returns object with type, name and params set', function() {
+      assert.deepEqual(new barista.ItemDefaulter().getDefaultItem(), defaultRegistration);
     });
 
-    it('setRegistrationDefaults() does nothing when zero registrations', function() {
-      assert.deepEqual(new barista.ConfigDefaulter().setRegistrationDefaults([]), []);
+    it('setItemDefaults() does nothing when zero items', function() {
+      assert.deepEqual(new barista.ItemDefaulter().setItemDefaults([]), []);
     });
 
-    it('setRegistrationDefaults() with one registration adds type and name and params if undefined', function() {
-      assert.deepEqual(new barista.ConfigDefaulter().setRegistrationDefaults([{}]), [defaultRegistration]);
+    it('setItemDefaults() with one item adds type and name and params if undefined', function() {
+      assert.deepEqual(new barista.ItemDefaulter().setItemDefaults([{}]), [defaultRegistration]);
     });
 
-    it('setRegistrationDefaults() with one registration adds type or name and params if undefined', function() {
-      assert.deepEqual(new barista.ConfigDefaulter().setRegistrationDefaults([{type: 'not_set'}]), [defaultRegistration]);
-      assert.deepEqual(new barista.ConfigDefaulter().setRegistrationDefaults([{name: '_default'}]), [defaultRegistration]);
+    it('setItemDefaults() with one item adds type or name and params if undefined', function() {
+      assert.deepEqual(new barista.ItemDefaulter().setItemDefaults([{type: 'not_set'}]), [defaultRegistration]);
+      assert.deepEqual(new barista.ItemDefaulter().setItemDefaults([{name: '_default'}]), [defaultRegistration]);
     });
 
-    it('setRegistrationDefaults() with many registrations adds type and name if undefined', function() {
-      assert.deepEqual(new barista.ConfigDefaulter().setRegistrationDefaults([{}, {}, {}]), [defaultRegistration, defaultRegistration, defaultRegistration]);
+    it('setItemDefaults() with many items adds type and name if undefined', function() {
+      assert.deepEqual(new barista.ItemDefaulter().setItemDefaults([{}, {}, {}]), [defaultRegistration, defaultRegistration, defaultRegistration]);
     });
   });
 
@@ -342,7 +342,7 @@ describe('Barista', function() {
 
     beforeEach(function() {
       sandbox = sinon.sandbox.create();
-      defaulter = new barista.ConfigDefaulter();
+      defaulter = new barista.ItemDefaulter();
       mockDefaulter = sandbox.mock(defaulter);
     });
 
@@ -351,59 +351,59 @@ describe('Barista', function() {
       sandbox.restore();
     });
 
-    it('getRegistrations() returns defaulted registration when null registry', function() {
+    it('getItems() returns defaulted item when null menu', function() {
       mockDefaulter
-        .expects('setRegistrationDefaults')
+        .expects('setItemDefaults')
         .once()
         .withExactArgs([{}])
         .returns('reg');
 
-      assert.deepEqual(new barista.ConfigManager(null, null, defaulter).getRegistrations('name'), 'reg');
+      assert.deepEqual(new barista.ConfigManager(null, null, defaulter).getItems('name'), 'reg');
     });
 
-    it('getRegistrations() returns defaulted registration when empty registry', function() {
+    it('getItems() returns defaulted item when empty menu', function() {
       mockDefaulter
-        .expects('setRegistrationDefaults')
+        .expects('setItemDefaults')
         .once()
         .withExactArgs([{}])
         .returns('reg');
 
-      assert.deepEqual(new barista.ConfigManager(null, {}, defaulter).getRegistrations('name'), 'reg');
+      assert.deepEqual(new barista.ConfigManager(null, {}, defaulter).getItems('name'), 'reg');
     });
 
-    it('getRegistrations() returns default registration when one non-matching registration', function() {
+    it('getItems() returns default item when one non-matching item', function() {
       mockDefaulter
-        .expects('setRegistrationDefaults')
+        .expects('setItemDefaults')
         .once()
         .withExactArgs([{}])
         .returns('reg');
 
-      assert.deepEqual(new barista.ConfigManager(null, {Name: {}}, defaulter).getRegistrations('nothere'), 'reg');
+      assert.deepEqual(new barista.ConfigManager(null, {Name: {}}, defaulter).getItems('nothere'), 'reg');
     });
 
-    it('getRegistrations() returns matching registration in array when one matching registration without array', function() {
+    it('getItems() returns matching item in array when one matching item without array', function() {
       mockDefaulter
-        .expects('setRegistrationDefaults')
+        .expects('setItemDefaults')
         .once()
         .withExactArgs([{v: 1}])
         .returns('reg');
 
-      assert.deepEqual(new barista.ConfigManager(null, {Name: {v: 1}}, defaulter).getRegistrations('Name'), 'reg');
+      assert.deepEqual(new barista.ConfigManager(null, {Name: {v: 1}}, defaulter).getItems('Name'), 'reg');
     });
 
-    it('getRegistrations() returns matching registration when one matching registration and already in array', function() {
+    it('getItems() returns matching item when one matching item and already in array', function() {
       mockDefaulter
-        .expects('setRegistrationDefaults')
+        .expects('setItemDefaults')
         .once()
         .withExactArgs([{v: 1}])
         .returns('reg');
 
-      assert.deepEqual(new barista.ConfigManager(null, {Name: [{v: 1}]}, defaulter).getRegistrations('Name'), 'reg');
+      assert.deepEqual(new barista.ConfigManager(null, {Name: [{v: 1}]}, defaulter).getItems('Name'), 'reg');
     });
 
-    it('getRegistrations() returns matching registration when many registrations', function() {
+    it('getItems() returns matching item when many items', function() {
       mockDefaulter
-        .expects('setRegistrationDefaults')
+        .expects('setItemDefaults')
         .once()
         .withExactArgs([{x: 'regPlace'}])
         .returns('reg');
@@ -412,11 +412,11 @@ describe('Barista', function() {
         Name: 'regName',
         Place: [{x: 'regPlace'}],
         Thing: 'regThing'
-      }, defaulter).getRegistrations('Place'), 'reg');
+      }, defaulter).getItems('Place'), 'reg');
     });
 
     it('getNsName() returns nsName param', function() {
-      assert.equal(new barista.ConfigManager('nsName', 'registry', null).getNsName(), 'nsName');
+      assert.equal(new barista.ConfigManager('nsName', 'menu', null).getNsName(), 'nsName');
     });
   });
 
@@ -518,7 +518,7 @@ describe('Barista', function() {
       assert.equal(new barista.InjectionMapper().find('s', 'o', '_default'), 'found');
     });
 
-    it('find() on map with one entry with many registration returns match', function() {
+    it('find() on map with one entry with many item returns match', function() {
       oneEntryDefaultMap.s.o.other1 = 'x';
       oneEntryDefaultMap.s.o.other2 = 'x';
       barista = new Barista({injectionMap: oneEntryDefaultMap});
@@ -530,7 +530,7 @@ describe('Barista', function() {
       assert.equal(new barista.InjectionMapper().find('s', 'o'), 'found');
     });
 
-    it('find() on map with one entry returns returns null when no registration match', function() {
+    it('find() on map with one entry returns returns null when no item match', function() {
       barista = new Barista({injectionMap: oneEntryDefaultMap});
       assert.equal(new barista.InjectionMapper().find('s', 'o', 'notfound'), null);
     });
@@ -1046,9 +1046,9 @@ describe('Barista', function() {
       assert.equal(instance, instance2);
     });
 
-    it('orderNotRegistered() returns func, executing it throws', function() {
-      var func = orderTaker.orderNotRegistered('impl');
-      assert.throw(function() { func(); }, 'using barista in strict mode requires that you register impl');
+    it('orderNotSet() returns func, executing it throws', function() {
+      var func = orderTaker.orderNotSet('impl');
+      assert.throw(function() { func(); }, 'using barista in strict mode requires that you register "impl" using menu.withItem and specifying asSingleton or asPerDependency');
     });
   });
 
@@ -1076,29 +1076,29 @@ describe('Barista', function() {
     });
 
     it('build() with mapper finding invoker returns invoker', function() {
-      mockMapper.expects('find').once().withExactArgs('ns', 'propName', 'registrationName').returns('invoker');
-      assert.equal(builder.build('ns', {name: 'propName'}, {name: 'registrationName'}), 'invoker');
+      mockMapper.expects('find').once().withExactArgs('ns', 'propName', 'itemName').returns('invoker');
+      assert.equal(builder.build('ns', {name: 'propName'}, {name: 'itemName'}), 'invoker');
     });
 
     it('build() with mapper not finding invoker creates perdep invoker, maps and returns', function() {
-      mockMapper.expects('find').once().withExactArgs('ns', 'propName', 'registrationName').returns(null);
+      mockMapper.expects('find').once().withExactArgs('ns', 'propName', 'itemName').returns(null);
       mockOrderTaker.expects("orderPerDependency").withExactArgs('implementation', 'params').once().returns('invoker');
-      mockMapper.expects('map').once().withExactArgs('ns', 'propName', 'registrationName', 'invoker');
-      assert.equal(builder.build('ns', {name: 'propName', implementation: 'implementation'}, {type: 'perdependency', name: 'registrationName', params: 'params'}), 'invoker');
+      mockMapper.expects('map').once().withExactArgs('ns', 'propName', 'itemName', 'invoker');
+      assert.equal(builder.build('ns', {name: 'propName', implementation: 'implementation'}, {type: 'perdependency', name: 'itemName', params: 'params'}), 'invoker');
     });
 
     it('build() with mapper not finding invoker creates singleton invoker, maps and returns', function() {
-      mockMapper.expects('find').once().withExactArgs('ns', 'propName', 'registrationName').returns(null);
+      mockMapper.expects('find').once().withExactArgs('ns', 'propName', 'itemName').returns(null);
       mockOrderTaker.expects("orderSingleton").withExactArgs('implementation', 'params').once().returns('invoker');
-      mockMapper.expects('map').once().withExactArgs('ns', 'propName', 'registrationName', 'invoker');
-      assert.equal(builder.build('ns', {name: 'propName', implementation: 'implementation'}, {type: 'singleton', name: 'registrationName', params: 'params'}), 'invoker');
+      mockMapper.expects('map').once().withExactArgs('ns', 'propName', 'itemName', 'invoker');
+      assert.equal(builder.build('ns', {name: 'propName', implementation: 'implementation'}, {type: 'singleton', name: 'itemName', params: 'params'}), 'invoker');
     });
 
     it('build() with mapper not finding invoker creates not_set invoker, maps and returns', function() {
-      mockMapper.expects('find').once().withExactArgs('ns', 'propName', 'registrationName').returns(null);
-      mockOrderTaker.expects("orderNotRegistered").withExactArgs('implementation', 'params').once().returns('invoker');
-      mockMapper.expects('map').once().withExactArgs('ns', 'propName', 'registrationName', 'invoker');
-      assert.equal(builder.build('ns', {name: 'propName', implementation: 'implementation'}, {type: 'not_set', name: 'registrationName', params: 'params'}), 'invoker');
+      mockMapper.expects('find').once().withExactArgs('ns', 'propName', 'itemName').returns(null);
+      mockOrderTaker.expects("orderNotSet").withExactArgs('implementation', 'params').once().returns('invoker');
+      mockMapper.expects('map').once().withExactArgs('ns', 'propName', 'itemName', 'invoker');
+      assert.equal(builder.build('ns', {name: 'propName', implementation: 'implementation'}, {type: 'not_set', name: 'itemName', params: 'params'}), 'invoker');
     });
   });
 
@@ -1140,49 +1140,49 @@ describe('Barista', function() {
       });
     });
 
-    it('build() with one object with no registrations returns empty namespace', function() {
+    it('build() with one object with no items returns empty namespace', function() {
       var prop = new barista.Property('Name', function() {
       });
       mockConfigMgr.expects('getNsName').once().returns('ns');
-      mockConfigMgr.expects('getRegistrations').withExactArgs(prop.name).once().returns([]);
+      mockConfigMgr.expects('getItems').withExactArgs(prop.name).once().returns([]);
 
       builder.add(prop);
 
       assert.deepEqual(builder.build(), {});
     });
 
-    it('build() with one object with non-default registration returns namespace with invoker', function() {
-      var registration = {
+    it('build() with one object with non-default item returns namespace with invoker', function() {
+      var item = {
         name: 'notdefault'
       },
           prop = new barista.Property('Name', function() {
           });
       mockConfigMgr.expects('getNsName').once().returns('ns');
-      mockConfigMgr.expects('getRegistrations').withExactArgs(prop.name).once().returns([registration]);
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, registration).returns('invoker');
+      mockConfigMgr.expects('getItems').withExactArgs(prop.name).once().returns([item]);
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, item).returns('invoker');
 
       builder.add(prop);
 
       assert.deepEqual(builder.build(), {Name: 'invoker'});
     });
 
-    it('build() with one object with default registrations returns namespace with invoker', function() {
-      var registration = {
+    it('build() with one object with default items returns namespace with invoker', function() {
+      var item = {
         name: '_default'
       },
           prop = new barista.Property('Name', function() {
           });
       mockConfigMgr.expects('getNsName').once().returns('ns');
-      mockConfigMgr.expects('getRegistrations').withExactArgs(prop.name).once().returns([registration]);
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, registration).returns('invoker');
+      mockConfigMgr.expects('getItems').withExactArgs(prop.name).once().returns([item]);
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, item).returns('invoker');
 
       builder.add(prop);
 
       assert.deepEqual(builder.build(), {Name: 'invoker'});
     });
 
-    it('build() with one object with many registrations including default returns namespace with default invoker', function() {
-      var registrations = [
+    it('build() with one object with many items including default returns namespace with default invoker', function() {
+      var items = [
         {name: '_default'},
         {name: 'X'},
         {name: 'Y'}
@@ -1190,18 +1190,18 @@ describe('Barista', function() {
           prop = new barista.Property('Name', function() {
           });
       mockConfigMgr.expects('getNsName').once().returns('ns');
-      mockConfigMgr.expects('getRegistrations').withExactArgs(prop.name).once().returns(registrations);
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, registrations[0]).returns('invoker');
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, registrations[1]).returns('invokerX');
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, registrations[2]).returns('invokerY');
+      mockConfigMgr.expects('getItems').withExactArgs(prop.name).once().returns(items);
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, items[0]).returns('invoker');
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, items[1]).returns('invokerX');
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, items[2]).returns('invokerY');
 
       builder.add(prop);
 
       assert.deepEqual(builder.build(), {Name: 'invoker'});
     });
 
-    it('build() with one object with many registrations with default last returns namespace with default invoker', function() {
-      var registrations = [
+    it('build() with one object with many items with default last returns namespace with default invoker', function() {
+      var items = [
         {name: 'X'},
         {name: 'Y'},
         {name: '_default'}
@@ -1209,10 +1209,10 @@ describe('Barista', function() {
           prop = new barista.Property('Name', function() {
           });
       mockConfigMgr.expects('getNsName').once().returns('ns');
-      mockConfigMgr.expects('getRegistrations').withExactArgs(prop.name).once().returns(registrations);
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, registrations[0]).returns('invokerX');
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, registrations[1]).returns('invokerY');
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, registrations[2]).returns('invoker');
+      mockConfigMgr.expects('getItems').withExactArgs(prop.name).once().returns(items);
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, items[0]).returns('invokerX');
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, items[1]).returns('invokerY');
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, items[2]).returns('invoker');
 
 
       builder.add(prop);
@@ -1220,13 +1220,13 @@ describe('Barista', function() {
       assert.deepEqual(builder.build(), {Name: 'invoker'});
     });
 
-    it('build() with many objects with many registrations returns namespace with invokers', function() {
-      var registrationsWithDefault = [
+    it('build() with many objects with many items returns namespace with invokers', function() {
+      var itemsWithDefault = [
         {name: '_default'},
         {name: 'X'},
         {name: 'Y'}
       ],
-          registrationsWithoutDefault = [
+          itemsWithoutDefault = [
             {name: 'X'},
             {name: 'Y'}
           ],
@@ -1238,17 +1238,17 @@ describe('Barista', function() {
           });
 
       mockConfigMgr.expects('getNsName').thrice().returns('ns');
-      mockConfigMgr.expects('getRegistrations').withExactArgs(prop1.name).once().returns(registrationsWithDefault);
-      mockConfigMgr.expects('getRegistrations').withExactArgs(prop2.name).once().returns(registrationsWithoutDefault);
-      mockConfigMgr.expects('getRegistrations').withExactArgs(prop3.name).once().returns(registrationsWithDefault);
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop1, registrationsWithDefault[0]).returns('invoker1');
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop1, registrationsWithDefault[1]).returns('invoker1X');
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop1, registrationsWithDefault[2]).returns('invoker1Y');
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop2, registrationsWithoutDefault[0]).returns('invoker2');
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop2, registrationsWithoutDefault[1]).returns('invoker2X');
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop3, registrationsWithDefault[0]).returns('invoker3');
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop3, registrationsWithDefault[1]).returns('invoker3X');
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop3, registrationsWithDefault[2]).returns('invoker3Y');
+      mockConfigMgr.expects('getItems').withExactArgs(prop1.name).once().returns(itemsWithDefault);
+      mockConfigMgr.expects('getItems').withExactArgs(prop2.name).once().returns(itemsWithoutDefault);
+      mockConfigMgr.expects('getItems').withExactArgs(prop3.name).once().returns(itemsWithDefault);
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop1, itemsWithDefault[0]).returns('invoker1');
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop1, itemsWithDefault[1]).returns('invoker1X');
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop1, itemsWithDefault[2]).returns('invoker1Y');
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop2, itemsWithoutDefault[0]).returns('invoker2');
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop2, itemsWithoutDefault[1]).returns('invoker2X');
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop3, itemsWithDefault[0]).returns('invoker3');
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop3, itemsWithDefault[1]).returns('invoker3X');
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop3, itemsWithDefault[2]).returns('invoker3Y');
 
       builder.add(prop1);
       builder.add(prop2);
@@ -1319,20 +1319,20 @@ describe('Barista', function() {
     });
   });
 
-  describe('Barista Namespace', function() {
+  describe('Barista', function() {
     beforeEach(function() {
       barista = new Barista();
     });
 
-    it('registry() returns new Registry with new ConfigDefaulter', function() {
-      assert.deepEqual(barista.registry().register('one').get(), {one: [{name: '_default', params: [], type: 'perdependency'}]});
+    it('menu() returns new Menu with new ItemDefaulter', function() {
+      assert.deepEqual(barista.menu().withItem('one').get(), {one: [{name: '_default', params: [], type: 'perdependency'}]});
     });
 
-    it('registry() returns new Registry for each call', function() {
-      assert.notEqual(barista.registry(), barista.registry());
+    it('menu() returns new Menu for each call', function() {
+      assert.notEqual(barista.menu(), barista.menu());
     });
 
-    it('serve() with simple namespace, non-dependency injection, controls instancing where ObjDef2 registered as singleton', function() {
+    it('serve() with simple namespace, no-dependency injection, controls instancing where ObjDef2 registered as singleton', function() {
       var nsSimple = function(dependency) {
         var prop1 = dependency;
 
@@ -1356,10 +1356,9 @@ describe('Barista', function() {
           ObjDef2: ObjDef2
         };
       },
-          servedNs = barista.serve(new nsSimple('depends'), 'Simple', barista.registry()
-            .register('ObjDef2')
+          servedNs = barista.serve(new nsSimple('depends'), 'Simple', barista.menu()
+            .withItem('ObjDef2')
             .asSingleton()
-            .get()
           ),
           obj1Instance1 = servedNs.ObjDef1(1),
           obj1Instance2 = servedNs.ObjDef1(2),
@@ -1374,7 +1373,7 @@ describe('Barista', function() {
       assert.equal(obj2Ref1, obj2Ref2);
     });
 
-    it('serve() and resolve using multiple namespaces, including various instancing configurations, and full dependency injection', function() {
+    it('serve() and make() using multiple namespaces, including various instancing types, and full dependency injection', function() {
       var nsUtils = function() {
         function Tester(value) {
           function test() {
@@ -1510,36 +1509,33 @@ describe('Barista', function() {
               Widget2: Widget2
             };
           },
-          servedUtilsNs = barista.serve(new nsUtils(), 'Utils', barista.registry()
-            .register('addAlternatingChar').withValueParam('default').withValueParam(' ')
-            .register('Tester').asName('notdefault').withValueParam('uses _default')
-            .register('Prepender').withValueParam('-')
-            .register('Prepender').asName('special').withValueParam('special')
-            .register('Capitalizer').asSingleton()
-            .register('ChainOfResponsibilities').asName('widget1Controller')
+          servedUtilsNs = barista.serve(new nsUtils(), 'Utils', barista.menu()
+            .withItem('addAlternatingChar').withValueParam('default').withValueParam(' ')
+            .withItem('Tester').named('notdefault').withValueParam('uses _default')
+            .withItem('Prepender').withValueParam('-')
+            .withItem('Prepender').named('special').withValueParam('special')
+            .withItem('Capitalizer').asSingleton()
+            .withItem('ChainOfResponsibilities').named('widget1Controller')
             .withArrayParam()
             .includingResolveParam('Responsibilities.PrependResponsibility')
             .includingResolveParam('Responsibilities.AppendPlusesResponsibility.p3')
             .includingResolveParam('Responsibilities.WrapResponsibility')
-            .register('ChainOfResponsibilities').asName('widget2Controller')
+            .withItem('ChainOfResponsibilities').named('widget2Controller')
             .withArrayParam()
             .includingResolveParam('Responsibilities.PrependAndCapitalizeResponsibility')
             .includingResolveParam('Responsibilities.AppendPlusesResponsibility.p1')
             .includingResolveParam('Responsibilities.WrapResponsibility')
-            .get()
           ),
-          servedWidgetNs = barista.serve(new nsWidget(), 'Widget', barista.registry()
-            .register('Widget1').withResolveParam('Utils.ChainOfResponsibilities.widget1Controller')
-            .register('Widget2').withResolveParam('Utils.ChainOfResponsibilities.widget2Controller')
-            .get()
+          servedWidgetNs = barista.serve(new nsWidget(), 'Widget', barista.menu()
+            .withItem('Widget1').withResolveParam('Utils.ChainOfResponsibilities.widget1Controller')
+            .withItem('Widget2').withResolveParam('Utils.ChainOfResponsibilities.widget2Controller')
           );
 
-      barista.serve(new nsResponsibilities(), 'Responsibilities', barista.registry()
-        .register('PrependResponsibility').withResolveParam('Utils.Prepender')
-        .register('PrependAndCapitalizeResponsibility').withResolveParam('Utils.Prepender').withResolveParam('Utils.Capitalizer')
-        .register('AppendPlusesResponsibility').asName('p3').withValueParam(3)
-        .register('AppendPlusesResponsibility').asName('p1').withValueParam(1)
-        .get()
+      barista.serve(new nsResponsibilities(), 'Responsibilities', barista.menu()
+        .withItem('PrependResponsibility').withResolveParam('Utils.Prepender')
+        .withItem('PrependAndCapitalizeResponsibility').withResolveParam('Utils.Prepender').withResolveParam('Utils.Capitalizer')
+        .withItem('AppendPlusesResponsibility').named('p3').withValueParam(3)
+        .withItem('AppendPlusesResponsibility').named('p1').withValueParam(1)
       );
 
       assert.equal(servedUtilsNs.Prepender('overriden').prepend('value'), 'overridenvalue');
@@ -1548,42 +1544,42 @@ describe('Barista', function() {
       assert.equal(servedUtilsNs.addAlternatingChar('value'), 'v a l u e ');
       assert.equal(servedUtilsNs.addAlternatingChar('value', '-'), 'v-a-l-u-e-');
 
-      assert.equal(barista.resolve('Utils.Tester').test(), 'uses _default');
-      assert.equal(barista.resolve('Utils.Tester.notdefault').test(), 'uses _default');
-      assert.equal(barista.resolve('Widget.Widget1').run('initial_value'), 'Widget1[-initial_value+++]');
-      assert.equal(barista.resolve('Widget.Widget1').run('initial_value'), 'Widget1[-initial_value+++]');
-      assert.equal(barista.resolve('Widget.Widget2').run('initial_value'), 'Widget2[-INITIAL_VALUE+]');
-      assert.equal(barista.resolve('Widget.Widget2', barista.resolve('Utils.ChainOfResponsibilities.widget1Controller')).run('initial_value'), 'Widget2[-initial_value+++]');
-      assert.equal(barista.resolve('Utils.Prepender.special').prepend('value'), 'specialvalue');
-      assert.equal(barista.resolve('Utils.Prepender.special', 'overriden1').prepend('value'), 'overriden1value');
-      assert.equal(barista.resolve('Utils.Prepender', 'overriden2').prepend('value'), 'overriden2value');
-      assert.equal(barista.resolve('Utils.addAlternatingChar', 'value'), 'v a l u e ');
-      assert.equal(barista.resolve('Utils.addAlternatingChar', 'value', '-'), 'v-a-l-u-e-');
+      assert.equal(barista.make('Utils.Tester').test(), 'uses _default');
+      assert.equal(barista.make('Utils.Tester.notdefault').test(), 'uses _default');
+      assert.equal(barista.make('Widget.Widget1').run('initial_value'), 'Widget1[-initial_value+++]');
+      assert.equal(barista.make('Widget.Widget1').run('initial_value'), 'Widget1[-initial_value+++]');
+      assert.equal(barista.make('Widget.Widget2').run('initial_value'), 'Widget2[-INITIAL_VALUE+]');
+      assert.equal(barista.make('Widget.Widget2', barista.make('Utils.ChainOfResponsibilities.widget1Controller')).run('initial_value'), 'Widget2[-initial_value+++]');
+      assert.equal(barista.make('Utils.Prepender.special').prepend('value'), 'specialvalue');
+      assert.equal(barista.make('Utils.Prepender.special', 'overriden1').prepend('value'), 'overriden1value');
+      assert.equal(barista.make('Utils.Prepender', 'overriden2').prepend('value'), 'overriden2value');
+      assert.equal(barista.make('Utils.addAlternatingChar', 'value'), 'v a l u e ');
+      assert.equal(barista.make('Utils.addAlternatingChar', 'value', '-'), 'v-a-l-u-e-');
     });
 
-    it('serve() and resolve() throw when using strict mode involving not fully registered object', function() {
+    it('serve() and make() throw when using strict mode involving not fully registered object', function() {
       barista = new Barista({useStrict: true});
       var nsSimple = function() {
         function ObjNoRegistration() { return {}; }
         function ObjNoType() { return {}; }
         function ObjDependentUponObjNoRegistration(obj) { return {obj: obj}; }
+        
         return {
           ObjNoRegistration: ObjNoRegistration,
           ObjNoType: ObjNoType,
           ObjDependentUponObjNoRegistration: ObjDependentUponObjNoRegistration
         };
       },
-          servedNs = barista.serve(new nsSimple(), 'Simple', barista.registry()
-            .register('ObjNoType')
-            .register('ObjDependentUponObjNoRegistration').asPerDependency().withResolveParam('Simple.ObjNoRegistration')
-            .get()
+          servedNs = barista.serve(new nsSimple(), 'Simple', barista.menu()
+            .withItem('ObjNoType')
+            .withItem('ObjDependentUponObjNoRegistration').asPerDependency().withResolveParam('Simple.ObjNoRegistration')
           );
-      assert.throw(function() { servedNs.ObjNoRegistration(); }, 'using barista in strict mode requires that you register function ObjNoRegistration() { return {}; }');
-      assert.throw(function() { servedNs.ObjNoType(); }, 'using barista in strict mode requires that you register function ObjNoType() { return {}; }');
-      assert.throw(function() { servedNs.ObjDependentUponObjNoRegistration(); }, 'using barista in strict mode requires that you register function ObjNoRegistration() { return {}; }');
-      assert.throw(function() { barista.resolve('Simple.ObjNoRegistration'); }, 'using barista in strict mode requires that you register function ObjNoRegistration() { return {}; }');
-      assert.throw(function() { barista.resolve('Simple.ObjNoType'); }, 'using barista in strict mode requires that you register function ObjNoType() { return {}; }');
-      assert.throw(function() { barista.resolve('Simple.ObjDependentUponObjNoRegistration'); }, 'using barista in strict mode requires that you register function ObjNoRegistration() { return {}; }');
+      assert.throw(function() { servedNs.ObjNoRegistration(); }, 'using barista in strict mode requires that you register "function ObjNoRegistration() { return {}; }" using menu.withItem and specifying asSingleton or asPerDependency');
+      assert.throw(function() { servedNs.ObjNoType(); }, 'using barista in strict mode requires that you register "function ObjNoType() { return {}; }" using menu.withItem and specifying asSingleton or asPerDependency');
+      assert.throw(function() { servedNs.ObjDependentUponObjNoRegistration(); }, 'using barista in strict mode requires that you register "function ObjNoRegistration() { return {}; }" using menu.withItem and specifying asSingleton or asPerDependency');
+      assert.throw(function() { barista.make('Simple.ObjNoRegistration'); }, 'using barista in strict mode requires that you register "function ObjNoRegistration() { return {}; }" using menu.withItem and specifying asSingleton or asPerDependency');
+      assert.throw(function() { barista.make('Simple.ObjNoType'); }, 'using barista in strict mode requires that you register "function ObjNoType() { return {}; }" using menu.withItem and specifying asSingleton or asPerDependency');
+      assert.throw(function() { barista.make('Simple.ObjDependentUponObjNoRegistration'); }, 'using barista in strict mode requires that you register "function ObjNoRegistration() { return {}; }" using menu.withItem and specifying asSingleton or asPerDependency');
     });
   });
 });
