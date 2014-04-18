@@ -1,20 +1,37 @@
 describe('Barista Tests', function() {
+  describe('NamespaceNameGenerator', function() {
+    it('generate() returns Namespace1 then increments', function() {
+      assert.equal(new barista.NamespaceNameGenerator().generate(), 'Namespace1');
+      assert.equal(new barista.NamespaceNameGenerator().generate(), 'Namespace2');
+      assert.equal(new barista.NamespaceNameGenerator().generate(), 'Namespace3');
+    });
+  });
+  
   describe('Menu', function() {
     var sandbox,
         defaulter,
         mockDefaulter,
+        nameGenerator,
+        mockNameGenerator,
         menu;
 
     beforeEach(function() {
       sandbox = sinon.sandbox.create();
       defaulter = new barista.ItemDefaulter();
       mockDefaulter = sandbox.mock(defaulter);
-      menu = new barista.Menu(defaulter);
+      nameGenerator = new barista.NamespaceNameGenerator();
+      mockNameGenerator = sandbox.mock(nameGenerator);
+      menu = new barista.Menu(nameGenerator, defaulter);
     });
 
     afterEach(function() {
       mockDefaulter.verify();
       sandbox.restore();
+    });
+    
+    it('getNamespace() without forNamespace returns defaulted value', function() {
+      mockNameGenerator.expects('generate').once().returns('defaulted');
+      assert.equal(menu.getNamespace(), 'defaulted');
     });
     
     it('forNamespace() and getNamespace() sets and returns namespace name', function() {
@@ -1358,7 +1375,6 @@ describe('Barista Tests', function() {
         };
       },
           servedNs = barista.serve(new nsSimple('depends'), barista.menu()
-            .forNamespace('Simple')
             .withItem('ObjDef2')
             .asSingleton()
           ),

@@ -6,9 +6,19 @@ var Barista = function(config) {
       _singleton = 'singleton',
       _perdependency = 'perdependency',
       _not_set = 'not_set',
-      _default = '_default';
+      _default = '_default',
+      namespaceIndex = 0;
+  
+  function NamespaceNameGenerator() {
+    function generate() {
+      return 'Namespace' + ++namespaceIndex;
+    }
+    return {
+      generate: generate
+    };
+  }
 
-  function Menu(itemDefaulter) {
+  function Menu(nameGenerator, itemDefaulter) {
     var menu = {details: {}},
         currentItemArray,
         currentItem,
@@ -34,6 +44,9 @@ var Barista = function(config) {
     };
     
     this.getNamespace = function(){
+      if (!menu.name) {
+        menu.name = nameGenerator.generate();
+      }
       return menu.name;
     };
     
@@ -115,7 +128,7 @@ var Barista = function(config) {
   }
   
   function newMenu() {
-    return new Menu(new ItemDefaulter());
+    return new Menu(new NamespaceNameGenerator(), new ItemDefaulter());
   }
 
   function ItemDefaulter() {
@@ -371,7 +384,7 @@ var Barista = function(config) {
 
   function NamespaceBuilder(menu, invokerBuilder) {
     var retNs = {};
-
+    
     function addObject(prop) {
       var defaultInvoker,
           nsName = menu.getNamespace();
@@ -466,6 +479,7 @@ var Barista = function(config) {
     ResolvedParam: ResolvedParam,
     ParamResolver: ParamResolver,
     InvokerBuilder: InvokerBuilder,
-    NamespaceBuilder: NamespaceBuilder
+    NamespaceBuilder: NamespaceBuilder,
+    NamespaceNameGenerator: NamespaceNameGenerator
   };
 };
