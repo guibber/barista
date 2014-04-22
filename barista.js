@@ -8,7 +8,7 @@ var Barista = function(config) {
       _not_set = 'not_set',
       _default = '_default',
       namespaceIndex = 0;
-  
+
   function NamespaceNameGenerator() {
     function generate() {
       return 'Namespace' + ++namespaceIndex;
@@ -18,9 +18,33 @@ var Barista = function(config) {
     };
   }
 
-  function Menu(nameGenerator, itemDefaulter) {
-    var menu = {details: {}},
-        currentItemArray,
+  function EntryDefaulter() {
+    function getDefaultEntry() {
+      return {name: _default, params: [], type: useStrict ? _not_set : _perdependency};
+    }
+
+    function setEntryDefaults(items) {
+      items = items && items.length > 0 ? items : [{}];
+      items.forEach(function(item) {
+        item.type = item.type || getDefaultEntry().type;
+        item.name = item.name || getDefaultEntry().name;
+        item.params = item.params
+          ? item.params
+          : getDefaultEntry().params;
+      });
+      return items;
+    }
+
+    return {
+      getDefaultEntry: getDefaultEntry,
+      setEntryDefaults: setEntryDefaults
+    };
+  }
+
+  function Menu(nameGenerator, entryDefaulter, menu) {
+    menu = menu || {details: {}};
+
+    var currentEntryArray,
         currentItem,
         currentParamArray,
         verifyItem = function(throwMessage) {
@@ -34,33 +58,33 @@ var Barista = function(config) {
           }
         };
 
-    this.get = function() {
-      return menu;
-    };
-    
-    this.forNamespace = function (name) {
+    this.forNamespace = function(name) {
       menu.name = name;
       return this;
     };
-    
-    this.getNamespace = function(){
+
+    this.getNamespace = function() {
       if (!menu.name) {
         menu.name = nameGenerator.generate();
       }
       return menu.name;
     };
-    
-    this.getItems = function(name) {
-      return itemDefaulter.setItemDefaults(menu.details[name] || [{}]);
+
+    this.getEntries = function(name) {
+      return menu.details[name] || [{}];
     };
 
-    this.withItem = function(objectName) {
-      if (!menu.details[objectName]) {
-        currentItemArray = [];
-        menu.details[objectName] = currentItemArray;
+    this.getDefaultedEntries = function(name) {
+      return entryDefaulter.setEntryDefaults(this.getEntries(name));
+    };
+
+    this.withItem = function(itemName) {
+      if (!menu.details[itemName]) {
+        currentEntryArray = [];
+        menu.details[itemName] = currentEntryArray;
       }
-      currentItem = itemDefaulter.getDefaultItem();
-      currentItemArray.push(currentItem);
+      currentItem = entryDefaulter.getDefaultEntry();
+      currentEntryArray.push(currentItem);
       currentParamArray = null;
       return this;
     };
@@ -71,14 +95,14 @@ var Barista = function(config) {
       return this;
     };
 
-    this.asSingleton = function() {
-      verifyItem('call to asSingleton() without call to withItem() is invalid');
+    this.singleton = function() {
+      verifyItem('call to singleton() without call to withItem() is invalid');
       currentItem.type = _singleton;
       return this;
     };
 
-    this.asPerDependency = function() {
-      verifyItem('call to asPerDependency() without call to withItem() is invalid');
+    this.perDependency = function() {
+      verifyItem('call to perDependency() without call to withItem() is invalid');
       currentItem.type = _perdependency;
       return this;
     };
@@ -108,51 +132,27 @@ var Barista = function(config) {
       return this;
     };
 
-    this.includingResolveParam = function(resolveString) {
-      verifyParamArray('call to includingResolveParam() without call to withArrayParam() is invalid');
+    this.pushResolveParam = function(resolveString) {
+      verifyParamArray('call to pushResolveParam() without call to withArrayParam() is invalid');
       currentParamArray.push({resolve: resolveString});
       return this;
     };
 
-    this.includingValueParam = function(value) {
-      verifyParamArray('call to includingValueParam() without call to withArrayParam() is invalid');
+    this.pushValueParam = function(value) {
+      verifyParamArray('call to pushValueParam() without call to withArrayParam() is invalid');
       currentParamArray.push({value: value});
       return this;
     };
 
-    this.includingFuncParam = function(func) {
-      verifyParamArray('call to includingFuncParam() without call to withArrayParam() is invalid');
+    this.pushFuncParam = function(func) {
+      verifyParamArray('call to pushFuncParam() without call to withArrayParam() is invalid');
       currentParamArray.push({func: func});
       return this;
     };
   }
-  
+
   function newMenu() {
-    return new Menu(new NamespaceNameGenerator(), new ItemDefaulter());
-  }
-
-  function ItemDefaulter() {
-    function getDefaultItem() {
-      return {name: _default, params: [], type: useStrict ? _not_set : _perdependency};
-    }
-
-    function setItemDefaults(items) {
-      items.forEach(function(item) {
-        item.type = item.type || getDefaultItem().type;
-        item.name = item.name || getDefaultItem().name;
-        item.params = item.params
-          ? Array.isArray(item.params)
-            ? item.params
-            : [item.params]
-          : getDefaultItem().params;
-      });
-      return items;
-    }
-
-    return {
-      getDefaultItem: getDefaultItem,
-      setItemDefaults: setItemDefaults
-    };
+    return new Menu(new NamespaceNameGenerator(), new EntryDefaulter());
   }
 
   function Property(name, implementation) {
@@ -350,7 +350,7 @@ var Barista = function(config) {
 
     function orderNotSet(implementation) {
       return function() {
-        throw('using barista in strict mode requires that you register "' + implementation + '" using menu.withItem and specifying asSingleton or asPerDependency');
+        throw ('using barista in strict mode requires that you register "' + implementation + '" using menu.withItem and specifying singleton or perDependency');
       };
     }
 
@@ -384,11 +384,11 @@ var Barista = function(config) {
 
   function NamespaceBuilder(menu, invokerBuilder) {
     var retNs = {};
-    
+
     function addObject(prop) {
       var defaultInvoker,
           nsName = menu.getNamespace();
-      menu.getItems(prop.name).forEach(function(item) {
+      menu.getDefaultedEntries(prop.name).forEach(function(item) {
         var invoker = invokerBuilder.build(nsName, prop, item);
         if (!defaultInvoker || item.name === _default) {
           defaultInvoker = invoker;
@@ -474,7 +474,7 @@ var Barista = function(config) {
     Property: Property,
     newProperty: newProperty,
     PropertyExtractor: PropertyExtractor,
-    ItemDefaulter: ItemDefaulter,
+    EntryDefaulter: EntryDefaulter,
     InjectionMapper: InjectionMapper,
     ResolvedParam: ResolvedParam,
     ParamResolver: ParamResolver,

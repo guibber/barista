@@ -6,7 +6,7 @@ describe('Barista Tests', function() {
       assert.equal(new barista.NamespaceNameGenerator().generate(), 'Namespace3');
     });
   });
-  
+
   describe('Menu', function() {
     var sandbox,
         defaulter,
@@ -17,7 +17,7 @@ describe('Barista Tests', function() {
 
     beforeEach(function() {
       sandbox = sinon.sandbox.create();
-      defaulter = new barista.ItemDefaulter();
+      defaulter = new barista.EntryDefaulter();
       mockDefaulter = sandbox.mock(defaulter);
       nameGenerator = new barista.NamespaceNameGenerator();
       mockNameGenerator = sandbox.mock(nameGenerator);
@@ -26,229 +26,302 @@ describe('Barista Tests', function() {
 
     afterEach(function() {
       mockDefaulter.verify();
+      mockNameGenerator.verify();
       sandbox.restore();
     });
-    
+
+    it('forNamespace() sets namespace name', function() {
+      var actual = {details: {}};
+      menu = new barista.Menu(nameGenerator, defaulter, actual);
+
+      menu.forNamespace('name');
+
+      assert.equal(actual.name, 'name');
+      assert.equal(menu.getNamespace(), 'name');
+    });
+
+    it('getNamespace() gets namespace name', function() {
+      var actual = {name: 'name'};
+      menu = new barista.Menu(nameGenerator, defaulter, actual);
+      assert.equal(menu.getNamespace(), 'name');
+    });
+
     it('getNamespace() without forNamespace returns defaulted value', function() {
       mockNameGenerator.expects('generate').once().returns('defaulted');
       assert.equal(menu.getNamespace(), 'defaulted');
     });
-    
-    it('forNamespace() and getNamespace() sets and returns namespace name', function() {
-      assert.deepEqual(menu.forNamespace('name').get(), {name: 'name', details: {}});
-      assert.equal(menu.getNamespace(), 'name');
+
+    it('getEntries() with no item entries returns array of one empty object', function() {
+      menu = new barista.Menu(nameGenerator, defaulter, {details: {}});
+      assert.deepEqual(menu.getEntries('item'), [{}]);
     });
 
-    it('get() without withItem() or forNamespace() returns empty details', function() {
-      assert.deepEqual(menu.get(), {details: {}});
-    });
-    
-    it('get() with one withItem() returns default from itemDefaulter', function() {
-      mockDefaulter.expects('getDefaultItem').once().returns('defaultReg');
-      assert.deepEqual(menu
-        .withItem('one')
-        .get(), {
-          details: {
-            one: ['defaultReg']
-          }
-        });
+    it('getEntries() with one item and entries returns entries', function() {
+      menu = new barista.Menu(nameGenerator, defaulter, {details: {item: 'entries'}});
+      assert.deepEqual(menu.getEntries('item'), 'entries');
     });
 
-    it('get() with one withItem.asSingleton() is registered as singleton', function() {
-      mockDefaulter.expects('getDefaultItem').once().returns({});
-      assert.deepEqual(menu
-        .withItem('one')
-        .asSingleton()
-        .get(), {
-          details: {
-            one: [{type: 'singleton'}]
-          }
-        });
+    it('getEntries() with many items and entries returns entries', function() {
+      menu = new barista.Menu(nameGenerator, defaulter, {
+        details: {
+          item1: 'entries1',
+          item2: 'entries2',
+          item3: 'entries3'
+        }
+      });
+      assert.deepEqual(menu.getEntries('item1'), 'entries1');
     });
 
-    it('get() with one withItem.asPerDependency() is registered as perdependency', function() {
-      mockDefaulter.expects('getDefaultItem').once().returns({});
-      assert.deepEqual(menu
-        .withItem('one')
-        .asPerDependency()
-        .get(), {
-          details: {
-            one: [{type: 'perdependency'}]
-          }
-        });
+    it('getDefaultedEntries() returns returns defaulted entries', function() {
+      menu = new barista.Menu(nameGenerator, defaulter, {details: {item: 'entries'}});
+      mockDefaulter.expects('setEntryDefaults').once().withExactArgs('entries').returns('defaultedEntries');
+      assert.deepEqual(menu.getDefaultedEntries('item'), 'defaultedEntries');
     });
 
-    it('get() with one withItem.named() sets name', function() {
-      mockDefaulter.expects('getDefaultItem').once().returns({});
-      assert.deepEqual(menu
-        .withItem('one')
-        .named('name')
-        .get(), {
-          details: {
-            one: [{name: 'name'}]
-          }
-        });
+    it('withItem() with one entry sets default from entryDefaulter', function() {
+      var actual = {details: {}};
+      menu = new barista.Menu(nameGenerator, defaulter, actual);
+      mockDefaulter.expects('getDefaultEntry').once().returns('defaultEntry');
+
+      menu.withItem('item');
+
+      assert.deepEqual(actual.details, {item: ['defaultEntry']});
     });
 
-    it('get() with one withItem.withValueParam() sets value param', function() {
-      mockDefaulter.expects('getDefaultItem').once().returns({params: []});
-      assert.deepEqual(menu
-        .withItem('one')
-        .withValueParam('value')
-        .get(), {
-          details: {
-            one: [{params: [{value: 'value'}]}]
-          }
-        });
+    it('withItem() with many entries sets default from entryDefaulter', function() {
+      var actual = {details: {}};
+      menu = new barista.Menu(nameGenerator, defaulter, actual);
+      mockDefaulter.expects('getDefaultEntry').once().returns('defaultEntry1');
+      mockDefaulter.expects('getDefaultEntry').once().returns('defaultEntry2');
+      mockDefaulter.expects('getDefaultEntry').once().returns('defaultEntry3');
+
+      menu.withItem('item').withItem('item').withItem('item');
+
+      assert.deepEqual(actual.details, {item: ['defaultEntry1', 'defaultEntry2', 'defaultEntry3']});
     });
 
-    it('get() with one withItem.withResolveParam() sets resolve param', function() {
-      mockDefaulter.expects('getDefaultItem').once().returns({params: []});
-      assert.deepEqual(menu
-        .withItem('one')
-        .withResolveParam('resolve')
-        .get(), {
-          details: {
-            one: [{params: [{resolve: 'resolve'}]}]
-          }
-        });
+    it('withItem() with many items sets default from entryDefaulter', function() {
+      var actual = {details: {}};
+      menu = new barista.Menu(nameGenerator, defaulter, actual);
+      mockDefaulter.expects('getDefaultEntry').once().returns('defaultEntry1');
+      mockDefaulter.expects('getDefaultEntry').once().returns('defaultEntry2');
+      mockDefaulter.expects('getDefaultEntry').once().returns('defaultEntry3');
+
+      menu.withItem('item1').withItem('item2').withItem('item3');
+
+      assert.deepEqual(actual.details, {
+        item1: ['defaultEntry1'],
+        item2: ['defaultEntry2'],
+        item3: ['defaultEntry3']
+      });
     });
 
-    it('get() with one withItem.withFuncParam() sets func param', function() {
-      mockDefaulter.expects('getDefaultItem').once().returns({params: []});
-      assert.deepEqual(menu
-        .withItem('one')
+    it('singleton() entry is registered as type singleton', function() {
+      var actual = {details: {}};
+      menu = new barista.Menu(nameGenerator, defaulter, actual);
+      mockDefaulter.expects('getDefaultEntry').once().returns({});
+
+      menu.withItem('item').singleton();
+
+      assert.deepEqual(actual.details, {item: [{type: 'singleton'}]});
+    });
+
+    it('perDependency() entry is registered type perdependency', function() {
+      var actual = {details: {}};
+      menu = new barista.Menu(nameGenerator, defaulter, actual);
+      mockDefaulter.expects('getDefaultEntry').once().returns({});
+
+      menu.withItem('item').perDependency();
+
+      assert.deepEqual(actual.details, {item: [{type: 'perdependency'}]});
+    });
+
+    it('named() entry is registered with name', function() {
+      var actual = {details: {}};
+      menu = new barista.Menu(nameGenerator, defaulter, actual);
+      mockDefaulter.expects('getDefaultEntry').once().returns({});
+
+      menu.withItem('item').named('name');
+
+      assert.deepEqual(actual.details, {item: [{name: 'name'}]});
+    });
+
+    it('withValueParam() sets value param', function() {
+      var actual = {details: {}};
+      menu = new barista.Menu(nameGenerator, defaulter, actual);
+      mockDefaulter.expects('getDefaultEntry').once().returns({params: []});
+
+      menu.withItem('item').withValueParam('value');
+
+      assert.deepEqual(actual.details, {
+        item: [{params: [{value: 'value'}]}]
+      });
+    });
+
+    it('withResolveParam() sets resolve param', function() {
+      var actual = {details: {}};
+      menu = new barista.Menu(nameGenerator, defaulter, actual);
+      mockDefaulter.expects('getDefaultEntry').once().returns({params: []});
+
+      menu.withItem('item').withResolveParam('resolve');
+
+      assert.deepEqual(actual.details, {
+        item: [{params: [{resolve: 'resolve'}]}]
+      });
+    });
+
+    it('withFuncParam() sets func param', function() {
+      var actual = {details: {}};
+      menu = new barista.Menu(nameGenerator, defaulter, actual);
+      mockDefaulter.expects('getDefaultEntry').once().returns({params: []});
+
+      menu.withItem('item').withFuncParam('func');
+
+      assert.deepEqual(actual.details, {
+        item: [{params: [{func: 'func'}]}]
+      });
+    });
+
+    it('withArrayParam() sets array param', function() {
+      var actual = {details: {}};
+      menu = new barista.Menu(nameGenerator, defaulter, actual);
+      mockDefaulter.expects('getDefaultEntry').once().returns({params: []});
+
+      menu.withItem('item').withArrayParam();
+
+      assert.deepEqual(actual.details, {
+        item: [{params: [{array: []}]}]
+      });
+    });
+
+    it('withValueParam(), withFuncParam() and withResolveParam sets params', function() {
+      var actual = {details: {}};
+      menu = new barista.Menu(nameGenerator, defaulter, actual);
+      mockDefaulter.expects('getDefaultEntry').once().returns({params: []});
+
+      menu
+        .withItem('item')
         .withFuncParam('func')
-        .get(), {
-          details: {
-            one: [{params: [{func: 'func'}]}]
-          }
-        });
+        .withResolveParam('resolve')
+        .withValueParam('value');
+
+      assert.deepEqual(actual.details, {
+        item: [{params: [{func: 'func'}, {resolve: 'resolve'}, {value: 'value'}]}]
+      });
     });
 
-    it('get() with one withItem.withArrayParam() sets empty array param', function() {
-      mockDefaulter.expects('getDefaultItem').once().returns({params: []});
-      assert.deepEqual(menu
-        .withItem('one')
+    it('pushResolveParam() sets array param with one resolve param', function() {
+      var actual = {details: {}};
+      menu = new barista.Menu(nameGenerator, defaulter, actual);
+      mockDefaulter.expects('getDefaultEntry').once().returns({params: []});
+
+      menu.withItem('item').withArrayParam().pushResolveParam('resolve');
+
+      assert.deepEqual(actual.details, {
+        item: [{params: [{array: [{resolve: 'resolve'}]}]}]
+      });
+    });
+
+    it('pushValueParam() sets array param with one value param', function() {
+      var actual = {details: {}};
+      menu = new barista.Menu(nameGenerator, defaulter, actual);
+      mockDefaulter.expects('getDefaultEntry').once().returns({params: []});
+
+      menu.withItem('item').withArrayParam().pushValueParam('value');
+
+      assert.deepEqual(actual.details, {
+        item: [{params: [{array: [{value: 'value'}]}]}]
+      });
+    });
+
+    it('pushFuncParam() sets array param with one func param', function() {
+      var actual = {details: {}};
+      menu = new barista.Menu(nameGenerator, defaulter, actual);
+      mockDefaulter.expects('getDefaultEntry').once().returns({params: []});
+
+      menu.withItem('item').withArrayParam().pushFuncParam('func');
+
+      assert.deepEqual(actual.details, {
+        item: [{params: [{array: [{func: 'func'}]}]}]
+      });
+    });
+
+    it('pushValueParam(), pushFuncParam() and pushResolveParam sets array params', function() {
+      var actual = {details: {}};
+      menu = new barista.Menu(nameGenerator, defaulter, actual);
+      mockDefaulter.expects('getDefaultEntry').once().returns({params: []});
+
+      menu
+        .withItem('item')
         .withArrayParam()
-        .get(), {
-          details: {
-            one: [{params: [{array: []}]}]
-          }
-        });
+        .pushFuncParam('func')
+        .pushResolveParam('resolve')
+        .pushValueParam('value');
+
+      assert.deepEqual(actual.details, {
+        item: [{params: [{array: [{func: 'func'}, {resolve: 'resolve'}, {value: 'value'}]}]}]
+      });
     });
 
-    it('get() with one withItem.withArrayParam.includingResolveParam() sets array param with one resolve param', function() {
-      mockDefaulter.expects('getDefaultItem').once().returns({params: []});
-      assert.deepEqual(menu
+    it('withItem() with many items and many entries covering all options configures correctly', function() {
+      var actual = {details: {}};
+      menu = new barista.Menu(nameGenerator, defaulter, actual);
+      mockDefaulter.expects('getDefaultEntry').once().returns({name: 'unset', params: [], type: 'unset'});
+      mockDefaulter.expects('getDefaultEntry').once().returns({name: 'unset', params: [], type: 'unset'});
+      mockDefaulter.expects('getDefaultEntry').once().returns({name: 'unset', params: [], type: 'unset'});
+      mockDefaulter.expects('getDefaultEntry').once().returns({name: 'unset', params: [], type: 'unset'});
+      mockDefaulter.expects('getDefaultEntry').once().returns({name: 'unset', params: [], type: 'unset'});
+
+      menu
         .withItem('one')
+        .named('entry1a')
+        .singleton()
+        .withValueParam('entry1a-value')
+        .withFuncParam('entry1a-func')
+        .withResolveParam('entry1a-resolve')
         .withArrayParam()
-        .includingResolveParam('resolve1')
-        .get(), {
-          details: {
-            one: [{params: [{array: [{resolve: 'resolve1'}]}]}]
-          }
-        });
-    });
-
-    it('get() with one withItem.withArrayParam.includingValueParam() sets array param with one value param', function() {
-      mockDefaulter.expects('getDefaultItem').once().returns({params: []});
-      assert.deepEqual(menu
+        .pushValueParam('array-value')
+        .pushFuncParam('array-func')
+        .pushResolveParam('array-resolve')
         .withItem('one')
-        .withArrayParam()
-        .includingValueParam('value1')
-        .get(), {
-          details: {
-            one: [{params: [{array: [{value: 'value1'}]}]}]
-          }
-        });
-    });
-
-    it('get() with one withItem.withArrayParam.includingFuncParam() sets array param with one func param', function() {
-      mockDefaulter.expects('getDefaultItem').once().returns({params: []});
-      assert.deepEqual(menu
+        .named('entry1b')
+        .perDependency()
+        .withValueParam('entry1b-value')
+        .withFuncParam('entry1b-func')
+        .withResolveParam('entry1b-resolve')
         .withItem('one')
-        .withArrayParam()
-        .includingFuncParam('func1')
-        .get(), {
-          details: {
-            one: [{params: [{array: [{func: 'func1'}]}],}]
-          }
-        });
-    });
-
-    it('get() with many withItem() of same object sets array of default items', function() {
-      mockDefaulter.expects('getDefaultItem').thrice().returns('defaultReg');
-      assert.deepEqual(menu
-        .withItem('one')
-        .withItem('one')
-        .withItem('one')
-        .get(), {
-          details: {
-            one: ['defaultReg', 'defaultReg', 'defaultReg']
-          }
-        });
-    });
-
-    it('get() with many withItem() sets default items', function() {
-      mockDefaulter.expects('getDefaultItem').thrice().returns('defaultReg');
-      assert.deepEqual(menu
-        .withItem('one')
+        .named('entry1c')
+        .perDependency()
+        .withValueParam('entry1c-value')
+        .withFuncParam('entry1c-func')
+        .withResolveParam('entry1c-resolve')
         .withItem('two')
-        .withItem('three')
-        .get(), {
-          details: {
-            one: ['defaultReg'],
-            two: ['defaultReg'],
-            three: ['defaultReg']
-          }
-        });
-    });
-
-    it('get() with many items covering all options configures correctly', function() {
-      mockDefaulter.expects('getDefaultItem').once().returns({name: 'unset', params: [], type: 'unset'});
-      mockDefaulter.expects('getDefaultItem').once().returns({name: 'unset', params: [], type: 'unset'});
-      mockDefaulter.expects('getDefaultItem').once().returns({name: 'unset', params: [], type: 'unset'});
-
-      assert.deepEqual(menu
-        .forNamespace('namespace')
-        .withItem('one')
-        .named('one')
-        .asSingleton()
-        .withValueParam('one-value')
-        .withFuncParam('one-func')
-        .withResolveParam('one-resolve')
+        .named('entry2a')
+        .perDependency()
+        .withValueParam('entry2a-value')
+        .withFuncParam('entry2a-func')
+        .withResolveParam('entry2a-resolve')
         .withArrayParam()
-        .includingValueParam('array-value')
-        .includingFuncParam('array-func')
-        .includingResolveParam('array-resolve')
-        .withItem('two')
-        .named('two')
-        .asPerDependency()
-        .withValueParam('two-value')
-        .withFuncParam('two-func')
-        .withResolveParam('two-resolve')
-        .withArrayParam()
-        .includingValueParam('array-value')
-        .includingFuncParam('array-func')
-        .includingResolveParam('array-resolve')
+        .pushValueParam('array-value')
+        .pushFuncParam('array-func')
+        .pushResolveParam('array-resolve')
         .withItem('three')
         .withValueParam('three-value')
         .withFuncParam('three-func')
         .withResolveParam('three-resolve')
         .withArrayParam()
-        .includingValueParam('array-value')
-        .includingFuncParam('array-func')
-        .includingResolveParam('array-resolve')
-        .get(), {
-          name: 'namespace',
-          details: {
-            one: [{
-              name: 'one',
+        .pushValueParam('array-value')
+        .pushFuncParam('array-func')
+        .pushResolveParam('array-resolve');
+
+      assert.deepEqual(actual.details,
+        {
+          one: [{
+              name: 'entry1a',
               params: [
-                {value: 'one-value'},
-                {func: 'one-func'},
-                {resolve: 'one-resolve'},
+                {value: 'entry1a-value'},
+                {func: 'entry1a-func'},
+                {resolve: 'entry1a-resolve'},
                 {
                   array: [
                     {value: 'array-value'},
@@ -258,66 +331,68 @@ describe('Barista Tests', function() {
                 }
               ],
               type: 'singleton'
-            }],
-            two: [{
-              name: 'two',
+            }, {
+              name: 'entry1b',
               params: [
-                {value: 'two-value'},
-                {func: 'two-func'},
-                {resolve: 'two-resolve'},
-                {
-                  array: [
-                    {value: 'array-value'},
-                    {func: 'array-func'},
-                    {resolve: 'array-resolve'}
-                  ]
-                }
+                {value: 'entry1b-value'},
+                {func: 'entry1b-func'},
+                {resolve: 'entry1b-resolve'}
+              ],
+              type: 'perdependency'
+            }, {
+              name: 'entry1c',
+              params: [
+                {value: 'entry1c-value'},
+                {func: 'entry1c-func'},
+                {resolve: 'entry1c-resolve'}
               ],
               type: 'perdependency'
             }],
-            three: [{
-              name: 'unset',
-              params: [
-                {value: 'three-value'},
-                {func: 'three-func'},
-                {resolve: 'three-resolve'},
-                {
-                  array: [
-                    {value: 'array-value'},
-                    {func: 'array-func'},
-                    {resolve: 'array-resolve'}
-                  ]
-                }
-              ],
-              type: 'unset'
-            }]
-          }
+          two: [{
+            name: 'entry2a',
+            params: [
+              {value: 'entry2a-value'},
+              {func: 'entry2a-func'},
+              {resolve: 'entry2a-resolve'},
+              {
+                array: [
+                  {value: 'array-value'},
+                  {func: 'array-func'},
+                  {resolve: 'array-resolve'}
+                ]
+              }
+            ],
+            type: 'perdependency'
+          }],
+          three: [{
+            name: 'unset',
+            params: [
+              {value: 'three-value'},
+              {func: 'three-func'},
+              {resolve: 'three-resolve'},
+              {
+                array: [
+                  {value: 'array-value'},
+                  {func: 'array-func'},
+                  {resolve: 'array-resolve'}
+                ]
+              }
+            ],
+            type: 'unset'
+          }]
         });
-    });
-    
-    it('getItems on non-existing name returns defaulted', function() {
-      mockDefaulter.expects('setItemDefaults').once().withExactArgs([{}]).returns('defaulted');
-      assert.deepEqual(menu.getItems('notthere'), 'defaulted');
-    });
-    
-    it('getItems on existing name returns', function() {
-      mockDefaulter.expects('getDefaultItem').once().returns('defaulted');
-      menu.withItem('name');
-      mockDefaulter.expects('setItemDefaults').once().withExactArgs(['defaulted']).returns('defaultedExisting');
-      
-      assert.deepEqual(menu.getItems('name'), 'defaultedExisting');
     });
 
     it('calling named() without withItem() throws', function() {
       assert.throw(function() { menu.named(); }, 'call to named() without call to withItem() is invalid');
     });
 
-    it('calling asSingleton() without withItem() throws', function() {
-      assert.throw(function() { menu.asSingleton(); }, 'call to asSingleton() without call to withItem() is invalid');
+    it('calling singleton() without withItem() throws', function() {
+      assert.throw(function() { menu.singleton(); }, 'call to singleton() without call to withItem() is invalid');
     });
 
-    it('calling asPerDependency() without withItem() throws', function() {
-      assert.throw(function() { menu.asPerDependency(); }, 'call to asPerDependency() without call to withItem() is invalid');
+    it('calling perDependency() without withItem() throws', function() {
+      assert.throw(function() { menu.perDependency(); }, 'call to perDependency() without call to withItem() is invalid');
     });
 
     it('calling withResolveParam() without withItem() throws', function() {
@@ -336,61 +411,65 @@ describe('Barista Tests', function() {
       assert.throw(function() { menu.withArrayParam(); }, 'call to withArrayParam() without call to withItem() is invalid');
     });
 
-    it('calling includingResolveParam() without withArrayParam() throws', function() {
-      assert.throw(function() { menu.includingResolveParam(); }, 'call to includingResolveParam() without call to withArrayParam() is invalid');
+    it('calling pushResolveParam() without withArrayParam() throws', function() {
+      assert.throw(function() { menu.pushResolveParam(); }, 'call to pushResolveParam() without call to withArrayParam() is invalid');
     });
 
-    it('calling includingValueParam() without withArrayParam() throws', function() {
-      assert.throw(function() { menu.includingValueParam(); }, 'call to includingValueParam() without call to withArrayParam() is invalid');
+    it('calling pushValueParam() without withArrayParam() throws', function() {
+      assert.throw(function() { menu.pushValueParam(); }, 'call to pushValueParam() without call to withArrayParam() is invalid');
     });
 
-    it('calling includingFuncParam() without withArrayParam() throws', function() {
-      assert.throw(function() { menu.includingFuncParam(); }, 'call to includingFuncParam() without call to withArrayParam() is invalid');
+    it('calling pushFuncParam() without withArrayParam() throws', function() {
+      assert.throw(function() { menu.pushFuncParam(); }, 'call to pushFuncParam() without call to withArrayParam() is invalid');
     });
 
-    it('calling includingResolveParam() after withItem() without withArrayParam() throws', function() {
+    it('calling pushResolveParam() after withItem() without withArrayParam() throws', function() {
       assert.throw(function() {
         menu
           .withItem('one')
           .withArrayParam()
-          .includingResolveParam('resolve')
+          .pushResolveParam('resolve')
           .withItem('one')
-          .includingResolveParam('resolve');
-      }, 'call to includingResolveParam() without call to withArrayParam() is invalid');
+          .pushResolveParam('resolve');
+      }, 'call to pushResolveParam() without call to withArrayParam() is invalid');
     });
   });
 
-  describe('ItemDefaulter (default mode of not strict)', function() {
-    var defaultRegistration = {
+  describe('EntryDefaulter (default mode of not strict)', function() {
+    var defaultEntry = {
       type: 'perdependency',
       name: '_default',
       params: []
     };
 
-    it('getDefaultItem() returns object with type, name and params set', function() {
-      assert.deepEqual(new barista.ItemDefaulter().getDefaultItem(), defaultRegistration);
+    it('getDefaultEntry() returns object with type, name and params set', function() {
+      assert.deepEqual(new barista.EntryDefaulter().getDefaultEntry(), defaultEntry);
     });
 
-    it('setItemDefaults() does nothing when zero items', function() {
-      assert.deepEqual(new barista.ItemDefaulter().setItemDefaults([]), []);
+    it('setEntryDefaults() with no items array returns one defaulted', function() {
+      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults(), [defaultEntry]);
     });
 
-    it('setItemDefaults() with one item adds type and name and params if undefined', function() {
-      assert.deepEqual(new barista.ItemDefaulter().setItemDefaults([{}]), [defaultRegistration]);
+    it('setEntryDefaults() with empty items array returns one defaulted entry', function() {
+      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([]), [defaultEntry]);
     });
 
-    it('setItemDefaults() with one item adds type or name and params if undefined', function() {
-      assert.deepEqual(new barista.ItemDefaulter().setItemDefaults([{type: 'perdependency'}]), [defaultRegistration]);
-      assert.deepEqual(new barista.ItemDefaulter().setItemDefaults([{name: '_default'}]), [defaultRegistration]);
+    it('setEntryDefaults() with one item adds type and name and params if undefined', function() {
+      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([{}]), [defaultEntry]);
     });
 
-    it('setItemDefaults() with many items adds type and name if undefined', function() {
-      assert.deepEqual(new barista.ItemDefaulter().setItemDefaults([{}, {}, {}]), [defaultRegistration, defaultRegistration, defaultRegistration]);
+    it('setEntryDefaults() with one item adds type or name and params if undefined', function() {
+      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([{type: 'perdependency'}]), [defaultEntry]);
+      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([{name: '_default'}]), [defaultEntry]);
+    });
+
+    it('setEntryDefaults() with many items adds type and name if undefined', function() {
+      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([{}, {}, {}]), [defaultEntry, defaultEntry, defaultEntry]);
     });
   });
 
-  describe('ItemDefaulter (strict mode)', function() {
-    var defaultRegistration = {
+  describe('EntryDefaulter (strict mode)', function() {
+    var defaultEntry = {
       type: 'not_set',
       name: '_default',
       params: []
@@ -400,28 +479,32 @@ describe('Barista Tests', function() {
       barista = new Barista({useStrict: true});
     });
 
-    it('getDefaultItem() returns object with type, name and params set', function() {
-      assert.deepEqual(new barista.ItemDefaulter().getDefaultItem(), defaultRegistration);
+    it('getDefaultEntry() returns object with type, name and params set', function() {
+      assert.deepEqual(new barista.EntryDefaulter().getDefaultEntry(), defaultEntry);
     });
 
-    it('setItemDefaults() does nothing when zero items', function() {
-      assert.deepEqual(new barista.ItemDefaulter().setItemDefaults([]), []);
+    it('setEntryDefaults() with no items array returns one defaulted', function() {
+      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults(), [defaultEntry]);
     });
 
-    it('setItemDefaults() with one item adds type and name and params if undefined', function() {
-      assert.deepEqual(new barista.ItemDefaulter().setItemDefaults([{}]), [defaultRegistration]);
+    it('setEntryDefaults() with empty items array returns one defaulted entry', function() {
+      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([]), [defaultEntry]);
     });
 
-    it('setItemDefaults() with one item adds type or name and params if undefined', function() {
-      assert.deepEqual(new barista.ItemDefaulter().setItemDefaults([{type: 'not_set'}]), [defaultRegistration]);
-      assert.deepEqual(new barista.ItemDefaulter().setItemDefaults([{name: '_default'}]), [defaultRegistration]);
+    it('setEntryDefaults() with one item adds type and name and params if undefined', function() {
+      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([{}]), [defaultEntry]);
     });
 
-    it('setItemDefaults() with many items adds type and name if undefined', function() {
-      assert.deepEqual(new barista.ItemDefaulter().setItemDefaults([{}, {}, {}]), [defaultRegistration, defaultRegistration, defaultRegistration]);
+    it('setEntryDefaults() with one item adds type or name and params if undefined', function() {
+      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([{type: 'not_set'}]), [defaultEntry]);
+      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([{name: '_default'}]), [defaultEntry]);
+    });
+
+    it('setEntryDefaults() with many items adds type and name if undefined', function() {
+      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([{}, {}, {}]), [defaultEntry, defaultEntry, defaultEntry]);
     });
   });
-  
+
   describe('Property', function() {
     it('name and implmentation properties set', function() {
       var ObjectDef = function(arg1) {
@@ -1050,7 +1133,7 @@ describe('Barista Tests', function() {
 
     it('orderNotSet() returns func, executing it throws', function() {
       var func = orderTaker.orderNotSet('impl');
-      assert.throw(function() { func(); }, 'using barista in strict mode requires that you register "impl" using menu.withItem and specifying asSingleton or asPerDependency');
+      assert.throw(function() { func(); }, 'using barista in strict mode requires that you register "impl" using menu.withItem and specifying singleton or perDependency');
     });
   });
 
@@ -1146,7 +1229,7 @@ describe('Barista Tests', function() {
       var prop = new barista.Property('Name', function() {
       });
       mockMenu.expects('getNamespace').once().returns('ns');
-      mockMenu.expects('getItems').withExactArgs(prop.name).once().returns([]);
+      mockMenu.expects('getDefaultedEntries').withExactArgs(prop.name).once().returns([]);
 
       builder.add(prop);
 
@@ -1160,7 +1243,7 @@ describe('Barista Tests', function() {
           prop = new barista.Property('Name', function() {
           });
       mockMenu.expects('getNamespace').once().returns('ns');
-      mockMenu.expects('getItems').withExactArgs(prop.name).once().returns([item]);
+      mockMenu.expects('getDefaultedEntries').withExactArgs(prop.name).once().returns([item]);
       mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, item).returns('invoker');
 
       builder.add(prop);
@@ -1175,7 +1258,7 @@ describe('Barista Tests', function() {
           prop = new barista.Property('Name', function() {
           });
       mockMenu.expects('getNamespace').once().returns('ns');
-      mockMenu.expects('getItems').withExactArgs(prop.name).once().returns([item]);
+      mockMenu.expects('getDefaultedEntries').withExactArgs(prop.name).once().returns([item]);
       mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, item).returns('invoker');
 
       builder.add(prop);
@@ -1183,7 +1266,7 @@ describe('Barista Tests', function() {
       assert.deepEqual(builder.build(), {Name: 'invoker'});
     });
 
-    it('build() with one object with many items including default returns namespace with default invoker', function() {
+    it('build() with one object with many items S default returns namespace with default invoker', function() {
       var items = [
         {name: '_default'},
         {name: 'X'},
@@ -1192,7 +1275,7 @@ describe('Barista Tests', function() {
           prop = new barista.Property('Name', function() {
           });
       mockMenu.expects('getNamespace').once().returns('ns');
-      mockMenu.expects('getItems').withExactArgs(prop.name).once().returns(items);
+      mockMenu.expects('getDefaultedEntries').withExactArgs(prop.name).once().returns(items);
       mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, items[0]).returns('invoker');
       mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, items[1]).returns('invokerX');
       mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, items[2]).returns('invokerY');
@@ -1211,7 +1294,7 @@ describe('Barista Tests', function() {
           prop = new barista.Property('Name', function() {
           });
       mockMenu.expects('getNamespace').once().returns('ns');
-      mockMenu.expects('getItems').withExactArgs(prop.name).once().returns(items);
+      mockMenu.expects('getDefaultedEntries').withExactArgs(prop.name).once().returns(items);
       mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, items[0]).returns('invokerX');
       mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, items[1]).returns('invokerY');
       mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, items[2]).returns('invoker');
@@ -1240,9 +1323,9 @@ describe('Barista Tests', function() {
           });
 
       mockMenu.expects('getNamespace').thrice().returns('ns');
-      mockMenu.expects('getItems').withExactArgs(prop1.name).once().returns(itemsWithDefault);
-      mockMenu.expects('getItems').withExactArgs(prop2.name).once().returns(itemsWithoutDefault);
-      mockMenu.expects('getItems').withExactArgs(prop3.name).once().returns(itemsWithDefault);
+      mockMenu.expects('getDefaultedEntries').withExactArgs(prop1.name).once().returns(itemsWithDefault);
+      mockMenu.expects('getDefaultedEntries').withExactArgs(prop2.name).once().returns(itemsWithoutDefault);
+      mockMenu.expects('getDefaultedEntries').withExactArgs(prop3.name).once().returns(itemsWithDefault);
       mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop1, itemsWithDefault[0]).returns('invoker1');
       mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop1, itemsWithDefault[1]).returns('invoker1X');
       mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop1, itemsWithDefault[2]).returns('invoker1Y');
@@ -1326,12 +1409,13 @@ describe('Barista Tests', function() {
       barista = new Barista();
     });
 
-    it('menu() returns new Menu with new ItemDefaulter', function() {
-      assert.deepEqual(barista.menu().withItem('one').get(), {
-        details: {
-          one: [{name: '_default', params: [], type: 'perdependency'}]
+    it('menu() returns new Menu with new EntryDefaulter', function() {
+      assert.deepEqual(barista.menu().withItem('one').getEntries('one')[0], {
+          name: '_default',
+          params: [],
+          type: 'perdependency'
         }
-      });
+      );
     });
 
     it('menu() returns new Menu for each call', function() {
@@ -1376,7 +1460,7 @@ describe('Barista Tests', function() {
       },
           servedNs = barista.serve(new nsSimple('depends'), barista.menu()
             .withItem('ObjDef2')
-            .asSingleton()
+            .singleton()
           ),
           obj1Instance1 = servedNs.ObjDef1(1),
           obj1Instance2 = servedNs.ObjDef1(2),
@@ -1533,17 +1617,17 @@ describe('Barista Tests', function() {
             .withItem('Tester').named('notdefault').withValueParam('uses _default')
             .withItem('Prepender').withValueParam('-')
             .withItem('Prepender').named('special').withValueParam('special')
-            .withItem('Capitalizer').asSingleton()
+            .withItem('Capitalizer').singleton()
             .withItem('ChainOfResponsibilities').named('widget1Controller')
             .withArrayParam()
-            .includingResolveParam('Responsibilities.PrependResponsibility')
-            .includingResolveParam('Responsibilities.AppendPlusesResponsibility.p3')
-            .includingResolveParam('Responsibilities.WrapResponsibility')
+            .pushResolveParam('Responsibilities.PrependResponsibility')
+            .pushResolveParam('Responsibilities.AppendPlusesResponsibility.p3')
+            .pushResolveParam('Responsibilities.WrapResponsibility')
             .withItem('ChainOfResponsibilities').named('widget2Controller')
             .withArrayParam()
-            .includingResolveParam('Responsibilities.PrependAndCapitalizeResponsibility')
-            .includingResolveParam('Responsibilities.AppendPlusesResponsibility.p1')
-            .includingResolveParam('Responsibilities.WrapResponsibility')
+            .pushResolveParam('Responsibilities.PrependAndCapitalizeResponsibility')
+            .pushResolveParam('Responsibilities.AppendPlusesResponsibility.p1')
+            .pushResolveParam('Responsibilities.WrapResponsibility')
           ),
           servedWidgetNs = barista.serve(new nsWidget(), barista.menu()
             .forNamespace('Widget')
@@ -1594,14 +1678,14 @@ describe('Barista Tests', function() {
           servedNs = barista.serve(new nsSimple(), barista.menu()
             .forNamespace('Simple')
             .withItem('ObjNoType')
-            .withItem('ObjDependentUponObjNoRegistration').asPerDependency().withResolveParam('Simple.ObjNoRegistration')
+            .withItem('ObjDependentUponObjNoRegistration').perDependency().withResolveParam('Simple.ObjNoRegistration')
           );
-      assert.throw(function() { servedNs.ObjNoRegistration(); }, 'using barista in strict mode requires that you register "function ObjNoRegistration() { return {}; }" using menu.withItem and specifying asSingleton or asPerDependency');
-      assert.throw(function() { servedNs.ObjNoType(); }, 'using barista in strict mode requires that you register "function ObjNoType() { return {}; }" using menu.withItem and specifying asSingleton or asPerDependency');
-      assert.throw(function() { servedNs.ObjDependentUponObjNoRegistration(); }, 'using barista in strict mode requires that you register "function ObjNoRegistration() { return {}; }" using menu.withItem and specifying asSingleton or asPerDependency');
-      assert.throw(function() { barista.make('Simple.ObjNoRegistration'); }, 'using barista in strict mode requires that you register "function ObjNoRegistration() { return {}; }" using menu.withItem and specifying asSingleton or asPerDependency');
-      assert.throw(function() { barista.make('Simple.ObjNoType'); }, 'using barista in strict mode requires that you register "function ObjNoType() { return {}; }" using menu.withItem and specifying asSingleton or asPerDependency');
-      assert.throw(function() { barista.make('Simple.ObjDependentUponObjNoRegistration'); }, 'using barista in strict mode requires that you register "function ObjNoRegistration() { return {}; }" using menu.withItem and specifying asSingleton or asPerDependency');
+      assert.throw(function() { servedNs.ObjNoRegistration(); }, 'using barista in strict mode requires that you register "function ObjNoRegistration() { return {}; }" using menu.withItem and specifying singleton or perDependency');
+      assert.throw(function() { servedNs.ObjNoType(); }, 'using barista in strict mode requires that you register "function ObjNoType() { return {}; }" using menu.withItem and specifying singleton or perDependency');
+      assert.throw(function() { servedNs.ObjDependentUponObjNoRegistration(); }, 'using barista in strict mode requires that you register "function ObjNoRegistration() { return {}; }" using menu.withItem and specifying singleton or perDependency');
+      assert.throw(function() { barista.make('Simple.ObjNoRegistration'); }, 'using barista in strict mode requires that you register "function ObjNoRegistration() { return {}; }" using menu.withItem and specifying singleton or perDependency');
+      assert.throw(function() { barista.make('Simple.ObjNoType'); }, 'using barista in strict mode requires that you register "function ObjNoType() { return {}; }" using menu.withItem and specifying singleton or perDependency');
+      assert.throw(function() { barista.make('Simple.ObjDependentUponObjNoRegistration'); }, 'using barista in strict mode requires that you register "function ObjNoRegistration() { return {}; }" using menu.withItem and specifying singleton or perDependency');
     });
   });
 });
