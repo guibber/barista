@@ -1679,6 +1679,18 @@ describe('Barista Tests', function() {
       assert.equal(barista.make('Utils.addAlternatingChar', 'value', '-'), 'v-a-l-u-e-');
     });
 
+    it('serve() and make() using standard namespace using this', function() {
+      var ns = function() {
+        this.ObjDef = function(arg1) { this.x = arg1; };
+      },
+          servedNs = barista.serve(new ns(), barista.menu()
+            .forNamespace('Simple')
+            .withItem('ObjDef').withValueParam('param1')
+          );
+      assert.equal(servedNs.ObjDef().x, 'param1');
+      assert.equal(barista.make('Simple.ObjDef').x, 'param1');
+    });
+
     it('serve() and make() throw when using strict mode involving not fully registered object', function() {
       barista = new Barista({useStrict: true});
       var nsSimple = function() {
