@@ -1187,7 +1187,7 @@ describe('Barista Tests', function() {
     });
   });
 
-  describe('NamespaceBuilder', function() {
+  describe('ItemInvokerBuilder', function() {
     var sandbox,
         menu,
         mockMenu,
@@ -1201,7 +1201,7 @@ describe('Barista Tests', function() {
       mockMenu = sandbox.mock(menu);
       invokerBuilder = new barista.InvokerBuilder();
       mockInvokerBuilder = sandbox.mock(invokerBuilder);
-      builder = new barista.NamespaceBuilder(menu, invokerBuilder);
+      builder = new barista.ItemInvokerBuilder(menu, invokerBuilder);
     });
 
     afterEach(function() {
@@ -1210,33 +1210,16 @@ describe('Barista Tests', function() {
       sandbox.restore();
     });
 
-    it('build() with zero adds returns empty namespace', function() {
-      assert.deepEqual(builder.build(), {});
-    });
-
-    it('build() with one added non-object returns namespace with prop', function() {
-      var implementation = 'impl',
-          prop = new barista.Property('impl', implementation);
-
-      builder.add(prop);
-
-      assert.deepEqual(builder.build(), {
-        impl: implementation
-      });
-    });
-
-    it('build() with one object with no items returns empty namespace', function() {
+    it('build() with no items returns _default of null', function() {
       var prop = new barista.Property('Name', function() {
       });
       mockMenu.expects('getNamespace').once().returns('ns');
       mockMenu.expects('getDefaultedEntries').withExactArgs(prop.name).once().returns([]);
 
-      builder.add(prop);
-
-      assert.deepEqual(builder.build(), {});
+      assert.deepEqual(builder.build(prop), {_default: null});
     });
 
-    it('build() with one object with non-default item returns namespace with invoker', function() {
+    it('build() with one non-default item returns _default set to invoker and notdefault set to invoker', function() {
       var item = {
         name: 'notdefault'
       },
@@ -1246,12 +1229,10 @@ describe('Barista Tests', function() {
       mockMenu.expects('getDefaultedEntries').withExactArgs(prop.name).once().returns([item]);
       mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, item).returns('invoker');
 
-      builder.add(prop);
-
-      assert.deepEqual(builder.build(), {Name: 'invoker'});
+      assert.deepEqual(builder.build(prop), {_default: 'invoker', notdefault: 'invoker'});
     });
 
-    it('build() with one object with default items returns namespace with invoker', function() {
+    it('build() with one default item returns _default set to invoker', function() {
       var item = {
         name: '_default'
       },
@@ -1261,12 +1242,27 @@ describe('Barista Tests', function() {
       mockMenu.expects('getDefaultedEntries').withExactArgs(prop.name).once().returns([item]);
       mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, item).returns('invoker');
 
-      builder.add(prop);
-
-      assert.deepEqual(builder.build(), {Name: 'invoker'});
+      assert.deepEqual(builder.build(prop), {_default: 'invoker'});
     });
 
-    it('build() with one object with many items S default returns namespace with default invoker', function() {
+    it('build() with many items without default returns default and invokers', function() {
+      var items = [
+        {name: 'X'},
+        {name: 'Y'},
+        {name: 'Z'}
+      ],
+          prop = new barista.Property('Name', function() {
+          });
+      mockMenu.expects('getNamespace').once().returns('ns');
+      mockMenu.expects('getDefaultedEntries').withExactArgs(prop.name).once().returns(items);
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, items[0]).returns('invokerX');
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, items[1]).returns('invokerY');
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, items[2]).returns('invokerZ');
+
+      assert.deepEqual(builder.build(prop), {_default: 'invokerX', X: 'invokerX', Y: 'invokerY', Z: 'invokerZ'});
+    });
+
+    it('build() with many items including default returns default and invokers', function() {
       var items = [
         {name: '_default'},
         {name: 'X'},
@@ -1280,12 +1276,10 @@ describe('Barista Tests', function() {
       mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, items[1]).returns('invokerX');
       mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, items[2]).returns('invokerY');
 
-      builder.add(prop);
-
-      assert.deepEqual(builder.build(), {Name: 'invoker'});
+      assert.deepEqual(builder.build(prop), {_default: 'invoker', X: 'invokerX', Y: 'invokerY'});
     });
 
-    it('build() with one object with many items with default last returns namespace with default invoker', function() {
+    it('build() with many items with default last returns namespace with default invoker', function() {
       var items = [
         {name: 'X'},
         {name: 'Y'},
@@ -1299,41 +1293,64 @@ describe('Barista Tests', function() {
       mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, items[1]).returns('invokerY');
       mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, items[2]).returns('invoker');
 
+      assert.deepEqual(builder.build(prop), {_default: 'invoker', X: 'invokerX', Y: 'invokerY'});
+    });
+  });
+
+  describe('NamespaceBuilder', function() {
+    var sandbox,
+        itemBuilder,
+        mockItemBuilder,
+        builder;
+
+    beforeEach(function() {
+      sandbox = sinon.sandbox.create();
+      itemBuilder = new barista.ItemInvokerBuilder();
+      mockItemBuilder = sandbox.mock(itemBuilder);
+      builder = new barista.NamespaceBuilder(itemBuilder);
+    });
+
+    afterEach(function() {
+      mockItemBuilder.verify();
+      sandbox.restore();
+    });
+
+    it('build() with zero adds returns empty namespace', function() {
+      assert.deepEqual(builder.build(), {});
+    });
+
+    it('build() with one added non-object returns namespace with prop set', function() {
+      var implementation = 'impl',
+          prop = new barista.Property('impl', implementation);
+
+      builder.add(prop);
+
+      assert.deepEqual(builder.build(), {
+        impl: implementation
+      });
+    });
+
+    it('build() with one object returns namespace with invoker set by name', function() {
+      var prop = new barista.Property('Name', function() {
+      });
+      mockItemBuilder.expects('build').withExactArgs(prop).once().returns({_default: 'invoker'});
 
       builder.add(prop);
 
       assert.deepEqual(builder.build(), {Name: 'invoker'});
     });
 
-    it('build() with many objects with many items returns namespace with invokers', function() {
-      var itemsWithDefault = [
-        {name: '_default'},
-        {name: 'X'},
-        {name: 'Y'}
-      ],
-          itemsWithoutDefault = [
-            {name: 'X'},
-            {name: 'Y'}
-          ],
-          prop1 = new barista.Property('Name1', function() {
-          }),
+    it('build() with many objects returns namespace with invokers set by name', function() {
+      var prop1 = new barista.Property('Name1', function() {
+      }),
           prop2 = new barista.Property('Name2', function() {
           }),
           prop3 = new barista.Property('Name3', function() {
           });
 
-      mockMenu.expects('getNamespace').thrice().returns('ns');
-      mockMenu.expects('getDefaultedEntries').withExactArgs(prop1.name).once().returns(itemsWithDefault);
-      mockMenu.expects('getDefaultedEntries').withExactArgs(prop2.name).once().returns(itemsWithoutDefault);
-      mockMenu.expects('getDefaultedEntries').withExactArgs(prop3.name).once().returns(itemsWithDefault);
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop1, itemsWithDefault[0]).returns('invoker1');
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop1, itemsWithDefault[1]).returns('invoker1X');
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop1, itemsWithDefault[2]).returns('invoker1Y');
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop2, itemsWithoutDefault[0]).returns('invoker2');
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop2, itemsWithoutDefault[1]).returns('invoker2X');
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop3, itemsWithDefault[0]).returns('invoker3');
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop3, itemsWithDefault[1]).returns('invoker3X');
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop3, itemsWithDefault[2]).returns('invoker3Y');
+      mockItemBuilder.expects('build').withExactArgs(prop1).once().returns({_default: 'invoker1'});
+      mockItemBuilder.expects('build').withExactArgs(prop2).once().returns({_default: 'invoker2'});
+      mockItemBuilder.expects('build').withExactArgs(prop3).once().returns({_default: 'invoker3'});
 
       builder.add(prop1);
       builder.add(prop2);
@@ -1686,6 +1703,19 @@ describe('Barista Tests', function() {
       assert.throw(function() { barista.make('Simple.ObjNoRegistration'); }, 'using barista in strict mode requires that you register "function ObjNoRegistration() { return {}; }" using menu.withItem and specifying singleton or perDependency');
       assert.throw(function() { barista.make('Simple.ObjNoType'); }, 'using barista in strict mode requires that you register "function ObjNoType() { return {}; }" using menu.withItem and specifying singleton or perDependency');
       assert.throw(function() { barista.make('Simple.ObjDependentUponObjNoRegistration'); }, 'using barista in strict mode requires that you register "function ObjNoRegistration() { return {}; }" using menu.withItem and specifying singleton or perDependency');
+    });
+
+    it('serveObject() registers one object and returns invokers', function() {
+      var ObjDef = function(arg1) { return {value: arg1}; },
+          invokers = barista.serveObject(ObjDef, 'ObjDef', barista.menu()
+            .forNamespace('AdHoc')
+            .withItem('ObjDef').withValueParam('param1').perDependency()
+            .withItem('ObjDef').named('two').withValueParam('param2').singleton()
+          );
+      assert.equal(invokers._default().value, 'param1');
+      assert.equal(invokers.two().value, 'param2');
+      assert.equal(barista.make('AdHoc.ObjDef._default').value, 'param1');
+      assert.equal(barista.make('AdHoc.ObjDef.two').value, 'param2');
     });
   });
 });

@@ -381,25 +381,36 @@ var Barista = function(config) {
       build: build
     };
   }
-
-  function NamespaceBuilder(menu, invokerBuilder) {
-    var retNs = {};
-
-    function addObject(prop) {
-      var defaultInvoker,
+  
+  function ItemInvokerBuilder(menu, invokerBuilder) {
+    function build(prop) {
+      var invokers = {},
+          defaultInvoker,
           nsName = menu.getNamespace();
       menu.getDefaultedEntries(prop.name).forEach(function(item) {
         var invoker = invokerBuilder.build(nsName, prop, item);
+        invokers[item.name] = invoker;
         if (!defaultInvoker || item.name === _default) {
           defaultInvoker = invoker;
         }
       });
-      if (defaultInvoker) {
-        retNs[prop.name] = defaultInvoker;
-      }
+      invokers._default = (invokers._default || defaultInvoker) ? (invokers._default || defaultInvoker) : null;
+      return invokers;
     }
 
-    function addPropertyOrFunc(prop) {
+    return {
+      build: build
+    };
+  }
+
+  function NamespaceBuilder(itemInvokerBuilder) {
+    var retNs = {};
+
+    function addObject(prop) {
+      retNs[prop.name] = itemInvokerBuilder.build(prop)._default;
+    }
+
+    function addNonObject(prop) {
       retNs[prop.name] = prop.implementation;
     }
 
@@ -407,7 +418,7 @@ var Barista = function(config) {
       if (prop.isObject()) {
         addObject(prop);
       } else {
-        addPropertyOrFunc(prop);
+        addNonObject(prop);
       }
     }
 
@@ -442,16 +453,32 @@ var Barista = function(config) {
     return new Processor(
       new PropertyExtractor(ns, newProperty),
       new NamespaceBuilder(
-        menu || newMenu(),
-        new InvokerBuilder(
-          new OrderTaker(new Maker(
-            new ArgsOverrider(new ArgsWrapper()),
-            new InjectionResolver(new ParamResolver(injectionMapper, newInjectionResolver))
-          )),
-          injectionMapper
+        new ItemInvokerBuilder(
+          menu || newMenu(),
+          new InvokerBuilder(
+            new OrderTaker(new Maker(
+              new ArgsOverrider(new ArgsWrapper()),
+              new InjectionResolver(new ParamResolver(injectionMapper, newInjectionResolver))
+            )),
+            injectionMapper
+          )
         )
       )
     ).process(ns);
+  }
+  
+  function serveObject(implementation, name, menu) {
+    var injectionMapper = new InjectionMapper();
+    return new ItemInvokerBuilder(
+            menu || newMenu(),
+            new InvokerBuilder(
+              new OrderTaker(new Maker(
+                new ArgsOverrider(new ArgsWrapper()),
+                new InjectionResolver(new ParamResolver(injectionMapper, newInjectionResolver))
+              )),
+              injectionMapper
+            )
+          ).build(newProperty(name, implementation));
   }
 
   function make(item) {
@@ -463,6 +490,7 @@ var Barista = function(config) {
   return {
     menu: newMenu,
     serve: serve,
+    serveObject: serveObject,
     make: make,
     Menu: Menu,
     Processor: Processor,
@@ -479,6 +507,7 @@ var Barista = function(config) {
     ResolvedParam: ResolvedParam,
     ParamResolver: ParamResolver,
     InvokerBuilder: InvokerBuilder,
+    ItemInvokerBuilder: ItemInvokerBuilder,
     NamespaceBuilder: NamespaceBuilder,
     NamespaceNameGenerator: NamespaceNameGenerator
   };
