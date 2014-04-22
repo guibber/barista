@@ -381,7 +381,7 @@ var Barista = function(config) {
       build: build
     };
   }
-  
+
   function ItemInvokerBuilder(menu, invokerBuilder) {
     function build(prop) {
       var invokers = {},
@@ -466,19 +466,19 @@ var Barista = function(config) {
       )
     ).process(ns);
   }
-  
+
   function serveObject(implementation, name, menu) {
     var injectionMapper = new InjectionMapper();
     return new ItemInvokerBuilder(
-            menu || newMenu(),
-            new InvokerBuilder(
-              new OrderTaker(new Maker(
-                new ArgsOverrider(new ArgsWrapper()),
-                new InjectionResolver(new ParamResolver(injectionMapper, newInjectionResolver))
-              )),
-              injectionMapper
-            )
-          ).build(newProperty(name, implementation));
+      menu || newMenu(),
+      new InvokerBuilder(
+        new OrderTaker(new Maker(
+          new ArgsOverrider(new ArgsWrapper()),
+          new InjectionResolver(new ParamResolver(injectionMapper, newInjectionResolver))
+        )),
+        injectionMapper
+      )
+    ).build(newProperty(name, implementation));
   }
 
   function make(item) {
