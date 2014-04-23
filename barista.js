@@ -433,7 +433,6 @@ var Barista = function(config) {
     function process(ns) {
       var name;
       for (name in ns) {
-        console.log(name);
         if (ns.hasOwnProperty(name)) {
           namespaceBuilder.add(extractor.extract(name));
         }
