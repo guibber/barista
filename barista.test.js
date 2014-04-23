@@ -7,12 +7,83 @@ describe('Barista Tests', function() {
     });
   });
 
+  describe('EntryDefaulter (default mode of not strict)', function() {
+    var defaultEntry = {
+      type: 'perdependency',
+      name: '_default',
+      params: []
+    };
+
+    it('getDefaultEntry() returns object with type, name and params set', function() {
+      assert.deepEqual(new barista.EntryDefaulter().getDefaultEntry(), defaultEntry);
+    });
+
+    it('setEntryDefaults() with no entries array returns one defaulted', function() {
+      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults(), [defaultEntry]);
+    });
+
+    it('setEntryDefaults() with empty entries array returns one defaulted entry', function() {
+      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([]), [defaultEntry]);
+    });
+
+    it('setEntryDefaults() with one entry adds type and name and params if undefined', function() {
+      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([{}]), [defaultEntry]);
+    });
+
+    it('setEntryDefaults() with one entry adds type or name and params if undefined', function() {
+      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([{type: 'perdependency'}]), [defaultEntry]);
+      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([{name: '_default'}]), [defaultEntry]);
+    });
+
+    it('setEntryDefaults() with many entries adds type and name if undefined', function() {
+      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([{}, {}, {}]), [defaultEntry, defaultEntry, defaultEntry]);
+    });
+  });
+
+  describe('EntryDefaulter (strict mode)', function() {
+    var defaultEntry = {
+      type: 'not_set',
+      name: '_default',
+      params: []
+    };
+
+    beforeEach(function() {
+      barista = new Barista({useStrict: true});
+    });
+
+    it('getDefaultEntry() returns object with type, name and params set', function() {
+      assert.deepEqual(new barista.EntryDefaulter().getDefaultEntry(), defaultEntry);
+    });
+
+    it('setEntryDefaults() with no entries array returns one defaulted', function() {
+      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults(), [defaultEntry]);
+    });
+
+    it('setEntryDefaults() with empty entries array returns one defaulted entry', function() {
+      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([]), [defaultEntry]);
+    });
+
+    it('setEntryDefaults() with one entry adds type and name and params if undefined', function() {
+      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([{}]), [defaultEntry]);
+    });
+
+    it('setEntryDefaults() with one entry adds type or name and params if undefined', function() {
+      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([{type: 'not_set'}]), [defaultEntry]);
+      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([{name: '_default'}]), [defaultEntry]);
+    });
+
+    it('setEntryDefaults() with many entries adds type and name if undefined', function() {
+      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([{}, {}, {}]), [defaultEntry, defaultEntry, defaultEntry]);
+    });
+  });
+
   describe('Menu', function() {
     var sandbox,
         defaulter,
         mockDefaulter,
         nameGenerator,
         mockNameGenerator,
+        actual,
         menu;
 
     beforeEach(function() {
@@ -21,7 +92,8 @@ describe('Barista Tests', function() {
       mockDefaulter = sandbox.mock(defaulter);
       nameGenerator = new barista.NamespaceNameGenerator();
       mockNameGenerator = sandbox.mock(nameGenerator);
-      menu = new barista.Menu(nameGenerator, defaulter);
+      actual = {details: {}};
+      menu = new barista.Menu(nameGenerator, defaulter, actual);
     });
 
     afterEach(function() {
@@ -31,18 +103,13 @@ describe('Barista Tests', function() {
     });
 
     it('forNamespace() sets namespace name', function() {
-      var actual = {details: {}};
-      menu = new barista.Menu(nameGenerator, defaulter, actual);
-
       menu.forNamespace('name');
-
       assert.equal(actual.name, 'name');
       assert.equal(menu.getNamespace(), 'name');
     });
 
     it('getNamespace() gets namespace name', function() {
-      var actual = {name: 'name'};
-      menu = new barista.Menu(nameGenerator, defaulter, actual);
+      menu = new barista.Menu(nameGenerator, defaulter, {name: 'name'});
       assert.equal(menu.getNamespace(), 'name');
     });
 
@@ -52,7 +119,6 @@ describe('Barista Tests', function() {
     });
 
     it('getEntries() with no item entries returns array of one empty object', function() {
-      menu = new barista.Menu(nameGenerator, defaulter, {details: {}});
       assert.deepEqual(menu.getEntries('item'), [{}]);
     });
 
@@ -79,18 +145,12 @@ describe('Barista Tests', function() {
     });
 
     it('withItem() with one entry sets default from entryDefaulter', function() {
-      var actual = {details: {}};
-      menu = new barista.Menu(nameGenerator, defaulter, actual);
       mockDefaulter.expects('getDefaultEntry').once().returns('defaultEntry');
-
       menu.withItem('item');
-
       assert.deepEqual(actual.details, {item: ['defaultEntry']});
     });
 
     it('withItem() with many entries sets default from entryDefaulter', function() {
-      var actual = {details: {}};
-      menu = new barista.Menu(nameGenerator, defaulter, actual);
       mockDefaulter.expects('getDefaultEntry').once().returns('defaultEntry1');
       mockDefaulter.expects('getDefaultEntry').once().returns('defaultEntry2');
       mockDefaulter.expects('getDefaultEntry').once().returns('defaultEntry3');
@@ -101,8 +161,6 @@ describe('Barista Tests', function() {
     });
 
     it('withItem() with many items sets default from entryDefaulter', function() {
-      var actual = {details: {}};
-      menu = new barista.Menu(nameGenerator, defaulter, actual);
       mockDefaulter.expects('getDefaultEntry').once().returns('defaultEntry1');
       mockDefaulter.expects('getDefaultEntry').once().returns('defaultEntry2');
       mockDefaulter.expects('getDefaultEntry').once().returns('defaultEntry3');
@@ -117,138 +175,88 @@ describe('Barista Tests', function() {
     });
 
     it('singleton() entry is registered as type singleton', function() {
-      var actual = {details: {}};
-      menu = new barista.Menu(nameGenerator, defaulter, actual);
       mockDefaulter.expects('getDefaultEntry').once().returns({});
-
       menu.withItem('item').singleton();
-
       assert.deepEqual(actual.details, {item: [{type: 'singleton'}]});
     });
 
     it('perDependency() entry is registered type perdependency', function() {
-      var actual = {details: {}};
-      menu = new barista.Menu(nameGenerator, defaulter, actual);
       mockDefaulter.expects('getDefaultEntry').once().returns({});
-
       menu.withItem('item').perDependency();
-
       assert.deepEqual(actual.details, {item: [{type: 'perdependency'}]});
     });
 
     it('named() entry is registered with name', function() {
-      var actual = {details: {}};
-      menu = new barista.Menu(nameGenerator, defaulter, actual);
       mockDefaulter.expects('getDefaultEntry').once().returns({});
-
       menu.withItem('item').named('name');
-
       assert.deepEqual(actual.details, {item: [{name: 'name'}]});
     });
 
     it('withValueParam() sets value param', function() {
-      var actual = {details: {}};
-      menu = new barista.Menu(nameGenerator, defaulter, actual);
       mockDefaulter.expects('getDefaultEntry').once().returns({params: []});
-
       menu.withItem('item').withValueParam('value');
-
       assert.deepEqual(actual.details, {
         item: [{params: [{value: 'value'}]}]
       });
     });
 
     it('withResolveParam() sets resolve param', function() {
-      var actual = {details: {}};
-      menu = new barista.Menu(nameGenerator, defaulter, actual);
       mockDefaulter.expects('getDefaultEntry').once().returns({params: []});
-
       menu.withItem('item').withResolveParam('resolve');
-
       assert.deepEqual(actual.details, {
         item: [{params: [{resolve: 'resolve'}]}]
       });
     });
 
     it('withFuncParam() sets func param', function() {
-      var actual = {details: {}};
-      menu = new barista.Menu(nameGenerator, defaulter, actual);
       mockDefaulter.expects('getDefaultEntry').once().returns({params: []});
-
       menu.withItem('item').withFuncParam('func');
-
       assert.deepEqual(actual.details, {
         item: [{params: [{func: 'func'}]}]
       });
     });
 
     it('withArrayParam() sets array param', function() {
-      var actual = {details: {}};
-      menu = new barista.Menu(nameGenerator, defaulter, actual);
       mockDefaulter.expects('getDefaultEntry').once().returns({params: []});
-
       menu.withItem('item').withArrayParam();
-
       assert.deepEqual(actual.details, {
         item: [{params: [{array: []}]}]
       });
     });
 
     it('withValueParam(), withFuncParam() and withResolveParam sets params', function() {
-      var actual = {details: {}};
-      menu = new barista.Menu(nameGenerator, defaulter, actual);
       mockDefaulter.expects('getDefaultEntry').once().returns({params: []});
-
-      menu
-        .withItem('item')
-        .withFuncParam('func')
-        .withResolveParam('resolve')
-        .withValueParam('value');
-
+      menu.withItem('item').withFuncParam('func').withResolveParam('resolve').withValueParam('value');
       assert.deepEqual(actual.details, {
         item: [{params: [{func: 'func'}, {resolve: 'resolve'}, {value: 'value'}]}]
       });
     });
 
     it('pushResolveParam() sets array param with one resolve param', function() {
-      var actual = {details: {}};
-      menu = new barista.Menu(nameGenerator, defaulter, actual);
       mockDefaulter.expects('getDefaultEntry').once().returns({params: []});
-
       menu.withItem('item').withArrayParam().pushResolveParam('resolve');
-
       assert.deepEqual(actual.details, {
         item: [{params: [{array: [{resolve: 'resolve'}]}]}]
       });
     });
 
     it('pushValueParam() sets array param with one value param', function() {
-      var actual = {details: {}};
-      menu = new barista.Menu(nameGenerator, defaulter, actual);
       mockDefaulter.expects('getDefaultEntry').once().returns({params: []});
-
       menu.withItem('item').withArrayParam().pushValueParam('value');
-
       assert.deepEqual(actual.details, {
         item: [{params: [{array: [{value: 'value'}]}]}]
       });
     });
 
     it('pushFuncParam() sets array param with one func param', function() {
-      var actual = {details: {}};
-      menu = new barista.Menu(nameGenerator, defaulter, actual);
       mockDefaulter.expects('getDefaultEntry').once().returns({params: []});
-
       menu.withItem('item').withArrayParam().pushFuncParam('func');
-
       assert.deepEqual(actual.details, {
         item: [{params: [{array: [{func: 'func'}]}]}]
       });
     });
 
     it('pushValueParam(), pushFuncParam() and pushResolveParam sets array params', function() {
-      var actual = {details: {}};
-      menu = new barista.Menu(nameGenerator, defaulter, actual);
       mockDefaulter.expects('getDefaultEntry').once().returns({params: []});
 
       menu
@@ -264,8 +272,6 @@ describe('Barista Tests', function() {
     });
 
     it('withItem() with many items and many entries covering all options configures correctly', function() {
-      var actual = {details: {}};
-      menu = new barista.Menu(nameGenerator, defaulter, actual);
       mockDefaulter.expects('getDefaultEntry').once().returns({name: 'unset', params: [], type: 'unset'});
       mockDefaulter.expects('getDefaultEntry').once().returns({name: 'unset', params: [], type: 'unset'});
       mockDefaulter.expects('getDefaultEntry').once().returns({name: 'unset', params: [], type: 'unset'});
@@ -435,76 +441,6 @@ describe('Barista Tests', function() {
     });
   });
 
-  describe('EntryDefaulter (default mode of not strict)', function() {
-    var defaultEntry = {
-      type: 'perdependency',
-      name: '_default',
-      params: []
-    };
-
-    it('getDefaultEntry() returns object with type, name and params set', function() {
-      assert.deepEqual(new barista.EntryDefaulter().getDefaultEntry(), defaultEntry);
-    });
-
-    it('setEntryDefaults() with no items array returns one defaulted', function() {
-      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults(), [defaultEntry]);
-    });
-
-    it('setEntryDefaults() with empty items array returns one defaulted entry', function() {
-      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([]), [defaultEntry]);
-    });
-
-    it('setEntryDefaults() with one item adds type and name and params if undefined', function() {
-      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([{}]), [defaultEntry]);
-    });
-
-    it('setEntryDefaults() with one item adds type or name and params if undefined', function() {
-      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([{type: 'perdependency'}]), [defaultEntry]);
-      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([{name: '_default'}]), [defaultEntry]);
-    });
-
-    it('setEntryDefaults() with many items adds type and name if undefined', function() {
-      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([{}, {}, {}]), [defaultEntry, defaultEntry, defaultEntry]);
-    });
-  });
-
-  describe('EntryDefaulter (strict mode)', function() {
-    var defaultEntry = {
-      type: 'not_set',
-      name: '_default',
-      params: []
-    };
-
-    beforeEach(function() {
-      barista = new Barista({useStrict: true});
-    });
-
-    it('getDefaultEntry() returns object with type, name and params set', function() {
-      assert.deepEqual(new barista.EntryDefaulter().getDefaultEntry(), defaultEntry);
-    });
-
-    it('setEntryDefaults() with no items array returns one defaulted', function() {
-      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults(), [defaultEntry]);
-    });
-
-    it('setEntryDefaults() with empty items array returns one defaulted entry', function() {
-      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([]), [defaultEntry]);
-    });
-
-    it('setEntryDefaults() with one item adds type and name and params if undefined', function() {
-      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([{}]), [defaultEntry]);
-    });
-
-    it('setEntryDefaults() with one item adds type or name and params if undefined', function() {
-      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([{type: 'not_set'}]), [defaultEntry]);
-      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([{name: '_default'}]), [defaultEntry]);
-    });
-
-    it('setEntryDefaults() with many items adds type and name if undefined', function() {
-      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([{}, {}, {}]), [defaultEntry, defaultEntry, defaultEntry]);
-    });
-  });
-
   describe('Property', function() {
     it('name and implmentation properties set', function() {
       var ObjectDef = function(arg1) {
@@ -541,7 +477,33 @@ describe('Barista Tests', function() {
   });
 
   describe('PropertyExtractor', function() {
-    it('extract() calls newPropFunc with args and returns property', function() {
+    it('extract() with no properties returns property with undefined implementation', function() {
+      var ns = function() {
+        return {};
+      };
+
+      var extractor = new barista.PropertyExtractor(new ns(), barista.newProperty);
+
+      assert.equal(extractor.extract('prop1').name, 'prop1');
+      assert.equal(extractor.extract('prop1').implementation, undefined);
+    });
+
+    it('extract() one property creates and returns properties', function() {
+      var ns = function() {
+        var prop1 = 1;
+
+        return {
+          prop1: prop1
+        };
+      };
+
+      var extractor = new barista.PropertyExtractor(new ns(), barista.newProperty);
+
+      assert.equal(extractor.extract('prop1').name, 'prop1');
+      assert.equal(extractor.extract('prop1').implementation, 1);
+    });
+
+    it('extract() many properties creates and returns properties', function() {
       var ns = function() {
         var prop1 = 1,
             prop2 = 2,
@@ -554,40 +516,44 @@ describe('Barista Tests', function() {
         };
       };
 
-      var extractor = new barista.PropertyExtractor(ns, barista.newProperty);
+      var extractor = new barista.PropertyExtractor(new ns(), barista.newProperty);
 
       assert.equal(extractor.extract('prop1').name, 'prop1');
+      assert.equal(extractor.extract('prop1').implementation, 1);
       assert.equal(extractor.extract('prop2').name, 'prop2');
+      assert.equal(extractor.extract('prop2').implementation, 2);
       assert.equal(extractor.extract('prop3').name, 'prop3');
+      assert.equal(extractor.extract('prop3').implementation, 3);
     });
   });
+
   describe('InjectionMapper', function() {
     var oneEntryDefaultMap,
         manyEntriesDefaultMap;
 
     beforeEach(function() {
       oneEntryDefaultMap = {
-        s: {
-          o: {
-            '_default': 'found'
+        ns: {
+          item: {
+            '_default': 'invoker'
           }
         }
       };
 
       manyEntriesDefaultMap = {
-        s1: {
-          o1: {
-            '_default': 'found'
+        ns1: {
+          item1: {
+            '_default': 'invoker'
           }
         },
-        s2: {
-          o2: {
-            '_default': 'found'
+        ns2: {
+          item2: {
+            '_default': 'invoker'
           }
         },
-        s3: {
-          o3: {
-            '_default': 'found'
+        ns3: {
+          item3: {
+            '_default': 'invoker'
           }
         }
       };
@@ -595,135 +561,145 @@ describe('Barista Tests', function() {
 
     it('find() on empty map returns null', function() {
       barista = new Barista({injectionMap: {}});
-      assert.equal(new barista.InjectionMapper().find('s', 'o'), null);
+      assert.equal(new barista.InjectionMapper().find('ns', 'item'), null);
     });
 
-    it('find() on map with one entry returns match', function() {
+    it('find() on map with one item and one entry returns match', function() {
       barista = new Barista({injectionMap: oneEntryDefaultMap});
-      assert.equal(new barista.InjectionMapper().find('s', 'o', '_default'), 'found');
+      assert.equal(new barista.InjectionMapper().find('ns', 'item', '_default'), 'invoker');
     });
 
-    it('find() on map with one entry with many item returns match', function() {
-      oneEntryDefaultMap.s.o.other1 = 'x';
-      oneEntryDefaultMap.s.o.other2 = 'x';
+    it('find() on map with one item and many entries returns match', function() {
+      oneEntryDefaultMap.ns.item.other1 = 'x';
+      oneEntryDefaultMap.ns.item.other2 = 'x';
       barista = new Barista({injectionMap: oneEntryDefaultMap});
-      assert.equal(new barista.InjectionMapper().find('s', 'o', '_default'), 'found');
+      assert.equal(new barista.InjectionMapper().find('ns', 'item', '_default'), 'invoker');
     });
 
-    it('find() on map with one entry returns match by defaulting default', function() {
+    it('find() on map with one item and one entry returns match by defaulting default', function() {
       barista = new Barista({injectionMap: oneEntryDefaultMap});
-      assert.equal(new barista.InjectionMapper().find('s', 'o'), 'found');
+      assert.equal(new barista.InjectionMapper().find('ns', 'item'), 'invoker');
     });
 
-    it('find() on map with one entry returns returns null when no item match', function() {
+    it('find() on map with one item and one entry returns returns null when no entry name match', function() {
       barista = new Barista({injectionMap: oneEntryDefaultMap});
-      assert.equal(new barista.InjectionMapper().find('s', 'o', 'notfound'), null);
+      assert.equal(new barista.InjectionMapper().find('ns', 'item', 'notfound'), null);
     });
 
-    it('find() on map with one entry returns returns null when no object match', function() {
+    it('find() on map with one item and one entry returns null when no item match', function() {
       barista = new Barista({injectionMap: oneEntryDefaultMap});
-      assert.equal(new barista.InjectionMapper().find('s', 'oNoMatch'), null);
+      assert.equal(new barista.InjectionMapper().find('ns', 'itemNoMatch'), null);
     });
 
-    it('find() on map with one entry returns returns null when no sourceNs match', function() {
+    it('find() on map with one item and one entry returns null when no namespace match', function() {
       barista = new Barista({injectionMap: oneEntryDefaultMap});
-      assert.equal(new barista.InjectionMapper().find('sNoMatch'), null);
+      assert.equal(new barista.InjectionMapper().find('nsNoMatch'), null);
     });
 
-    it('find() on map with many entries returns match', function() {
+    it('find() on map with many items and entries returns match', function() {
       barista = new Barista({injectionMap: manyEntriesDefaultMap});
-      assert.equal(new barista.InjectionMapper().find('s1', 'o1', '_default'), 'found');
+      assert.equal(new barista.InjectionMapper().find('ns1', 'item1', '_default'), 'invoker');
     });
 
-    it('find() on map with many entries not found returns null', function() {
+    it('find() on map with many items and entries returns null when no entry name match', function() {
       barista = new Barista({injectionMap: manyEntriesDefaultMap});
-      assert.equal(new barista.InjectionMapper().find('s1', 'o1', 'notfound'), null);
+      assert.equal(new barista.InjectionMapper().find('ns1', 'item1', 'notfound'), null);
     });
 
-    it('map() on empty map returns mapping and sets _default', function() {
+    it('find() on map with many items and entries returns null when no item match', function() {
+      barista = new Barista({injectionMap: manyEntriesDefaultMap});
+      assert.equal(new barista.InjectionMapper().find('ns1', 'noItemMatch'), null);
+    });
+
+    it('find() on map with many items and entries returns null when no namespace match', function() {
+      barista = new Barista({injectionMap: manyEntriesDefaultMap});
+      assert.equal(new barista.InjectionMapper().find('nsNoMatch'), null);
+    });
+
+    it('map() on empty map sets _default and named entry to invoker', function() {
       var map = {};
       barista = new Barista({injectionMap: map});
-      oneEntryDefaultMap.s.o.name = 'found';
+      oneEntryDefaultMap.ns.item.name = 'invoker';
 
-      new barista.InjectionMapper().map('s', 'o', 'name', 'found');
+      new barista.InjectionMapper().map('ns', 'item', 'name', 'invoker');
       assert.deepEqual(map, oneEntryDefaultMap);
     });
 
-    it('map() on empty map with null regname defaults regname to _default', function() {
+    it('map() on empty map with null entry name defaults entry name to _default and sets', function() {
       var map = {};
       barista = new Barista({injectionMap: map});
-      new barista.InjectionMapper().map('s', 'o', null, 'found');
+      new barista.InjectionMapper().map('ns', 'item', null, 'invoker');
       assert.deepEqual(map, oneEntryDefaultMap);
     });
 
-    it('map() non-default regname maps, but does not overwrite existing _default', function() {
+    it('map() with one item and entry using non-default entry name sets entry, but does not overwrite existing _default', function() {
       var map = copy(oneEntryDefaultMap);
       barista = new Barista({injectionMap: map});
-      oneEntryDefaultMap.s.o.notDefault = 'newInvoker';
+      oneEntryDefaultMap.ns.item.notDefault = 'invoker2';
 
-      new barista.InjectionMapper().map('s', 'o', "notDefault", 'newInvoker');
-
-      assert.deepEqual(map, oneEntryDefaultMap);
-    });
-
-    it('map() on map with one existing entry overwrites regname', function() {
-      var map = copy(oneEntryDefaultMap);
-      map.s.o.existingName = 'existingName';
-      barista = new Barista({injectionMap: map});
-      oneEntryDefaultMap.s.o.existingName = 'overwritten';
-
-      new barista.InjectionMapper().map('s', 'o', 'existingName', 'overwritten');
+      new barista.InjectionMapper().map('ns', 'item', "notDefault", 'invoker2');
 
       assert.deepEqual(map, oneEntryDefaultMap);
     });
 
-    it('map() on map with one existing entry maps correctly', function() {
+    it('map() with one item and existing entry overwrites entry name', function() {
+      var map = copy(oneEntryDefaultMap);
+      map.ns.item.existingName = 'existingInvoker';
+      barista = new Barista({injectionMap: map});
+      oneEntryDefaultMap.ns.item.existingName = 'overwrittenInvoker';
+
+      new barista.InjectionMapper().map('ns', 'item', 'existingName', 'overwrittenInvoker');
+
+      assert.deepEqual(map, oneEntryDefaultMap);
+    });
+
+    it('map() on map with one item and entry maps correctly', function() {
       var map = copy(oneEntryDefaultMap);
       barista = new Barista({injectionMap: map});
-      oneEntryDefaultMap.s1 = {
-        o1: {
-          _default: 'found',
-          name: 'found'
+      oneEntryDefaultMap.ns1 = {
+        item1: {
+          _default: 'invoker',
+          name: 'invoker'
         }
       };
 
-      new barista.InjectionMapper().map('s1', 'o1', 'name', 'found');
+      new barista.InjectionMapper().map('ns1', 'item1', 'name', 'invoker');
 
       assert.deepEqual(map, oneEntryDefaultMap);
     });
 
-    it('map() on map with one entry and many existing regnames maps correctly', function() {
+    it('map() with one item and many existing entry names maps correctly', function() {
       var map = copy(oneEntryDefaultMap);
-      map.s.o.existingReg = oneEntryDefaultMap.s.o.existingReg = 'existingReg';
+      map.ns.item.existing = oneEntryDefaultMap.ns.item.existing = 'existing';
       barista = new Barista({injectionMap: map});
-      oneEntryDefaultMap.s.o.regname = 'found';
+      oneEntryDefaultMap.ns.item.entryname = 'invoker';
 
-      new barista.InjectionMapper().map('s', 'o', 'regname', 'found');
+      new barista.InjectionMapper().map('ns', 'item', 'entryname', 'invoker');
 
       assert.deepEqual(map, oneEntryDefaultMap);
     });
 
-    it('map() on map with many entries maps new entry correctly', function() {
+    it('map() with many items and many entries maps new item and entry correctly', function() {
       var map = copy(manyEntriesDefaultMap);
       barista = new Barista({injectionMap: map});
-      manyEntriesDefaultMap.s = {
-        o: {
-          _default: 'found',
-          regname: 'found'
+      manyEntriesDefaultMap.ns = {
+        item: {
+          _default: 'invoker',
+          entry: 'invoker'
         }
       };
 
-      new barista.InjectionMapper().map('s', 'o', 'regname', 'found');
+      new barista.InjectionMapper().map('ns', 'item', 'entry', 'invoker');
 
       assert.deepEqual(map, manyEntriesDefaultMap);
     });
 
-    it('map() on map with many entries maps additional regname correctly', function() {
+    it('map() with many items and entries maps additional entry name on existing item', function() {
       var map = copy(manyEntriesDefaultMap);
       barista = new Barista({injectionMap: map});
-      manyEntriesDefaultMap.s1.o1.regname = 'found';
+      manyEntriesDefaultMap.ns1.item1.entry = 'invoker';
 
-      new barista.InjectionMapper().map('s1', 'o1', 'regname', 'found');
+      new barista.InjectionMapper().map('ns1', 'item1', 'entry', 'invoker');
 
       assert.deepEqual(map, manyEntriesDefaultMap);
     });
@@ -786,7 +762,7 @@ describe('Barista Tests', function() {
       assert.deepEqual(overrider.override(['param1', 'param2', 'param3'], ['arg1', 'arg2', 'arg3']), [{value: 'arg1'}, {value: 'arg2'}, {value: 'arg3'}]);
     });
 
-    it('override() with less args and many params returns overriden args and remainer param', function() {
+    it('override() with less args and many params returns overriden args and remaining param', function() {
       assert.deepEqual(overrider.override(['param1', 'param2', 'param3'], ['arg1', 'arg2']), [{value: 'arg1'}, {value: 'arg2'}, 'param3']);
     });
 
@@ -796,18 +772,18 @@ describe('Barista Tests', function() {
   });
 
   describe('ResolvedParam', function() {
-    it('namespace, object, and name properties set when all present in key', function() {
-      var key = new barista.ResolvedParam('ns.object.name');
+    it('namespace, item, and name properties set when all present in key', function() {
+      var key = new barista.ResolvedParam('ns.item.entry');
       assert.equal(key.namespace, 'ns');
-      assert.equal(key.object, 'object');
-      assert.equal(key.name, 'name');
+      assert.equal(key.item, 'item');
+      assert.equal(key.entry, 'entry');
     });
 
-    it('namespace, object, and name is defaulted to _default when absent', function() {
-      var key = new barista.ResolvedParam('ns.object');
+    it('namespace, item, and entry is defaulted to _default when absent', function() {
+      var key = new barista.ResolvedParam('ns.item');
       assert.equal(key.namespace, 'ns');
-      assert.equal(key.object, 'object');
-      assert.equal(key.name, '_default');
+      assert.equal(key.item, 'item');
+      assert.equal(key.entry, '_default');
     });
   });
 
@@ -843,18 +819,28 @@ describe('Barista Tests', function() {
       assert.equal(resolver.resolve({func: function() { return 11; }}), 11);
     });
 
-    it('resolve() with resolve param returns resolved object', function() {
+    it('resolve() with resolve param returns resolved invoked item', function() {
       var invoker = function() {
         return 'invoked';
       };
-      mockMapper.expects('find').once().withExactArgs('ns', 'Object1', '_default').returns(invoker);
-      assert.equal(resolver.resolve({resolve: 'ns.Object1'}), 'invoked');
+      mockMapper.expects('find').once().withExactArgs('ns', 'item', '_default').returns(invoker);
+      assert.equal(resolver.resolve({resolve: 'ns.item'}), 'invoked');
+    });
+
+    it('resolve() with non-existing resolve param returns null', function() {
+      mockMapper.expects('find').once().withExactArgs('ns', 'item', '_default').returns(null);
+      assert.isNull(resolver.resolve({resolve: 'ns.item'}));
     });
 
     it('resolve() with array of params returns resolved array', function() {
-      var paramArray = [{resolve: 'ns.Object1'}, {value: 'value'}, {resolve: 'ns.Object2'}];
+      var paramArray = [
+        {resolve: 'ns.Object1'},
+        {value: 'value'},
+        {resolve: 'ns.Object2'}
+      ];
       stubNewInjectionResolver.withArgs(resolver).returns(injectionResolver);
       mockInjectionResolver.expects('resolve').once().withExactArgs(paramArray).returns('array_resolved');
+
       assert.equal(resolver.resolve({array: paramArray}), 'array_resolved');
     });
   });
@@ -921,13 +907,11 @@ describe('Barista Tests', function() {
       var ObjectDef = function(arg1) {
         return {value1: arg1};
       },
-          actual,
-          expected;
-
+          expected = new ObjectDef('resolved1'),
+          actual;
       mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns('overriden_params');
       mockInjectionResolver.expects('resolve').once().withExactArgs('overriden_params').returns(['resolved1']);
 
-      expected = new ObjectDef('resolved1');
       actual = maker.make(ObjectDef, ['param1'], ['arg1']);
 
       assert.equal(actual.value1, expected.value1);
@@ -936,17 +920,14 @@ describe('Barista Tests', function() {
     });
 
     it('make() creates named object like new operator', function() {
-      var actual,
-          expected;
-
       function ObjectDef(arg1) {
         return {value1: arg1};
       }
-
+      var expected = new ObjectDef('resolved1'),
+          actual;
       mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns('overriden_params');
       mockInjectionResolver.expects('resolve').once().withExactArgs('overriden_params').returns(['resolved1']);
 
-      expected = new ObjectDef('resolved1');
       actual = maker.make(ObjectDef, ['param1'], ['arg1']);
 
       assert.equal(actual.value1, expected.value1);
@@ -955,17 +936,14 @@ describe('Barista Tests', function() {
     });
 
     it('make() creates anonymous object using "this" just like new operator', function() {
-
       var ObjectDef = function(arg1) {
         this.value1 = arg1;
       },
-          actual,
-          expected;
-
+          expected = new ObjectDef('resolved1'),
+          actual;
       mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns('overriden_params');
       mockInjectionResolver.expects('resolve').once().withExactArgs('overriden_params').returns(['resolved1']);
 
-      expected = new ObjectDef('resolved1');
       actual = maker.make(ObjectDef, ['param1'], ['arg1']);
 
       assert.equal(actual.value1, expected.value1);
@@ -974,17 +952,14 @@ describe('Barista Tests', function() {
     });
 
     it('make() creates named object using "this" just like new operator', function() {
-      var actual,
-          expected;
-
       function ObjectDef(arg1) {
         this.value1 = arg1;
       }
-
+      var expected = new ObjectDef('resolved1'),
+          actual;
       mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns('overriden_params');
       mockInjectionResolver.expects('resolve').once().withExactArgs('overriden_params').returns(['resolved1']);
 
-      expected = new ObjectDef('resolved1');
       actual = maker.make(ObjectDef, ['param1'], ['arg1']);
 
       assert.equal(actual.value1, expected.value1);
@@ -995,18 +970,15 @@ describe('Barista Tests', function() {
     it('make() creates anonymous externally set prototype object just like new operator', function() {
       var ObjectDef = function(arg1) {
         this.value1 = arg1;
-      },
-          actual,
-          expected;
-
+      };
       ObjectDef.prototype.getValue = function() {
         return this.value1 + 'X';
       };
-
+      var expected = new ObjectDef('resolved1'),
+          actual;
       mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns('overriden_params');
       mockInjectionResolver.expects('resolve').once().withExactArgs('overriden_params').returns(['resolved1']);
 
-      expected = new ObjectDef('resolved1');
       actual = maker.make(ObjectDef, ['param1'], ['arg1']);
 
       assert.equal(actual.value1, 'resolved1');
@@ -1018,21 +990,17 @@ describe('Barista Tests', function() {
     });
 
     it('make() creates named externally set prototype object just like new operator', function() {
-      var actual,
-          expected;
-
       function ObjectDef(arg1) {
         this.value1 = arg1;
       }
-
       ObjectDef.prototype.getValue = function() {
         return this.value1 + 'X';
       };
-
+      var expected = new ObjectDef('resolved1'),
+          actual;
       mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns('overriden_params');
       mockInjectionResolver.expects('resolve').once().withExactArgs('overriden_params').returns(['resolved1']);
 
-      expected = new ObjectDef('resolved1');
       actual = maker.make(ObjectDef, ['param1'], ['arg1']);
 
       assert.equal(actual.value1, 'resolved1');
@@ -1044,28 +1012,23 @@ describe('Barista Tests', function() {
     });
 
     it('make() creates inheritted object just like new operator', function() {
-      var actual,
-          expected;
-
       function ObjectDefSuper(arg1) {
         this.value1 = arg1;
       }
-
       ObjectDefSuper.prototype.getValue = function() {
         return this.value1 + 'X';
       };
-
       function ObjectDef(arg1) {
         ObjectDefSuper.call(this, arg1);
       }
-
       ObjectDef.prototype = Object.create(ObjectDefSuper.prototype);
       ObjectDef.prototype.constructor = ObjectDef;
 
+      var expected = new ObjectDef('resolved1'),
+          actual;
       mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns('overriden_params');
       mockInjectionResolver.expects('resolve').once().withExactArgs('overriden_params').returns(['resolved1']);
 
-      expected = new ObjectDef('resolved1');
       actual = maker.make(ObjectDef, ['param1'], ['arg1']);
 
       assert.equal(actual.value1, 'resolved1');
@@ -1210,7 +1173,7 @@ describe('Barista Tests', function() {
       sandbox.restore();
     });
 
-    it('build() with no items returns _default of null', function() {
+    it('build() with no entries returns _default set to null', function() {
       var prop = new barista.Property('Name', function() {
       });
       mockMenu.expects('getNamespace').once().returns('ns');
@@ -1219,34 +1182,34 @@ describe('Barista Tests', function() {
       assert.deepEqual(builder.build(prop), {_default: null});
     });
 
-    it('build() with one non-default item returns _default set to invoker and notdefault set to invoker', function() {
-      var item = {
+    it('build() with one non-default entry returns _default set to invoker and notdefault set to invoker', function() {
+      var entry = {
         name: 'notdefault'
       },
           prop = new barista.Property('Name', function() {
           });
       mockMenu.expects('getNamespace').once().returns('ns');
-      mockMenu.expects('getDefaultedEntries').withExactArgs(prop.name).once().returns([item]);
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, item).returns('invoker');
+      mockMenu.expects('getDefaultedEntries').withExactArgs(prop.name).once().returns([entry]);
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, entry).returns('invoker');
 
       assert.deepEqual(builder.build(prop), {_default: 'invoker', notdefault: 'invoker'});
     });
 
-    it('build() with one default item returns _default set to invoker', function() {
-      var item = {
+    it('build() with one default entry returns _default set to invoker', function() {
+      var entry = {
         name: '_default'
       },
           prop = new barista.Property('Name', function() {
           });
       mockMenu.expects('getNamespace').once().returns('ns');
-      mockMenu.expects('getDefaultedEntries').withExactArgs(prop.name).once().returns([item]);
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, item).returns('invoker');
+      mockMenu.expects('getDefaultedEntries').withExactArgs(prop.name).once().returns([entry]);
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, entry).returns('invoker');
 
       assert.deepEqual(builder.build(prop), {_default: 'invoker'});
     });
 
-    it('build() with many items without default returns default and invokers', function() {
-      var items = [
+    it('build() with many entries without default returns default and invokers', function() {
+      var entries = [
         {name: 'X'},
         {name: 'Y'},
         {name: 'Z'}
@@ -1254,16 +1217,16 @@ describe('Barista Tests', function() {
           prop = new barista.Property('Name', function() {
           });
       mockMenu.expects('getNamespace').once().returns('ns');
-      mockMenu.expects('getDefaultedEntries').withExactArgs(prop.name).once().returns(items);
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, items[0]).returns('invokerX');
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, items[1]).returns('invokerY');
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, items[2]).returns('invokerZ');
+      mockMenu.expects('getDefaultedEntries').withExactArgs(prop.name).once().returns(entries);
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, entries[0]).returns('invokerX');
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, entries[1]).returns('invokerY');
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, entries[2]).returns('invokerZ');
 
       assert.deepEqual(builder.build(prop), {_default: 'invokerX', X: 'invokerX', Y: 'invokerY', Z: 'invokerZ'});
     });
 
-    it('build() with many items including default returns default and invokers', function() {
-      var items = [
+    it('build() with many entries including default returns default and invokers', function() {
+      var entries = [
         {name: '_default'},
         {name: 'X'},
         {name: 'Y'}
@@ -1271,16 +1234,16 @@ describe('Barista Tests', function() {
           prop = new barista.Property('Name', function() {
           });
       mockMenu.expects('getNamespace').once().returns('ns');
-      mockMenu.expects('getDefaultedEntries').withExactArgs(prop.name).once().returns(items);
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, items[0]).returns('invoker');
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, items[1]).returns('invokerX');
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, items[2]).returns('invokerY');
+      mockMenu.expects('getDefaultedEntries').withExactArgs(prop.name).once().returns(entries);
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, entries[0]).returns('invoker');
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, entries[1]).returns('invokerX');
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, entries[2]).returns('invokerY');
 
       assert.deepEqual(builder.build(prop), {_default: 'invoker', X: 'invokerX', Y: 'invokerY'});
     });
 
-    it('build() with many items with default last returns namespace with default invoker', function() {
-      var items = [
+    it('build() with many entries with default last returns namespace with default invoker', function() {
+      var entries = [
         {name: 'X'},
         {name: 'Y'},
         {name: '_default'}
@@ -1288,10 +1251,10 @@ describe('Barista Tests', function() {
           prop = new barista.Property('Name', function() {
           });
       mockMenu.expects('getNamespace').once().returns('ns');
-      mockMenu.expects('getDefaultedEntries').withExactArgs(prop.name).once().returns(items);
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, items[0]).returns('invokerX');
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, items[1]).returns('invokerY');
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, items[2]).returns('invoker');
+      mockMenu.expects('getDefaultedEntries').withExactArgs(prop.name).once().returns(entries);
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, entries[0]).returns('invokerX');
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, entries[1]).returns('invokerY');
+      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, entries[2]).returns('invoker');
 
       assert.deepEqual(builder.build(prop), {_default: 'invoker', X: 'invokerX', Y: 'invokerY'});
     });
@@ -1418,6 +1381,22 @@ describe('Barista Tests', function() {
         prop2: 2,
         prop3: 3
       }), 'namespace');
+    });
+
+    it('process() only calls add with own properties', function() {
+      function nsSuper() {
+        this.valueNotOwn = 0;
+      }
+      function ns() {
+        this.own1 = 1;
+      }
+      ns.prototype = new nsSuper();
+
+      mockExtractor.expects('extract').withExactArgs('own1').once().returns('extracted1');
+      mockBuilder.expects('add').withExactArgs('extracted1').once();
+      mockBuilder.expects('build').once().returns('namespace');
+
+      assert.deepEqual(processor.process(new ns()), 'namespace');
     });
   });
 
@@ -1636,8 +1615,7 @@ describe('Barista Tests', function() {
             .withItem('Prepender').named('special').withValueParam('special')
             .withItem('Capitalizer').singleton()
             .withItem('ChainOfResponsibilities').named('widget1Controller')
-            .withArrayParam()
-            .pushResolveParam('Responsibilities.PrependResponsibility')
+            .withArrayParam().pushResolveParam('Responsibilities.PrependResponsibility')
             .pushResolveParam('Responsibilities.AppendPlusesResponsibility.p3')
             .pushResolveParam('Responsibilities.WrapResponsibility')
             .withItem('ChainOfResponsibilities').named('widget2Controller')
@@ -1709,6 +1687,7 @@ describe('Barista Tests', function() {
             .withItem('ObjNoType')
             .withItem('ObjDependentUponObjNoRegistration').perDependency().withResolveParam('Simple.ObjNoRegistration')
           );
+
       assert.throw(function() { servedNs.ObjNoRegistration(); }, 'using barista in strict mode requires that you register "function ObjNoRegistration() { return {}; }" using menu.withItem and specifying singleton or perDependency');
       assert.throw(function() { servedNs.ObjNoType(); }, 'using barista in strict mode requires that you register "function ObjNoType() { return {}; }" using menu.withItem and specifying singleton or perDependency');
       assert.throw(function() { servedNs.ObjDependentUponObjNoRegistration(); }, 'using barista in strict mode requires that you register "function ObjNoRegistration() { return {}; }" using menu.withItem and specifying singleton or perDependency');
@@ -1724,6 +1703,7 @@ describe('Barista Tests', function() {
             .withItem('ObjDef').withValueParam('param1').perDependency()
             .withItem('ObjDef').named('two').withValueParam('param2').singleton()
           );
+
       assert.equal(invokers._default().value, 'param1');
       assert.equal(invokers.two().value, 'param2');
       assert.equal(barista.make('AdHoc.ObjDef._default').value, 'param1');

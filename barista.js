@@ -23,16 +23,16 @@ var Barista = function(config) {
       return {name: _default, params: [], type: useStrict ? _not_set : _perdependency};
     }
 
-    function setEntryDefaults(items) {
-      items = items && items.length > 0 ? items : [{}];
-      items.forEach(function(item) {
-        item.type = item.type || getDefaultEntry().type;
-        item.name = item.name || getDefaultEntry().name;
-        item.params = item.params
-          ? item.params
+    function setEntryDefaults(entries) {
+      entries = entries && entries.length > 0 ? entries : [{}];
+      entries.forEach(function(entry) {
+        entry.type = entry.type || getDefaultEntry().type;
+        entry.name = entry.name || getDefaultEntry().name;
+        entry.params = entry.params
+          ? entry.params
           : getDefaultEntry().params;
       });
-      return items;
+      return entries;
     }
 
     return {
@@ -45,10 +45,10 @@ var Barista = function(config) {
     menu = menu || {details: {}};
 
     var currentEntryArray,
-        currentItem,
+        currentEntry,
         currentParamArray,
-        verifyItem = function(throwMessage) {
-          if (!currentItem) {
+        verifyEntry = function(throwMessage) {
+          if (!currentEntry) {
             throw throwMessage;
           }
         },
@@ -83,52 +83,52 @@ var Barista = function(config) {
         currentEntryArray = [];
         menu.details[itemName] = currentEntryArray;
       }
-      currentItem = entryDefaulter.getDefaultEntry();
-      currentEntryArray.push(currentItem);
+      currentEntry = entryDefaulter.getDefaultEntry();
+      currentEntryArray.push(currentEntry);
       currentParamArray = null;
       return this;
     };
 
     this.named = function(name) {
-      verifyItem('call to named() without call to withItem() is invalid');
-      currentItem.name = name;
+      verifyEntry('call to named() without call to withItem() is invalid');
+      currentEntry.name = name;
       return this;
     };
 
     this.singleton = function() {
-      verifyItem('call to singleton() without call to withItem() is invalid');
-      currentItem.type = _singleton;
+      verifyEntry('call to singleton() without call to withItem() is invalid');
+      currentEntry.type = _singleton;
       return this;
     };
 
     this.perDependency = function() {
-      verifyItem('call to perDependency() without call to withItem() is invalid');
-      currentItem.type = _perdependency;
+      verifyEntry('call to perDependency() without call to withItem() is invalid');
+      currentEntry.type = _perdependency;
       return this;
     };
 
     this.withResolveParam = function(resolve) {
-      verifyItem('call to withResolveParam() without call to withItem() is invalid');
-      currentItem.params.push({resolve: resolve});
+      verifyEntry('call to withResolveParam() without call to withItem() is invalid');
+      currentEntry.params.push({resolve: resolve});
       return this;
     };
 
     this.withValueParam = function(value) {
-      verifyItem('call to withValueParam() without call to withItem() is invalid');
-      currentItem.params.push({value: value});
+      verifyEntry('call to withValueParam() without call to withItem() is invalid');
+      currentEntry.params.push({value: value});
       return this;
     };
 
     this.withFuncParam = function(func) {
-      verifyItem('call to withFuncParam() without call to withItem() is invalid');
-      currentItem.params.push({func: func});
+      verifyEntry('call to withFuncParam() without call to withItem() is invalid');
+      currentEntry.params.push({func: func});
       return this;
     };
 
     this.withArrayParam = function() {
-      verifyItem('call to withArrayParam() without call to withItem() is invalid');
+      verifyEntry('call to withArrayParam() without call to withItem() is invalid');
       currentParamArray = [];
-      currentItem.params.push({array: currentParamArray});
+      currentEntry.params.push({array: currentParamArray});
       return this;
     };
 
@@ -186,8 +186,8 @@ var Barista = function(config) {
   }
 
   function InjectionMapper() {
-    function getRegName(regName) {
-      return regName || _default;
+    function getEntryName(entryName) {
+      return entryName || _default;
     }
 
     function getChild(parent, childName, empty) {
@@ -200,27 +200,27 @@ var Barista = function(config) {
       return name === _default;
     }
 
-    function defaultExists(sourceNsName, objName) {
-      return find(sourceNsName, objName, _default) ? true : false;
+    function defaultExists(nsName, itemName) {
+      return find(nsName, itemName, _default) ? true : false;
     }
 
-    function find(sourceNsName, objName, regName) {
-      var sourceNs = getChild(injectionMap, sourceNsName),
-          obj = getChild(sourceNs, objName);
+    function find(nsName, itemName, entryName) {
+      var sourceNs = getChild(injectionMap, nsName),
+          obj = getChild(sourceNs, itemName);
 
-      return getChild(obj, getRegName(regName));
+      return getChild(obj, getEntryName(entryName));
     }
 
-    function map(sourceNsName, objName, regName, invoker) {
-      var sourceNs = getChild(injectionMap, sourceNsName, {}),
-          obj = getChild(sourceNs, objName, {}),
-          name = getRegName(regName);
+    function map(nsName, itemName, entryName, invoker) {
+      var sourceNs = getChild(injectionMap, nsName, {}),
+          obj = getChild(sourceNs, itemName, {}),
+          name = getEntryName(entryName);
 
-      injectionMap[sourceNsName] = sourceNs;
-      sourceNs[objName] = obj;
+      injectionMap[nsName] = sourceNs;
+      sourceNs[itemName] = obj;
       obj[name] = invoker;
 
-      if (!isDefaultName(name) && !defaultExists(sourceNsName, objName)) {
+      if (!isDefaultName(name) && !defaultExists(nsName, itemName)) {
         obj[_default] = invoker;
       }
     }
@@ -267,8 +267,8 @@ var Barista = function(config) {
     var values = key.split('.');
     return {
       namespace: values[0],
-      object: values[1],
-      name: values.length > 2 ? values[2] : _default
+      item: values[1],
+      entry: values.length > 2 ? values[2] : _default
     };
   }
 
@@ -283,11 +283,8 @@ var Barista = function(config) {
           },
           resolve: function(param) {
             var resolveParam = new ResolvedParam(param.resolve),
-                invoker = injectionMapper.find(resolveParam.namespace, resolveParam.object, resolveParam.name);
-            if (invoker) {
-              return invoker();
-            }
-            return null;
+                invoker = injectionMapper.find(resolveParam.namespace, resolveParam.item, resolveParam.entry);
+            return invoker ? invoker() : null;
           },
           array: function(param) {
             return newInjectionResolverFunc(me).resolve(param.array);
@@ -387,10 +384,10 @@ var Barista = function(config) {
       var invokers = {},
           defaultInvoker,
           nsName = menu.getNamespace();
-      menu.getDefaultedEntries(prop.name).forEach(function(item) {
-        var invoker = invokerBuilder.build(nsName, prop, item);
-        invokers[item.name] = invoker;
-        if (!defaultInvoker || item.name === _default) {
+      menu.getDefaultedEntries(prop.name).forEach(function(entry) {
+        var invoker = invokerBuilder.build(nsName, prop, entry);
+        invokers[entry.name] = invoker;
+        if (!defaultInvoker || entry.name === _default) {
           defaultInvoker = invoker;
         }
       });
@@ -436,6 +433,7 @@ var Barista = function(config) {
     function process(ns) {
       var name;
       for (name in ns) {
+        console.log(name);
         if (ns.hasOwnProperty(name)) {
           namespaceBuilder.add(extractor.extract(name));
         }
@@ -483,7 +481,7 @@ var Barista = function(config) {
 
   function make(item) {
     var resolveParam = new ResolvedParam(item),
-        invoker = new InjectionMapper().find(resolveParam.namespace, resolveParam.object, resolveParam.name);
+        invoker = new InjectionMapper().find(resolveParam.namespace, resolveParam.item, resolveParam.entry);
     return invoker ? invoker.apply(null, Array.prototype.slice.call(arguments || []).splice(1)) : null;
   }
 
