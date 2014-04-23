@@ -18,25 +18,25 @@ describe('Barista Tests', function() {
       assert.deepEqual(new barista.EntryDefaulter().getDefaultEntry(), defaultEntry);
     });
 
-    it('setEntryDefaults() with no entries array returns one defaulted', function() {
-      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults(), [defaultEntry]);
+    it('getDefaultedEntries() with no entries array returns one defaulted', function() {
+      assert.deepEqual(new barista.EntryDefaulter().getDefaultedEntries(), [defaultEntry]);
     });
 
-    it('setEntryDefaults() with empty entries array returns one defaulted entry', function() {
-      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([]), [defaultEntry]);
+    it('getDefaultedEntries() with empty entries array returns one defaulted entry', function() {
+      assert.deepEqual(new barista.EntryDefaulter().getDefaultedEntries([]), [defaultEntry]);
     });
 
-    it('setEntryDefaults() with one entry adds type and name and params if undefined', function() {
-      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([{}]), [defaultEntry]);
+    it('getDefaultedEntries() with one entry adds type and name and params if undefined', function() {
+      assert.deepEqual(new barista.EntryDefaulter().getDefaultedEntries([{}]), [defaultEntry]);
     });
 
-    it('setEntryDefaults() with one entry adds type or name and params if undefined', function() {
-      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([{type: 'perdependency'}]), [defaultEntry]);
-      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([{name: '_default'}]), [defaultEntry]);
+    it('getDefaultedEntries() with one entry adds type or name and params if undefined', function() {
+      assert.deepEqual(new barista.EntryDefaulter().getDefaultedEntries([{type: 'perdependency'}]), [defaultEntry]);
+      assert.deepEqual(new barista.EntryDefaulter().getDefaultedEntries([{name: '_default'}]), [defaultEntry]);
     });
 
-    it('setEntryDefaults() with many entries adds type and name if undefined', function() {
-      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([{}, {}, {}]), [defaultEntry, defaultEntry, defaultEntry]);
+    it('getDefaultedEntries() with many entries adds type and name if undefined', function() {
+      assert.deepEqual(new barista.EntryDefaulter().getDefaultedEntries([{}, {}, {}]), [defaultEntry, defaultEntry, defaultEntry]);
     });
   });
 
@@ -55,25 +55,25 @@ describe('Barista Tests', function() {
       assert.deepEqual(new barista.EntryDefaulter().getDefaultEntry(), defaultEntry);
     });
 
-    it('setEntryDefaults() with no entries array returns one defaulted', function() {
-      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults(), [defaultEntry]);
+    it('getDefaultedEntries() with no entries array returns one defaulted', function() {
+      assert.deepEqual(new barista.EntryDefaulter().getDefaultedEntries(), [defaultEntry]);
     });
 
-    it('setEntryDefaults() with empty entries array returns one defaulted entry', function() {
-      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([]), [defaultEntry]);
+    it('getDefaultedEntries() with empty entries array returns one defaulted entry', function() {
+      assert.deepEqual(new barista.EntryDefaulter().getDefaultedEntries([]), [defaultEntry]);
     });
 
-    it('setEntryDefaults() with one entry adds type and name and params if undefined', function() {
-      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([{}]), [defaultEntry]);
+    it('getDefaultedEntries() with one entry adds type and name and params if undefined', function() {
+      assert.deepEqual(new barista.EntryDefaulter().getDefaultedEntries([{}]), [defaultEntry]);
     });
 
-    it('setEntryDefaults() with one entry adds type or name and params if undefined', function() {
-      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([{type: 'not_set'}]), [defaultEntry]);
-      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([{name: '_default'}]), [defaultEntry]);
+    it('getDefaultedEntries() with one entry adds type or name and params if undefined', function() {
+      assert.deepEqual(new barista.EntryDefaulter().getDefaultedEntries([{type: 'not_set'}]), [defaultEntry]);
+      assert.deepEqual(new barista.EntryDefaulter().getDefaultedEntries([{name: '_default'}]), [defaultEntry]);
     });
 
-    it('setEntryDefaults() with many entries adds type and name if undefined', function() {
-      assert.deepEqual(new barista.EntryDefaulter().setEntryDefaults([{}, {}, {}]), [defaultEntry, defaultEntry, defaultEntry]);
+    it('getDefaultedEntries() with many entries adds type and name if undefined', function() {
+      assert.deepEqual(new barista.EntryDefaulter().getDefaultedEntries([{}, {}, {}]), [defaultEntry, defaultEntry, defaultEntry]);
     });
   });
 
@@ -140,7 +140,7 @@ describe('Barista Tests', function() {
 
     it('getDefaultedEntries() returns returns defaulted entries', function() {
       menu = new barista.Menu(nameGenerator, defaulter, {details: {item: 'entries'}});
-      mockDefaulter.expects('setEntryDefaults').once().withExactArgs('entries').returns('defaultedEntries');
+      mockDefaulter.expects('getDefaultedEntries').once().withExactArgs('entries').returns('defaultedEntries');
       assert.deepEqual(menu.getDefaultedEntries('item'), 'defaultedEntries');
     });
 

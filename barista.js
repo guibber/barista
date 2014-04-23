@@ -23,7 +23,7 @@ var Barista = function(config) {
       return {name: _default, params: [], type: useStrict ? _not_set : _perdependency};
     }
 
-    function setEntryDefaults(entries) {
+    function getDefaultedEntries(entries) {
       entries = entries && entries.length > 0 ? entries : [{}];
       entries.forEach(function(entry) {
         entry.type = entry.type || getDefaultEntry().type;
@@ -37,7 +37,7 @@ var Barista = function(config) {
 
     return {
       getDefaultEntry: getDefaultEntry,
-      setEntryDefaults: setEntryDefaults
+      getDefaultedEntries: getDefaultedEntries
     };
   }
 
@@ -75,7 +75,7 @@ var Barista = function(config) {
     };
 
     this.getDefaultedEntries = function(name) {
-      return entryDefaulter.setEntryDefaults(this.getEntries(name));
+      return entryDefaulter.getDefaultedEntries(this.getEntries(name));
     };
 
     this.withItem = function(itemName) {
