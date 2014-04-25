@@ -2,7 +2,7 @@ var Barista = function(config) {
   'use strict';
   config = config || {};
   var injectionMap = config.injectionMap || {},
-      useStrict = config.useStrict || false,
+      requireReg = config.requireReg || false,
       _singleton = 'singleton',
       _perdependency = 'perdependency',
       _not_set = 'not_set',
@@ -105,7 +105,7 @@ var Barista = function(config) {
     function getDefaultedEntry(entry) {
       entry.name = entry.name || _default;
       entry.params = entry.params || [];
-      entry.type = entry.type || (useStrict ? _not_set : _perdependency);
+      entry.type = entry.type || (requireReg ? _not_set : _perdependency);
       return entry;
     }
 
@@ -364,7 +364,7 @@ var Barista = function(config) {
 
     function orderNotSet(implementation) {
       return function() {
-        throw ('using barista in strict mode requires that you register "' + implementation + '" using menu.withItem and specifying singleton or perDependency');
+        throw ('using barista in requireReg mode requires that you register "' + implementation + '" using menu.withItem and specifying singleton or perDependency');
       };
     }
 

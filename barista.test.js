@@ -8,7 +8,7 @@ describe('Barista Tests', function() {
   });
 
   describe('Param', function() {
-    it('constructor() param type and value set', function() {
+    it('Param() sets type and value properties', function() {
       var actual = new barista.Param('type', 'value');
       assert.equal(actual.type, 'type');
       assert.equal(actual.value, 'value');
@@ -32,7 +32,7 @@ describe('Barista Tests', function() {
       sandbox.restore();
     });
 
-    it('value property defaults to empty array and type set to array', function() {
+    it('Params() sets value property to empty array and type to array', function() {
       assert.deepEqual(params.value, []);
       assert.equal(params.type, 'array');
     });
@@ -78,7 +78,7 @@ describe('Barista Tests', function() {
       sandbox.restore();
     });
 
-    it('params property defaults to paramObj.params', function() {
+    it('Entry() sets params property to paramObj.params', function() {
       params.params = 'params';
       assert.deepEqual(entry.params, []);
     });
@@ -121,7 +121,7 @@ describe('Barista Tests', function() {
 
   });
 
-  describe('EntryDefaulter (default mode of not strict)', function() {
+  describe('EntryDefaulter (default of requireReg mode off)', function() {
     var sandbox,
         stubNewEntryFunc,
         defaulter,
@@ -175,7 +175,7 @@ describe('Barista Tests', function() {
     });
   });
 
-  describe('EntryDefaulter (strict mode)', function() {
+  describe('EntryDefaulter (requireReg mode on)', function() {
     var sandbox,
         stubNewEntryFunc,
         defaulter,
@@ -186,7 +186,7 @@ describe('Barista Tests', function() {
         };
 
     beforeEach(function() {
-      barista = new Barista({useStrict: true});
+      barista = new Barista({requireReg: true});
       sandbox = sinon.sandbox.create();
       stubNewEntryFunc = sandbox.stub();
       stubNewEntryFunc.returns({});
@@ -245,7 +245,7 @@ describe('Barista Tests', function() {
       sandbox.restore();
     });
 
-    it('entries property defaults to empty array and name property is set', function() {
+    it('MenuItem() sets entries property to empty array and name property to name', function() {
       assert.deepEqual(item.entries, []);
       assert.equal(item.name, 'name');
     });
@@ -356,7 +356,7 @@ describe('Barista Tests', function() {
   });
 
   describe('Property', function() {
-    it('name and implmentation properties set', function() {
+    it('Property() sets name and implementation properties', function() {
       var ObjectDef = function(arg1) {
         return {arg1: arg1};
       };
@@ -620,19 +620,19 @@ describe('Barista Tests', function() {
   });
 
   describe('ArgsWrapper', function() {
-    it('wrap() null args returns empty array', function() {
+    it('wrap() with null args returns empty array', function() {
       assert.deepEqual(new barista.ArgsWrapper().wrap(), []);
     });
 
-    it('wrap() empty args returns empty array', function() {
+    it('wrap() with empty args returns empty array', function() {
       assert.deepEqual(new barista.ArgsWrapper().wrap([]), []);
     });
 
-    it('wrap() one arg returns wrapped arg', function() {
+    it('wrap() with one arg returns wrapped arg', function() {
       assert.deepEqual(new barista.ArgsWrapper().wrap([1]), [{type: 'value', value: 1}]);
     });
 
-    it('wrap() many args returns wrapped args', function() {
+    it('wrap() with many args returns wrapped args', function() {
       assert.deepEqual(new barista.ArgsWrapper().wrap([1, 2, 3]), [
         {type: 'value', value: 1},
         {type: 'value', value: 2},
@@ -707,14 +707,14 @@ describe('Barista Tests', function() {
   });
 
   describe('ResolvedParam', function() {
-    it('namespace, item, and name properties set when all present in key', function() {
+    it('ResolvedParam() sets namespace, item, and name properties when all present in key', function() {
       var key = new barista.ResolvedParam('ns.item.entry');
       assert.equal(key.namespace, 'ns');
       assert.equal(key.item, 'item');
       assert.equal(key.entry, 'entry');
     });
 
-    it('namespace, item, and entry is defaulted to _default when absent', function() {
+    it('ResolvedParam() sets namespace and item, and entry is defaulted to _default when absent', function() {
       var key = new barista.ResolvedParam('ns.item');
       assert.equal(key.namespace, 'ns');
       assert.equal(key.item, 'item');
@@ -1004,7 +1004,7 @@ describe('Barista Tests', function() {
       sandbox.restore();
     });
 
-    it('orderPerDependency() returns func, executing it calls maker and returns new instance', function() {
+    it('orderPerDependency() returns function, executing it calls maker and returns new instance', function() {
       mockMaker
         .expects('make')
         .once()
@@ -1015,7 +1015,7 @@ describe('Barista Tests', function() {
       assert.equal(instance, 'instance');
     });
 
-    it('orderSingleton() returns func, executing it multiple times calls maker only once and always returns same instance', function() {
+    it('orderSingleton() returns function, executing it multiple times calls maker only once and always returns same instance', function() {
       mockMaker
         .expects('make')
         .once()
@@ -1029,9 +1029,9 @@ describe('Barista Tests', function() {
       assert.equal(instance, instance2);
     });
 
-    it('orderNotSet() returns func, executing it throws', function() {
+    it('orderNotSet() returns function, executing it throws', function() {
       var func = orderTaker.orderNotSet('impl');
-      assert.throw(function() { func(); }, 'using barista in strict mode requires that you register "impl" using menu.withItem and specifying singleton or perDependency');
+      assert.throw(function() { func(); }, 'using barista in requireReg mode requires that you register "impl" using menu.withItem and specifying singleton or perDependency');
     });
   });
 
@@ -1117,25 +1117,23 @@ describe('Barista Tests', function() {
       assert.deepEqual(builder.build(prop), {_default: null});
     });
 
-    it('build() with one non-default entry returns _default set to invoker and notdefault set to invoker', function() {
+    it('build() with one named entry returns _default set to invoker and named set to invoker', function() {
       var entry = {
-        name: 'notdefault'
+        name: 'named'
       },
-          prop = new barista.Property('Name', function() {
-          });
+          prop = new barista.Property('propname');
       mockMenu.expects('getNamespace').once().returns('ns');
       mockMenu.expects('getDefaultedEntries').withExactArgs(prop.name).once().returns([entry]);
       mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, entry).returns('invoker');
 
-      assert.deepEqual(builder.build(prop), {_default: 'invoker', notdefault: 'invoker'});
+      assert.deepEqual(builder.build(prop), {_default: 'invoker', named: 'invoker'});
     });
 
     it('build() with one default entry returns _default set to invoker', function() {
       var entry = {
         name: '_default'
       },
-          prop = new barista.Property('Name', function() {
-          });
+          prop = new barista.Property('propname');
       mockMenu.expects('getNamespace').once().returns('ns');
       mockMenu.expects('getDefaultedEntries').withExactArgs(prop.name).once().returns([entry]);
       mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, entry).returns('invoker');
@@ -1149,8 +1147,7 @@ describe('Barista Tests', function() {
         {name: 'Y'},
         {name: 'Z'}
       ],
-          prop = new barista.Property('Name', function() {
-          });
+          prop = new barista.Property('propname');
       mockMenu.expects('getNamespace').once().returns('ns');
       mockMenu.expects('getDefaultedEntries').withExactArgs(prop.name).once().returns(entries);
       mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, entries[0]).returns('invokerX');
@@ -1166,8 +1163,7 @@ describe('Barista Tests', function() {
         {name: 'X'},
         {name: 'Y'}
       ],
-          prop = new barista.Property('Name', function() {
-          });
+          prop = new barista.Property('propname');
       mockMenu.expects('getNamespace').once().returns('ns');
       mockMenu.expects('getDefaultedEntries').withExactArgs(prop.name).once().returns(entries);
       mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, entries[0]).returns('invoker');
@@ -1177,14 +1173,13 @@ describe('Barista Tests', function() {
       assert.deepEqual(builder.build(prop), {_default: 'invoker', X: 'invokerX', Y: 'invokerY'});
     });
 
-    it('build() with many entries with default last returns namespace with default invoker', function() {
+    it('build() with many entries with default in last position returns namespace with default invoker', function() {
       var entries = [
         {name: 'X'},
         {name: 'Y'},
         {name: '_default'}
       ],
-          prop = new barista.Property('Name', function() {
-          });
+          prop = new barista.Property('propname');
       mockMenu.expects('getNamespace').once().returns('ns');
       mockMenu.expects('getDefaultedEntries').withExactArgs(prop.name).once().returns(entries);
       mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, entries[0]).returns('invokerX');
@@ -1213,7 +1208,7 @@ describe('Barista Tests', function() {
       sandbox.restore();
     });
 
-    it('build() with zero adds returns empty namespace', function() {
+    it('build() with zero added props returns empty namespace', function() {
       assert.deepEqual(builder.build(), {});
     });
 
@@ -1285,12 +1280,12 @@ describe('Barista Tests', function() {
       sandbox.restore();
     });
 
-    it('process() with zero properties returns namespace', function() {
+    it('process() with zero properties returns namespace and return build return value', function() {
       mockBuilder.expects('build').once().returns('namespace');
       assert.equal(processor.process({}), 'namespace');
     });
 
-    it('process() with one property adds to namespace', function() {
+    it('process() with one property adds property to namespace and returns build return value', function() {
       mockExtractor.expects('extract').withExactArgs('prop1').once().returns('extracted1');
       mockBuilder.expects('add').withExactArgs('extracted1').once();
       mockBuilder.expects('build').once().returns('namespace');
@@ -1300,7 +1295,7 @@ describe('Barista Tests', function() {
       }), 'namespace');
     });
 
-    it('process() with many properties adds to namespace', function() {
+    it('process() with many properties adds each to namespace and returns build return value', function() {
       mockExtractor.expects('extract').withExactArgs('prop1').once().returns('extracted1');
       mockExtractor.expects('extract').withExactArgs('prop2').once().returns('extracted2');
       mockExtractor.expects('extract').withExactArgs('prop3').once().returns('extracted3');
@@ -1318,7 +1313,7 @@ describe('Barista Tests', function() {
       }), 'namespace');
     });
 
-    it('process() only calls add with own properties', function() {
+    it('process() only calls add with own properties and returns build return value', function() {
       function nsSuper() {
         this.valueNotOwn = 0;
       }
@@ -1548,7 +1543,8 @@ describe('Barista Tests', function() {
               .withItem('ChainOfResponsibilities')
               .named('widget2Controller')
               .withArrayParam(function(params) {
-                params.withResolveParam('Responsibilities.PrependAndCapitalizeResponsibility')
+                params
+                  .withResolveParam('Responsibilities.PrependAndCapitalizeResponsibility')
                   .withResolveParam('Responsibilities.AppendPlusesResponsibility.p1')
                   .withResolveParam('Responsibilities.WrapResponsibility');
               });
@@ -1586,7 +1582,7 @@ describe('Barista Tests', function() {
       assert.equal(barista.make('Utils.addAlternatingChar', 'value', '-'), 'v-a-l-u-e-');
     });
 
-    it('serve() and make() using standard namespace using this', function() {
+    it('serve() and make() using standard namespace using this pointer', function() {
       var ns = function() {
         this.ObjDef = function(arg1) { this.x = arg1; };
       },
@@ -1599,8 +1595,8 @@ describe('Barista Tests', function() {
       assert.equal(barista.make('Simple.ObjDef').x, 'param1');
     });
 
-    it('serve() and make() throw when using strict mode involving not fully registered object', function() {
-      barista = new Barista({useStrict: true});
+    it('serve() and make() throw when using requireReg mode when using not fully registered object', function() {
+      barista = new Barista({requireReg: true});
       var nsSimple = function() {
         function ObjNoRegistration() { return {}; }
         function ObjNoType() { return {}; }
@@ -1618,12 +1614,12 @@ describe('Barista Tests', function() {
             menu.withItem('ObjDependentUponObjNoRegistration').perDependency().withResolveParam('Simple.ObjNoRegistration');
           });
 
-      assert.throw(function() { servedNs.ObjNoRegistration(); }, 'using barista in strict mode requires that you register "function ObjNoRegistration() { return {}; }" using menu.withItem and specifying singleton or perDependency');
-      assert.throw(function() { servedNs.ObjNoType(); }, 'using barista in strict mode requires that you register "function ObjNoType() { return {}; }" using menu.withItem and specifying singleton or perDependency');
-      assert.throw(function() { servedNs.ObjDependentUponObjNoRegistration(); }, 'using barista in strict mode requires that you register "function ObjNoRegistration() { return {}; }" using menu.withItem and specifying singleton or perDependency');
-      assert.throw(function() { barista.make('Simple.ObjNoRegistration'); }, 'using barista in strict mode requires that you register "function ObjNoRegistration() { return {}; }" using menu.withItem and specifying singleton or perDependency');
-      assert.throw(function() { barista.make('Simple.ObjNoType'); }, 'using barista in strict mode requires that you register "function ObjNoType() { return {}; }" using menu.withItem and specifying singleton or perDependency');
-      assert.throw(function() { barista.make('Simple.ObjDependentUponObjNoRegistration'); }, 'using barista in strict mode requires that you register "function ObjNoRegistration() { return {}; }" using menu.withItem and specifying singleton or perDependency');
+      assert.throw(function() { servedNs.ObjNoRegistration(); }, 'using barista in requireReg mode requires that you register "function ObjNoRegistration() { return {}; }" using menu.withItem and specifying singleton or perDependency');
+      assert.throw(function() { servedNs.ObjNoType(); }, 'using barista in requireReg mode requires that you register "function ObjNoType() { return {}; }" using menu.withItem and specifying singleton or perDependency');
+      assert.throw(function() { servedNs.ObjDependentUponObjNoRegistration(); }, 'using barista in requireReg mode requires that you register "function ObjNoRegistration() { return {}; }" using menu.withItem and specifying singleton or perDependency');
+      assert.throw(function() { barista.make('Simple.ObjNoRegistration'); }, 'using barista in requireReg mode requires that you register "function ObjNoRegistration() { return {}; }" using menu.withItem and specifying singleton or perDependency');
+      assert.throw(function() { barista.make('Simple.ObjNoType'); }, 'using barista in requireReg mode requires that you register "function ObjNoType() { return {}; }" using menu.withItem and specifying singleton or perDependency');
+      assert.throw(function() { barista.make('Simple.ObjDependentUponObjNoRegistration'); }, 'using barista in requireReg mode requires that you register "function ObjNoRegistration() { return {}; }" using menu.withItem and specifying singleton or perDependency');
     });
 
     it('serveObject() registers one object and returns invokers', function() {
