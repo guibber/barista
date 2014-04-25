@@ -1635,5 +1635,57 @@ describe('Barista Tests', function() {
       assert.equal(barista.make('AdHoc.ObjDef._default').value, 'param1');
       assert.equal(barista.make('AdHoc.ObjDef.two').value, 'param2');
     });
+
+    it('make() example using runtime param to index', function() {
+      var nsWorkers = function() {
+        function Worker1() {
+          return {id: 1};
+        }
+
+        function Worker2() {
+          return {id: 2};
+        }
+
+        function Worker3() {
+          return {id: 3};
+        }
+
+        return {
+          Worker1: Worker1,
+          Worker2: Worker2,
+          Worker3: Worker3
+        };
+      },
+          nsBoss = function() {
+            function Assistant(workers) {
+              function getWorkerId(arg) {
+                return workers[arg].id;
+              }
+              return {getWorkerId: getWorkerId};
+            }
+
+            return {Assistant: Assistant};
+          };
+
+      barista.serve(new nsWorkers(), function(menu) {
+        menu.forNamespace('Workers');
+      });
+
+      barista.serve(new nsBoss(), function(menu) {
+        menu.forNamespace('Boss');
+        menu.withItem('Assistant').withFuncParam(function() {
+          return {
+            key1: barista.make('Workers.Worker1'),
+            key2: barista.make('Workers.Worker2'),
+            key3: barista.make('Workers.Worker3')
+          };
+        });
+      });
+
+      var assistant = barista.make('Boss.Assistant');
+      assert.equal(assistant.getWorkerId('key1'), 1);
+      assert.equal(assistant.getWorkerId('key2'), 2);
+      assert.equal(assistant.getWorkerId('key3'), 3);
+    });
   });
 });
