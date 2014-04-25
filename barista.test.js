@@ -7,75 +7,256 @@ describe('Barista Tests', function() {
     });
   });
 
-  describe('EntryDefaulter (default mode of not strict)', function() {
-    var defaultEntry = {
-      type: 'perdependency',
-      name: '_default',
-      params: []
-    };
+  describe('Param', function() {
+    it('constructor() param type and value set', function() {
+      var actual = new barista.Param('type', 'value');
+      assert.equal(actual.type, 'type');
+      assert.equal(actual.value, 'value');
+    });
+  });
 
-    it('getDefaultEntry() returns object with type, name and params set', function() {
-      assert.deepEqual(new barista.EntryDefaulter().getDefaultEntry(), defaultEntry);
+  describe('Params', function() {
+    var sandbox,
+        stubNewParamFunc,
+        stubNewParamsFunc,
+        params;
+
+    beforeEach(function() {
+      sandbox = sinon.sandbox.create();
+      stubNewParamFunc = sandbox.stub();
+      stubNewParamsFunc = sandbox.stub();
+      params = new barista.Params(stubNewParamFunc, stubNewParamsFunc);
+    });
+
+    afterEach(function() {
+      sandbox.restore();
+    });
+
+    it('value property defaults to empty array and type set to array', function() {
+      assert.deepEqual(params.value, []);
+      assert.equal(params.type, 'array');
+    });
+
+    it('withValueParam() creates new param, adds to params and returns this', function() {
+      stubNewParamFunc.withArgs('value', 'value').returns('param');
+      assert.deepEqual(params.withValueParam('value').value, ['param']);
+    });
+
+    it('withResolveParam() sets resolve param and returns this', function() {
+      stubNewParamFunc.withArgs('resolve', 'value').returns('param');
+      assert.deepEqual(params.withResolveParam('value').value, ['param']);
+    });
+
+    it('withFuncParam() sets func param and returns this', function() {
+      stubNewParamFunc.withArgs('func', 'value').returns('param');
+      assert.deepEqual(params.withFuncParam('value').value, ['param']);
+    });
+
+    it('withArrayParam() sets array param, calls addArrayParamsFunc and returns this', function() {
+      var stubArrayParamsFunc = sandbox.stub();
+      stubNewParamsFunc.returns('params');
+      stubArrayParamsFunc.withArgs('params');
+      assert.deepEqual(params.withArrayParam(stubArrayParamsFunc).value, ['params']);
+    });
+  });
+
+  describe('Entry', function() {
+    var sandbox,
+        params,
+        mockParams,
+        entry;
+
+    beforeEach(function() {
+      sandbox = sinon.sandbox.create();
+      params = new barista.Params();
+      mockParams = sandbox.mock(params);
+      entry = new barista.Entry(params);
+    });
+
+    afterEach(function() {
+      mockParams.verify();
+      sandbox.restore();
+    });
+
+    it('params property defaults to paramObj.params', function() {
+      params.params = 'params';
+      assert.deepEqual(entry.params, []);
+    });
+
+    it('named() sets name and returns this', function() {
+      assert.equal(entry.named('test').name, 'test');
+    });
+
+    it('singleton() sets type to singleton and returns this', function() {
+      assert.equal(entry.singleton().type, 'singleton');
+    });
+
+    it('perDependency() sets type to perdependency and returns this', function() {
+      assert.equal(entry.perDependency().type, 'perdependency');
+    });
+
+    it('perDependency() returns this', function() {
+      assert.equal(entry.perDependency(), entry);
+    });
+
+    it('withValueParam() sets value param and returns this', function() {
+      mockParams.expects('withValueParam').once().withExactArgs('value');
+      assert.equal(entry.withValueParam('value'), entry);
+    });
+
+    it('withResolveParam() sets resolve param and returns this', function() {
+      mockParams.expects('withResolveParam').once().withExactArgs('value');
+      assert.equal(entry.withResolveParam('value'), entry);
+    });
+
+    it('withFuncParam() sets func param', function() {
+      mockParams.expects('withFuncParam').once().withExactArgs('value');
+      assert.equal(entry.withFuncParam('value'), entry);
+    });
+
+    it('withArrayParam() sets array param', function() {
+      mockParams.expects('withArrayParam').once().withExactArgs('addFunc');
+      assert.equal(entry.withArrayParam('addFunc'), entry);
+    });
+
+  });
+
+  describe('EntryDefaulter (default mode of not strict)', function() {
+    var sandbox,
+        stubNewEntryFunc,
+        defaulter,
+        defaultEntry = {
+          type: 'perdependency',
+          name: '_default',
+          params: []
+        };
+
+    beforeEach(function() {
+      sandbox = sinon.sandbox.create();
+      stubNewEntryFunc = sandbox.stub();
+      stubNewEntryFunc.returns({});
+      defaulter = new barista.EntryDefaulter(stubNewEntryFunc);
+    });
+
+    afterEach(function() {
+      sandbox.restore();
+    });
+
+    it('getDefaultedEntry() with empty object sets type, name and params', function() {
+      assert.deepEqual(defaulter.getDefaultedEntry({}), defaultEntry);
+    });
+
+    it('getDefaultedEntry() with all already set does nothing', function() {
+      assert.deepEqual(defaulter.getDefaultedEntry({
+          type: 'set',
+          name: 'set',
+          params: 'set'
+        }), {
+          type: 'set',
+          name: 'set',
+          params: 'set'
+        });
     });
 
     it('getDefaultedEntries() with no entries array returns one defaulted', function() {
-      assert.deepEqual(new barista.EntryDefaulter().getDefaultedEntries(), [defaultEntry]);
+      assert.deepEqual(defaulter.getDefaultedEntries(), [defaultEntry]);
     });
 
     it('getDefaultedEntries() with empty entries array returns one defaulted entry', function() {
-      assert.deepEqual(new barista.EntryDefaulter().getDefaultedEntries([]), [defaultEntry]);
+      assert.deepEqual(defaulter.getDefaultedEntries([]), [defaultEntry]);
     });
 
     it('getDefaultedEntries() with one entry adds type and name and params if undefined', function() {
-      assert.deepEqual(new barista.EntryDefaulter().getDefaultedEntries([{}]), [defaultEntry]);
-    });
-
-    it('getDefaultedEntries() with one entry adds type or name and params if undefined', function() {
-      assert.deepEqual(new barista.EntryDefaulter().getDefaultedEntries([{type: 'perdependency'}]), [defaultEntry]);
-      assert.deepEqual(new barista.EntryDefaulter().getDefaultedEntries([{name: '_default'}]), [defaultEntry]);
+      assert.deepEqual(defaulter.getDefaultedEntries([{}]), [defaultEntry]);
     });
 
     it('getDefaultedEntries() with many entries adds type and name if undefined', function() {
-      assert.deepEqual(new barista.EntryDefaulter().getDefaultedEntries([{}, {}, {}]), [defaultEntry, defaultEntry, defaultEntry]);
+      assert.deepEqual(defaulter.getDefaultedEntries([{}, {}, {}]), [defaultEntry, defaultEntry, defaultEntry]);
     });
   });
 
   describe('EntryDefaulter (strict mode)', function() {
-    var defaultEntry = {
-      type: 'not_set',
-      name: '_default',
-      params: []
-    };
+    var sandbox,
+        stubNewEntryFunc,
+        defaulter,
+        defaultEntry = {
+          type: 'not_set',
+          name: '_default',
+          params: []
+        };
 
     beforeEach(function() {
       barista = new Barista({useStrict: true});
+      sandbox = sinon.sandbox.create();
+      stubNewEntryFunc = sandbox.stub();
+      stubNewEntryFunc.returns({});
+      defaulter = new barista.EntryDefaulter(stubNewEntryFunc);
     });
 
-    it('getDefaultEntry() returns object with type, name and params set', function() {
-      assert.deepEqual(new barista.EntryDefaulter().getDefaultEntry(), defaultEntry);
+    afterEach(function() {
+      sandbox.restore();
+    });
+
+    it('getDefaultedEntry() with empty object sets type, name and params', function() {
+      assert.deepEqual(defaulter.getDefaultedEntry({}), defaultEntry);
+    });
+
+    it('getDefaultedEntry() with all already set does nothing', function() {
+      assert.deepEqual(defaulter.getDefaultedEntry({
+          type: 'set',
+          name: 'set',
+          params: 'set'
+        }), {
+          type: 'set',
+          name: 'set',
+          params: 'set'
+        });
     });
 
     it('getDefaultedEntries() with no entries array returns one defaulted', function() {
-      assert.deepEqual(new barista.EntryDefaulter().getDefaultedEntries(), [defaultEntry]);
+      assert.deepEqual(defaulter.getDefaultedEntries(), [defaultEntry]);
     });
 
     it('getDefaultedEntries() with empty entries array returns one defaulted entry', function() {
-      assert.deepEqual(new barista.EntryDefaulter().getDefaultedEntries([]), [defaultEntry]);
+      assert.deepEqual(defaulter.getDefaultedEntries([]), [defaultEntry]);
     });
 
     it('getDefaultedEntries() with one entry adds type and name and params if undefined', function() {
-      assert.deepEqual(new barista.EntryDefaulter().getDefaultedEntries([{}]), [defaultEntry]);
-    });
-
-    it('getDefaultedEntries() with one entry adds type or name and params if undefined', function() {
-      assert.deepEqual(new barista.EntryDefaulter().getDefaultedEntries([{type: 'not_set'}]), [defaultEntry]);
-      assert.deepEqual(new barista.EntryDefaulter().getDefaultedEntries([{name: '_default'}]), [defaultEntry]);
+      assert.deepEqual(defaulter.getDefaultedEntries([{}]), [defaultEntry]);
     });
 
     it('getDefaultedEntries() with many entries adds type and name if undefined', function() {
-      assert.deepEqual(new barista.EntryDefaulter().getDefaultedEntries([{}, {}, {}]), [defaultEntry, defaultEntry, defaultEntry]);
+      assert.deepEqual(defaulter.getDefaultedEntries([{}, {}, {}]), [defaultEntry, defaultEntry, defaultEntry]);
     });
   });
+
+  describe('MenuItem', function() {
+    var sandbox,
+        stubNewEntryFunc,
+        item;
+
+    beforeEach(function() {
+      sandbox = sinon.sandbox.create();
+      stubNewEntryFunc = sandbox.stub();
+      item = new barista.MenuItem('name', stubNewEntryFunc);
+    });
+
+    afterEach(function() {
+      sandbox.restore();
+    });
+
+    it('entries property defaults to empty array and name property is set', function() {
+      assert.deepEqual(item.entries, []);
+      assert.equal(item.name, 'name');
+    });
+
+    it('withEntry()creates entry includes in entries array and returns entry', function() {
+      stubNewEntryFunc.returns('entry');
+      assert.equal(item.withEntry(), 'entry');
+      assert.deepEqual(item.entries, ['entry']);
+    });
+  });
+
 
   describe('Menu', function() {
     var sandbox,
@@ -83,7 +264,7 @@ describe('Barista Tests', function() {
         mockDefaulter,
         nameGenerator,
         mockNameGenerator,
-        actual,
+        stubNewMenuItem,
         menu;
 
     beforeEach(function() {
@@ -92,8 +273,8 @@ describe('Barista Tests', function() {
       mockDefaulter = sandbox.mock(defaulter);
       nameGenerator = new barista.NamespaceNameGenerator();
       mockNameGenerator = sandbox.mock(nameGenerator);
-      actual = {details: {}};
-      menu = new barista.Menu(nameGenerator, defaulter, actual);
+      stubNewMenuItem = sandbox.stub();
+      menu = new barista.Menu(nameGenerator, defaulter, stubNewMenuItem);
     });
 
     afterEach(function() {
@@ -102,14 +283,9 @@ describe('Barista Tests', function() {
       sandbox.restore();
     });
 
-    it('forNamespace() sets namespace name', function() {
+    it('forNamespace() sets namespace name and getNamespace() returns name', function() {
       menu.forNamespace('name');
-      assert.equal(actual.name, 'name');
-      assert.equal(menu.getNamespace(), 'name');
-    });
-
-    it('getNamespace() gets namespace name', function() {
-      menu = new barista.Menu(nameGenerator, defaulter, {name: 'name'});
+      assert.equal(menu.name, 'name');
       assert.equal(menu.getNamespace(), 'name');
     });
 
@@ -118,326 +294,64 @@ describe('Barista Tests', function() {
       assert.equal(menu.getNamespace(), 'defaulted');
     });
 
-    it('getEntries() with no item entries returns array of one empty object', function() {
-      assert.deepEqual(menu.getEntries('item'), [{}]);
-    });
-
-    it('getEntries() with one item and entries returns entries', function() {
-      menu = new barista.Menu(nameGenerator, defaulter, {details: {item: 'entries'}});
+    it('getEntries() with no item returns newMenuItem entries', function() {
+      stubNewMenuItem.withArgs('item').returns({entries: 'entries'});
       assert.deepEqual(menu.getEntries('item'), 'entries');
     });
 
-    it('getEntries() with many items and entries returns entries', function() {
-      menu = new barista.Menu(nameGenerator, defaulter, {
-        details: {
-          item1: 'entries1',
-          item2: 'entries2',
-          item3: 'entries3'
-        }
-      });
+    it('getEntries() with one entry no match returns newMenuItem entries', function() {
+      menu.items = {nonMatch: {entries: 'nonMatch'}};
+      stubNewMenuItem.withArgs('item').returns({entries: 'entries'});
+      assert.deepEqual(menu.getEntries('item'), 'entries');
+    });
+
+    it('getEntries() with one matching item returns entries', function() {
+      menu.items = {item: {entries: 'entries'}};
+      assert.deepEqual(menu.getEntries('item'), 'entries');
+    });
+
+    it('getEntries() with many items and matching returns entries', function() {
+      menu.items = {
+        item1: {entries: 'entries1'},
+        item2: {entries: 'entries2'},
+        item3: {entries: 'entries3'}
+      };
+      assert.deepEqual(menu.getEntries('item1'), 'entries1');
+    });
+
+    it('getEntries() with many items and no match returns newMenuItem entries', function() {
+      menu.items = {
+        item1: {entries: 'entries1'},
+        item2: {entries: 'entries2'},
+        item3: {entries: 'entries3'}
+      };
+      stubNewMenuItem.withArgs('item1').returns({entries: 'entries'});
       assert.deepEqual(menu.getEntries('item1'), 'entries1');
     });
 
     it('getDefaultedEntries() returns returns defaulted entries', function() {
-      menu = new barista.Menu(nameGenerator, defaulter, {details: {item: 'entries'}});
+      menu.items = {item: {entries: 'entries'}};
       mockDefaulter.expects('getDefaultedEntries').once().withExactArgs('entries').returns('defaultedEntries');
       assert.deepEqual(menu.getDefaultedEntries('item'), 'defaultedEntries');
     });
 
-    it('withItem() with one entry sets default from entryDefaulter', function() {
-      mockDefaulter.expects('getDefaultEntry').once().returns('defaultEntry');
-      menu.withItem('item');
-      assert.deepEqual(actual.details, {item: ['defaultEntry']});
+    it('withItem() with first call for item name creates and sets MenuItem and returns new Entry', function() {
+      var item = {withEntry: function() { return 'entry'; }};
+      stubNewMenuItem.withArgs('item').returns(item);
+      mockDefaulter.expects('getDefaultedEntry').withExactArgs('entry').once().returns('defaultEntry');
+      assert.equal(menu.withItem('item'), 'defaultEntry');
+      assert.deepEqual(menu.items, {item: item});
     });
 
-    it('withItem() with many entries sets default from entryDefaulter', function() {
-      mockDefaulter.expects('getDefaultEntry').once().returns('defaultEntry1');
-      mockDefaulter.expects('getDefaultEntry').once().returns('defaultEntry2');
-      mockDefaulter.expects('getDefaultEntry').once().returns('defaultEntry3');
-
-      menu.withItem('item').withItem('item').withItem('item');
-
-      assert.deepEqual(actual.details, {item: ['defaultEntry1', 'defaultEntry2', 'defaultEntry3']});
-    });
-
-    it('withItem() with many items sets default from entryDefaulter', function() {
-      mockDefaulter.expects('getDefaultEntry').once().returns('defaultEntry1');
-      mockDefaulter.expects('getDefaultEntry').once().returns('defaultEntry2');
-      mockDefaulter.expects('getDefaultEntry').once().returns('defaultEntry3');
-
-      menu.withItem('item1').withItem('item2').withItem('item3');
-
-      assert.deepEqual(actual.details, {
-        item1: ['defaultEntry1'],
-        item2: ['defaultEntry2'],
-        item3: ['defaultEntry3']
-      });
-    });
-
-    it('singleton() entry is registered as type singleton', function() {
-      mockDefaulter.expects('getDefaultEntry').once().returns({});
-      menu.withItem('item').singleton();
-      assert.deepEqual(actual.details, {item: [{type: 'singleton'}]});
-    });
-
-    it('perDependency() entry is registered type perdependency', function() {
-      mockDefaulter.expects('getDefaultEntry').once().returns({});
-      menu.withItem('item').perDependency();
-      assert.deepEqual(actual.details, {item: [{type: 'perdependency'}]});
-    });
-
-    it('named() entry is registered with name', function() {
-      mockDefaulter.expects('getDefaultEntry').once().returns({});
-      menu.withItem('item').named('name');
-      assert.deepEqual(actual.details, {item: [{name: 'name'}]});
-    });
-
-    it('withValueParam() sets value param', function() {
-      mockDefaulter.expects('getDefaultEntry').once().returns({params: []});
-      menu.withItem('item').withValueParam('value');
-      assert.deepEqual(actual.details, {
-        item: [{params: [{value: 'value'}]}]
-      });
-    });
-
-    it('withResolveParam() sets resolve param', function() {
-      mockDefaulter.expects('getDefaultEntry').once().returns({params: []});
-      menu.withItem('item').withResolveParam('resolve');
-      assert.deepEqual(actual.details, {
-        item: [{params: [{resolve: 'resolve'}]}]
-      });
-    });
-
-    it('withFuncParam() sets func param', function() {
-      mockDefaulter.expects('getDefaultEntry').once().returns({params: []});
-      menu.withItem('item').withFuncParam('func');
-      assert.deepEqual(actual.details, {
-        item: [{params: [{func: 'func'}]}]
-      });
-    });
-
-    it('withArrayParam() sets array param', function() {
-      mockDefaulter.expects('getDefaultEntry').once().returns({params: []});
-      menu.withItem('item').withArrayParam();
-      assert.deepEqual(actual.details, {
-        item: [{params: [{array: []}]}]
-      });
-    });
-
-    it('withValueParam(), withFuncParam() and withResolveParam sets params', function() {
-      mockDefaulter.expects('getDefaultEntry').once().returns({params: []});
-      menu.withItem('item').withFuncParam('func').withResolveParam('resolve').withValueParam('value');
-      assert.deepEqual(actual.details, {
-        item: [{params: [{func: 'func'}, {resolve: 'resolve'}, {value: 'value'}]}]
-      });
-    });
-
-    it('pushResolveParam() sets array param with one resolve param', function() {
-      mockDefaulter.expects('getDefaultEntry').once().returns({params: []});
-      menu.withItem('item').withArrayParam().pushResolveParam('resolve');
-      assert.deepEqual(actual.details, {
-        item: [{params: [{array: [{resolve: 'resolve'}]}]}]
-      });
-    });
-
-    it('pushValueParam() sets array param with one value param', function() {
-      mockDefaulter.expects('getDefaultEntry').once().returns({params: []});
-      menu.withItem('item').withArrayParam().pushValueParam('value');
-      assert.deepEqual(actual.details, {
-        item: [{params: [{array: [{value: 'value'}]}]}]
-      });
-    });
-
-    it('pushFuncParam() sets array param with one func param', function() {
-      mockDefaulter.expects('getDefaultEntry').once().returns({params: []});
-      menu.withItem('item').withArrayParam().pushFuncParam('func');
-      assert.deepEqual(actual.details, {
-        item: [{params: [{array: [{func: 'func'}]}]}]
-      });
-    });
-
-    it('pushValueParam(), pushFuncParam() and pushResolveParam sets array params', function() {
-      mockDefaulter.expects('getDefaultEntry').once().returns({params: []});
-
-      menu
-        .withItem('item')
-        .withArrayParam()
-        .pushFuncParam('func')
-        .pushResolveParam('resolve')
-        .pushValueParam('value');
-
-      assert.deepEqual(actual.details, {
-        item: [{params: [{array: [{func: 'func'}, {resolve: 'resolve'}, {value: 'value'}]}]}]
-      });
-    });
-
-    it('withItem() with many items and many entries covering all options configures correctly', function() {
-      mockDefaulter.expects('getDefaultEntry').once().returns({name: 'unset', params: [], type: 'unset'});
-      mockDefaulter.expects('getDefaultEntry').once().returns({name: 'unset', params: [], type: 'unset'});
-      mockDefaulter.expects('getDefaultEntry').once().returns({name: 'unset', params: [], type: 'unset'});
-      mockDefaulter.expects('getDefaultEntry').once().returns({name: 'unset', params: [], type: 'unset'});
-      mockDefaulter.expects('getDefaultEntry').once().returns({name: 'unset', params: [], type: 'unset'});
-
-      menu
-        .withItem('one')
-        .named('entry1a')
-        .singleton()
-        .withValueParam('entry1a-value')
-        .withFuncParam('entry1a-func')
-        .withResolveParam('entry1a-resolve')
-        .withArrayParam()
-        .pushValueParam('array-value')
-        .pushFuncParam('array-func')
-        .pushResolveParam('array-resolve')
-        .withItem('one')
-        .named('entry1b')
-        .perDependency()
-        .withValueParam('entry1b-value')
-        .withFuncParam('entry1b-func')
-        .withResolveParam('entry1b-resolve')
-        .withItem('one')
-        .named('entry1c')
-        .perDependency()
-        .withValueParam('entry1c-value')
-        .withFuncParam('entry1c-func')
-        .withResolveParam('entry1c-resolve')
-        .withItem('two')
-        .named('entry2a')
-        .perDependency()
-        .withValueParam('entry2a-value')
-        .withFuncParam('entry2a-func')
-        .withResolveParam('entry2a-resolve')
-        .withArrayParam()
-        .pushValueParam('array-value')
-        .pushFuncParam('array-func')
-        .pushResolveParam('array-resolve')
-        .withItem('three')
-        .withValueParam('three-value')
-        .withFuncParam('three-func')
-        .withResolveParam('three-resolve')
-        .withArrayParam()
-        .pushValueParam('array-value')
-        .pushFuncParam('array-func')
-        .pushResolveParam('array-resolve');
-
-      assert.deepEqual(actual.details,
-        {
-          one: [{
-              name: 'entry1a',
-              params: [
-                {value: 'entry1a-value'},
-                {func: 'entry1a-func'},
-                {resolve: 'entry1a-resolve'},
-                {
-                  array: [
-                    {value: 'array-value'},
-                    {func: 'array-func'},
-                    {resolve: 'array-resolve'}
-                  ]
-                }
-              ],
-              type: 'singleton'
-            }, {
-              name: 'entry1b',
-              params: [
-                {value: 'entry1b-value'},
-                {func: 'entry1b-func'},
-                {resolve: 'entry1b-resolve'}
-              ],
-              type: 'perdependency'
-            }, {
-              name: 'entry1c',
-              params: [
-                {value: 'entry1c-value'},
-                {func: 'entry1c-func'},
-                {resolve: 'entry1c-resolve'}
-              ],
-              type: 'perdependency'
-            }],
-          two: [{
-            name: 'entry2a',
-            params: [
-              {value: 'entry2a-value'},
-              {func: 'entry2a-func'},
-              {resolve: 'entry2a-resolve'},
-              {
-                array: [
-                  {value: 'array-value'},
-                  {func: 'array-func'},
-                  {resolve: 'array-resolve'}
-                ]
-              }
-            ],
-            type: 'perdependency'
-          }],
-          three: [{
-            name: 'unset',
-            params: [
-              {value: 'three-value'},
-              {func: 'three-func'},
-              {resolve: 'three-resolve'},
-              {
-                array: [
-                  {value: 'array-value'},
-                  {func: 'array-func'},
-                  {resolve: 'array-resolve'}
-                ]
-              }
-            ],
-            type: 'unset'
-          }]
-        });
-    });
-
-    it('calling named() without withItem() throws', function() {
-      assert.throw(function() { menu.named(); }, 'call to named() without call to withItem() is invalid');
-    });
-
-    it('calling singleton() without withItem() throws', function() {
-      assert.throw(function() { menu.singleton(); }, 'call to singleton() without call to withItem() is invalid');
-    });
-
-    it('calling perDependency() without withItem() throws', function() {
-      assert.throw(function() { menu.perDependency(); }, 'call to perDependency() without call to withItem() is invalid');
-    });
-
-    it('calling withResolveParam() without withItem() throws', function() {
-      assert.throw(function() { menu.withResolveParam(); }, 'call to withResolveParam() without call to withItem() is invalid');
-    });
-
-    it('calling withValueParam() without withItem() throws', function() {
-      assert.throw(function() { menu.withValueParam(); }, 'call to withValueParam() without call to withItem() is invalid');
-    });
-
-    it('calling withFuncParam() without withItem() throws', function() {
-      assert.throw(function() { menu.withFuncParam(); }, 'call to withFuncParam() without call to withItem() is invalid');
-    });
-
-    it('calling withArrayParam() without withItem() throws', function() {
-      assert.throw(function() { menu.withArrayParam(); }, 'call to withArrayParam() without call to withItem() is invalid');
-    });
-
-    it('calling pushResolveParam() without withArrayParam() throws', function() {
-      assert.throw(function() { menu.pushResolveParam(); }, 'call to pushResolveParam() without call to withArrayParam() is invalid');
-    });
-
-    it('calling pushValueParam() without withArrayParam() throws', function() {
-      assert.throw(function() { menu.pushValueParam(); }, 'call to pushValueParam() without call to withArrayParam() is invalid');
-    });
-
-    it('calling pushFuncParam() without withArrayParam() throws', function() {
-      assert.throw(function() { menu.pushFuncParam(); }, 'call to pushFuncParam() without call to withArrayParam() is invalid');
-    });
-
-    it('calling pushResolveParam() after withItem() without withArrayParam() throws', function() {
-      assert.throw(function() {
-        menu
-          .withItem('one')
-          .withArrayParam()
-          .pushResolveParam('resolve')
-          .withItem('one')
-          .pushResolveParam('resolve');
-      }, 'call to pushResolveParam() without call to withArrayParam() is invalid');
+    it('withItem() on subsequent call for item name returns new Entry', function() {
+      var i = 0,
+          item = {withEntry: function() { return 'entry' + ++i; }};
+      stubNewMenuItem.withArgs('item').onCall(0).returns(item);
+      mockDefaulter.expects('getDefaultedEntry').withExactArgs('entry1').once().returns('defaultEntry1');
+      mockDefaulter.expects('getDefaultedEntry').withExactArgs('entry2').once().returns('defaultEntry2');
+      assert.equal(menu.withItem('item'), 'defaultEntry1');
+      assert.equal(menu.withItem('item'), 'defaultEntry2');
+      assert.deepEqual(menu.items, {item: item});
     });
   });
 
@@ -715,11 +629,14 @@ describe('Barista Tests', function() {
     });
 
     it('wrap() one arg returns wrapped arg', function() {
-      assert.deepEqual(new barista.ArgsWrapper().wrap([1]), [{value: 1}]);
+      assert.deepEqual(new barista.ArgsWrapper().wrap([1]), [{type: 'value', value: 1}]);
     });
 
     it('wrap() many args returns wrapped args', function() {
-      assert.deepEqual(new barista.ArgsWrapper().wrap([1, 2, 3]), [{value: 1}, {value: 2}, {value: 3}]);
+      assert.deepEqual(new barista.ArgsWrapper().wrap([1, 2, 3]), [
+        {type: 'value', value: 1},
+        {type: 'value', value: 2},
+        {type: 'value', value: 3}]);
     });
   });
 
@@ -739,11 +656,14 @@ describe('Barista Tests', function() {
     });
 
     it('override() with one arg and empty params returns wrapped arg', function() {
-      assert.deepEqual(overrider.override([], ['arg1']), [{value: 'arg1'}]);
+      assert.deepEqual(overrider.override([], ['arg1']), [{type: 'value', value: 'arg1'}]);
     });
 
     it('override() with many args and empty params returns wrapped args', function() {
-      assert.deepEqual(overrider.override([], ['arg1', 'arg2', 'arg3']), [{value: 'arg1'}, {value: 'arg2'}, {value: 'arg3'}]);
+      assert.deepEqual(overrider.override([], ['arg1', 'arg2', 'arg3']), [
+        {type: 'value', value: 'arg1'},
+        {type: 'value', value: 'arg2'},
+        {type: 'value', value: 'arg3'}]);
     });
 
     it('override() with empty args and one param returns param', function() {
@@ -755,19 +675,34 @@ describe('Barista Tests', function() {
     });
 
     it('override() with one arg and many params returns overriden arg and remainder of params', function() {
-      assert.deepEqual(overrider.override(['param1', 'param2', 'param3'], ['arg1']), [{value: 'arg1'}, 'param2', 'param3']);
+      assert.deepEqual(overrider.override(['param1', 'param2', 'param3'], ['arg1']), [
+        {type: 'value', value: 'arg1'},
+        'param2',
+        'param3'
+      ]);
     });
 
     it('override() with many args and many params returns overriden args', function() {
-      assert.deepEqual(overrider.override(['param1', 'param2', 'param3'], ['arg1', 'arg2', 'arg3']), [{value: 'arg1'}, {value: 'arg2'}, {value: 'arg3'}]);
+      assert.deepEqual(overrider.override(['param1', 'param2', 'param3'], ['arg1', 'arg2', 'arg3']), [
+        {type: 'value', value: 'arg1'},
+        {type: 'value', value: 'arg2'},
+        {type: 'value', value: 'arg3'}]);
     });
 
     it('override() with less args and many params returns overriden args and remaining param', function() {
-      assert.deepEqual(overrider.override(['param1', 'param2', 'param3'], ['arg1', 'arg2']), [{value: 'arg1'}, {value: 'arg2'}, 'param3']);
+      assert.deepEqual(overrider.override(['param1', 'param2', 'param3'], ['arg1', 'arg2']), [
+        {type: 'value', value: 'arg1'},
+        {type: 'value', value: 'arg2'},
+        'param3'
+      ]);
     });
 
     it('override() with more args and many params returns all args', function() {
-      assert.deepEqual(overrider.override(['param1', 'param2', 'param3'], ['arg1', 'arg2', 'arg3', 'arg4']), [{value: 'arg1'}, {value: 'arg2'}, {value: 'arg3'}, {value: 'arg4'}]);
+      assert.deepEqual(overrider.override(['param1', 'param2', 'param3'], ['arg1', 'arg2', 'arg3', 'arg4']), [
+        {type: 'value', value: 'arg1'},
+        {type: 'value', value: 'arg2'},
+        {type: 'value', value: 'arg3'},
+        {type: 'value', value: 'arg4'}]);
     });
   });
 
@@ -812,11 +747,11 @@ describe('Barista Tests', function() {
     });
 
     it('resolve() with value param returns value', function() {
-      assert.equal(resolver.resolve({value: 11}), 11);
+      assert.equal(resolver.resolve({type: 'value', value: 11}), 11);
     });
 
     it('resolve() with func calls func and returns value', function() {
-      assert.equal(resolver.resolve({func: function() { return 11; }}), 11);
+      assert.equal(resolver.resolve({type: 'func', value: function() { return 11; }}), 11);
     });
 
     it('resolve() with resolve param returns resolved invoked item', function() {
@@ -824,24 +759,24 @@ describe('Barista Tests', function() {
         return 'invoked';
       };
       mockMapper.expects('find').once().withExactArgs('ns', 'item', '_default').returns(invoker);
-      assert.equal(resolver.resolve({resolve: 'ns.item'}), 'invoked');
+      assert.equal(resolver.resolve({type: 'resolve', value: 'ns.item'}), 'invoked');
     });
 
     it('resolve() with non-existing resolve param returns null', function() {
       mockMapper.expects('find').once().withExactArgs('ns', 'item', '_default').returns(null);
-      assert.isNull(resolver.resolve({resolve: 'ns.item'}));
+      assert.isNull(resolver.resolve({type: 'resolve', value: 'ns.item'}));
     });
 
     it('resolve() with array of params returns resolved array', function() {
       var paramArray = [
-        {resolve: 'ns.Object1'},
-        {value: 'value'},
-        {resolve: 'ns.Object2'}
+        {type: 'resolve', value: 'ns.Object1'},
+        {type: 'value', value: 'value'},
+        {type: 'resolve', value: 'ns.Object2'}
       ];
       stubNewInjectionResolver.withArgs(resolver).returns(injectionResolver);
       mockInjectionResolver.expects('resolve').once().withExactArgs(paramArray).returns('array_resolved');
 
-      assert.equal(resolver.resolve({array: paramArray}), 'array_resolved');
+      assert.equal(resolver.resolve({type: 'array', value: paramArray}), 'array_resolved');
     });
   });
 
@@ -1405,20 +1340,7 @@ describe('Barista Tests', function() {
       barista = new Barista();
     });
 
-    it('menu() returns new Menu with new EntryDefaulter', function() {
-      assert.deepEqual(barista.menu().withItem('one').getEntries('one')[0], {
-          name: '_default',
-          params: [],
-          type: 'perdependency'
-        }
-      );
-    });
-
-    it('menu() returns new Menu for each call', function() {
-      assert.notEqual(barista.menu(), barista.menu());
-    });
-
-    it('serve() with no menu defaults menu', function() {
+    it('serve() with no menuFunc defaults menu', function() {
       var nsSimple = function() {
         function ObjDef1() { return {}; }
         return {
@@ -1454,10 +1376,9 @@ describe('Barista Tests', function() {
           ObjDef2: ObjDef2
         };
       },
-          servedNs = barista.serve(new nsSimple('depends'), barista.menu()
-            .withItem('ObjDef2')
-            .singleton()
-          ),
+          servedNs = barista.serve(new nsSimple('depends'), function(menu) {
+            menu.withItem('ObjDef2').singleton();
+          }),
           obj1Instance1 = servedNs.ObjDef1(1),
           obj1Instance2 = servedNs.ObjDef1(2),
           obj2Ref1 = servedNs.ObjDef2(3),
@@ -1607,36 +1528,44 @@ describe('Barista Tests', function() {
               Widget2: Widget2
             };
           },
-          servedUtilsNs = barista.serve(new nsUtils(), barista.menu()
-            .forNamespace('Utils')
-            .withItem('addAlternatingChar').withValueParam('default').withValueParam(' ')
-            .withItem('Tester').named('notdefault').withValueParam('uses _default')
-            .withItem('Prepender').withValueParam('-')
-            .withItem('Prepender').named('special').withValueParam('special')
-            .withItem('Capitalizer').singleton()
-            .withItem('ChainOfResponsibilities').named('widget1Controller')
-            .withArrayParam().pushResolveParam('Responsibilities.PrependResponsibility')
-            .pushResolveParam('Responsibilities.AppendPlusesResponsibility.p3')
-            .pushResolveParam('Responsibilities.WrapResponsibility')
-            .withItem('ChainOfResponsibilities').named('widget2Controller')
-            .withArrayParam()
-            .pushResolveParam('Responsibilities.PrependAndCapitalizeResponsibility')
-            .pushResolveParam('Responsibilities.AppendPlusesResponsibility.p1')
-            .pushResolveParam('Responsibilities.WrapResponsibility')
-          ),
-          servedWidgetNs = barista.serve(new nsWidget(), barista.menu()
-            .forNamespace('Widget')
-            .withItem('Widget1').withResolveParam('Utils.ChainOfResponsibilities.widget1Controller')
-            .withItem('Widget2').withResolveParam('Utils.ChainOfResponsibilities.widget2Controller')
-          );
+          servedUtilsNs = barista.serve(new nsUtils(), function(menu) {
+            menu.forNamespace('Utils');
+            menu.withItem('addAlternatingChar').withValueParam('default').withValueParam(' ');
+            menu.withItem('Tester').named('notdefault').withValueParam('uses _default');
+            menu.withItem('Prepender').withValueParam('-');
+            menu.withItem('Prepender').named('special').withValueParam('special');
+            menu.withItem('Capitalizer').singleton();
+            menu
+              .withItem('ChainOfResponsibilities')
+              .named('widget1Controller')
+              .withArrayParam(function(params) {
+                params
+                  .withResolveParam('Responsibilities.PrependResponsibility')
+                  .withResolveParam('Responsibilities.AppendPlusesResponsibility.p3')
+                  .withResolveParam('Responsibilities.WrapResponsibility');
+              });
+            menu
+              .withItem('ChainOfResponsibilities')
+              .named('widget2Controller')
+              .withArrayParam(function(params) {
+                params.withResolveParam('Responsibilities.PrependAndCapitalizeResponsibility')
+                  .withResolveParam('Responsibilities.AppendPlusesResponsibility.p1')
+                  .withResolveParam('Responsibilities.WrapResponsibility');
+              });
+          }),
+          servedWidgetNs = barista.serve(new nsWidget(), function(menu) {
+            menu.forNamespace('Widget');
+            menu.withItem('Widget1').withResolveParam('Utils.ChainOfResponsibilities.widget1Controller');
+            menu.withItem('Widget2').withResolveParam('Utils.ChainOfResponsibilities.widget2Controller');
+          });
 
-      barista.serve(new nsResponsibilities(), barista.menu()
-        .forNamespace('Responsibilities')
-        .withItem('PrependResponsibility').withResolveParam('Utils.Prepender')
-        .withItem('PrependAndCapitalizeResponsibility').withResolveParam('Utils.Prepender').withResolveParam('Utils.Capitalizer')
-        .withItem('AppendPlusesResponsibility').named('p3').withValueParam(3)
-        .withItem('AppendPlusesResponsibility').named('p1').withValueParam(1)
-      );
+      barista.serve(new nsResponsibilities(), function(menu) {
+        menu.forNamespace('Responsibilities');
+        menu.withItem('PrependResponsibility').withResolveParam('Utils.Prepender');
+        menu.withItem('PrependAndCapitalizeResponsibility').withResolveParam('Utils.Prepender').withResolveParam('Utils.Capitalizer');
+        menu.withItem('AppendPlusesResponsibility').named('p3').withValueParam(3);
+        menu.withItem('AppendPlusesResponsibility').named('p1').withValueParam(1);
+      });
 
       assert.equal(servedUtilsNs.Prepender('overriden').prepend('value'), 'overridenvalue');
       assert.equal(servedWidgetNs.Widget1().run('initial_value'), 'Widget1[-initial_value+++]');
@@ -1661,10 +1590,11 @@ describe('Barista Tests', function() {
       var ns = function() {
         this.ObjDef = function(arg1) { this.x = arg1; };
       },
-          servedNs = barista.serve(new ns(), barista.menu()
-            .forNamespace('Simple')
-            .withItem('ObjDef').withValueParam('param1')
-          );
+          servedNs = barista.serve(new ns(), function(menu) {
+            menu
+              .forNamespace('Simple')
+              .withItem('ObjDef').withValueParam('param1');
+          });
       assert.equal(servedNs.ObjDef().x, 'param1');
       assert.equal(barista.make('Simple.ObjDef').x, 'param1');
     });
@@ -1682,11 +1612,11 @@ describe('Barista Tests', function() {
           ObjDependentUponObjNoRegistration: ObjDependentUponObjNoRegistration
         };
       },
-          servedNs = barista.serve(new nsSimple(), barista.menu()
-            .forNamespace('Simple')
-            .withItem('ObjNoType')
-            .withItem('ObjDependentUponObjNoRegistration').perDependency().withResolveParam('Simple.ObjNoRegistration')
-          );
+          servedNs = barista.serve(new nsSimple(), function(menu) {
+            menu.forNamespace('Simple');
+            menu.withItem('ObjNoType');
+            menu.withItem('ObjDependentUponObjNoRegistration').perDependency().withResolveParam('Simple.ObjNoRegistration');
+          });
 
       assert.throw(function() { servedNs.ObjNoRegistration(); }, 'using barista in strict mode requires that you register "function ObjNoRegistration() { return {}; }" using menu.withItem and specifying singleton or perDependency');
       assert.throw(function() { servedNs.ObjNoType(); }, 'using barista in strict mode requires that you register "function ObjNoType() { return {}; }" using menu.withItem and specifying singleton or perDependency');
@@ -1698,11 +1628,11 @@ describe('Barista Tests', function() {
 
     it('serveObject() registers one object and returns invokers', function() {
       var ObjDef = function(arg1) { return {value: arg1}; },
-          invokers = barista.serveObject(ObjDef, 'ObjDef', barista.menu()
-            .forNamespace('AdHoc')
-            .withItem('ObjDef').withValueParam('param1').perDependency()
-            .withItem('ObjDef').named('two').withValueParam('param2').singleton()
-          );
+          invokers = barista.serveObject(ObjDef, 'ObjDef', function(menu) {
+            menu.forNamespace('AdHoc');
+            menu.withItem('ObjDef').withValueParam('param1').perDependency();
+            menu.withItem('ObjDef').named('two').withValueParam('param2').singleton();
+          });
 
       assert.equal(invokers._default().value, 'param1');
       assert.equal(invokers.two().value, 'param2');

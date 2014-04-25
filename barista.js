@@ -18,141 +18,158 @@ var Barista = function(config) {
     };
   }
 
-  function EntryDefaulter() {
-    function getDefaultEntry() {
-      return {name: _default, params: [], type: useStrict ? _not_set : _perdependency};
+  function Param(type, value) {
+    this.type = type;
+    this.value = value;
+  }
+
+  function newParam(type, value) {
+    return new Param(type, value);
+  }
+
+  function Params(newParamFunc, newParamsFunc) {
+    this.value = [];
+    this.type = 'array';
+
+    this.withResolveParam = function(resolve) {
+      this.value.push(newParamFunc('resolve', resolve));
+      return this;
+    };
+
+    this.withValueParam = function(value) {
+      this.value.push(newParamFunc('value', value));
+      return this;
+    };
+
+    this.withFuncParam = function(func) {
+      this.value.push(newParamFunc('func', func));
+      return this;
+    };
+
+    this.withArrayParam = function(addArrayParamsFunc) {
+      var param = newParamsFunc();
+      this.value.push(param);
+      addArrayParamsFunc(param);
+      return this;
+    };
+  }
+
+  function newParams() {
+    return new Params(newParam, newParams);
+  }
+
+  function Entry(paramsObj) {
+    this.params = paramsObj.value;
+
+    this.named = function(name) {
+      this.name = name;
+      return this;
+    };
+
+    this.singleton = function() {
+      this.type = _singleton;
+      return this;
+    };
+
+    this.perDependency = function() {
+      this.type = _perdependency;
+      return this;
+    };
+
+    this.withResolveParam = function(resolve) {
+      paramsObj.withResolveParam(resolve);
+      return this;
+    };
+
+    this.withValueParam = function(value) {
+      paramsObj.withValueParam(value);
+      return this;
+    };
+
+    this.withFuncParam = function(func) {
+      paramsObj.withFuncParam(func);
+      return this;
+    };
+
+    this.withArrayParam = function(addArrayParamsFunc) {
+      paramsObj.withArrayParam(addArrayParamsFunc);
+      return this;
+    };
+  }
+
+  function newEntry() {
+    return new Entry(newParams());
+  }
+
+  function EntryDefaulter(newEntryFunc) {
+    function getDefaultedEntry(entry) {
+      entry.name = entry.name || _default;
+      entry.params = entry.params || [];
+      entry.type = entry.type || (useStrict ? _not_set : _perdependency);
+      return entry;
     }
 
     function getDefaultedEntries(entries) {
-      entries = entries && entries.length > 0 ? entries : [{}];
+      entries = entries && entries.length > 0 ? entries : [newEntryFunc()];
       entries.forEach(function(entry) {
-        entry.type = entry.type || getDefaultEntry().type;
-        entry.name = entry.name || getDefaultEntry().name;
-        entry.params = entry.params
-          ? entry.params
-          : getDefaultEntry().params;
+        getDefaultedEntry(entry);
       });
       return entries;
     }
 
     return {
-      getDefaultEntry: getDefaultEntry,
+      getDefaultedEntry: getDefaultedEntry,
       getDefaultedEntries: getDefaultedEntries
     };
   }
 
-  function Menu(nameGenerator, entryDefaulter, menu) {
-    menu = menu || {details: {}};
+  function MenuItem(name, newEntryFunc) {
+    this.entries = [];
+    this.name = name;
+    this.withEntry = function() {
+      var entry = newEntryFunc();
+      this.entries.push(entry);
+      return entry;
+    };
+  }
 
-    var currentEntryArray,
-        currentEntry,
-        currentParamArray,
-        verifyEntry = function(throwMessage) {
-          if (!currentEntry) {
-            throw throwMessage;
-          }
-        },
-        verifyParamArray = function(throwMessage) {
-          if (!currentParamArray) {
-            throw throwMessage;
-          }
-        };
+  function newMenuItem(name) {
+    return new MenuItem(name, newEntry);
+  }
+
+  function Menu(nameGenerator, entryDefaulter, newMenuItemFunc) {
+    this.items = {};
 
     this.forNamespace = function(name) {
-      menu.name = name;
+      this.name = name;
       return this;
     };
 
     this.getNamespace = function() {
-      if (!menu.name) {
-        menu.name = nameGenerator.generate();
+      if (!this.name) {
+        this.name = nameGenerator.generate();
       }
-      return menu.name;
+      return this.name;
     };
 
     this.getEntries = function(name) {
-      return menu.details[name] || [{}];
+      return this.items[name] ? this.items[name].entries : newMenuItemFunc(name).entries;
     };
 
     this.getDefaultedEntries = function(name) {
       return entryDefaulter.getDefaultedEntries(this.getEntries(name));
     };
 
-    this.withItem = function(itemName) {
-      if (!menu.details[itemName]) {
-        currentEntryArray = [];
-        menu.details[itemName] = currentEntryArray;
+    this.withItem = function(name) {
+      if (!this.items[name]) {
+        this.items[name] = newMenuItemFunc(name);
       }
-      currentEntry = entryDefaulter.getDefaultEntry();
-      currentEntryArray.push(currentEntry);
-      currentParamArray = null;
-      return this;
-    };
-
-    this.named = function(name) {
-      verifyEntry('call to named() without call to withItem() is invalid');
-      currentEntry.name = name;
-      return this;
-    };
-
-    this.singleton = function() {
-      verifyEntry('call to singleton() without call to withItem() is invalid');
-      currentEntry.type = _singleton;
-      return this;
-    };
-
-    this.perDependency = function() {
-      verifyEntry('call to perDependency() without call to withItem() is invalid');
-      currentEntry.type = _perdependency;
-      return this;
-    };
-
-    this.withResolveParam = function(resolve) {
-      verifyEntry('call to withResolveParam() without call to withItem() is invalid');
-      currentEntry.params.push({resolve: resolve});
-      return this;
-    };
-
-    this.withValueParam = function(value) {
-      verifyEntry('call to withValueParam() without call to withItem() is invalid');
-      currentEntry.params.push({value: value});
-      return this;
-    };
-
-    this.withFuncParam = function(func) {
-      verifyEntry('call to withFuncParam() without call to withItem() is invalid');
-      currentEntry.params.push({func: func});
-      return this;
-    };
-
-    this.withArrayParam = function() {
-      verifyEntry('call to withArrayParam() without call to withItem() is invalid');
-      currentParamArray = [];
-      currentEntry.params.push({array: currentParamArray});
-      return this;
-    };
-
-    this.pushResolveParam = function(resolveString) {
-      verifyParamArray('call to pushResolveParam() without call to withArrayParam() is invalid');
-      currentParamArray.push({resolve: resolveString});
-      return this;
-    };
-
-    this.pushValueParam = function(value) {
-      verifyParamArray('call to pushValueParam() without call to withArrayParam() is invalid');
-      currentParamArray.push({value: value});
-      return this;
-    };
-
-    this.pushFuncParam = function(func) {
-      verifyParamArray('call to pushFuncParam() without call to withArrayParam() is invalid');
-      currentParamArray.push({func: func});
-      return this;
+      return entryDefaulter.getDefaultedEntry(this.items[name].withEntry());
     };
   }
 
   function newMenu() {
-    return new Menu(new NamespaceNameGenerator(), new EntryDefaulter());
+    return new Menu(new NamespaceNameGenerator(), new EntryDefaulter(newEntry), newMenuItem);
   }
 
   function Property(name, implementation) {
@@ -233,7 +250,7 @@ var Barista = function(config) {
 
   function ArgsWrapper() {
     function buildParam(arg) {
-      return {value: arg};
+      return newParam('value', arg);
     }
 
     function wrap(args) {
@@ -279,20 +296,20 @@ var Barista = function(config) {
             return param.value;
           },
           func: function(param) {
-            return param.func();
+            return param.value();
           },
           resolve: function(param) {
-            var resolveParam = new ResolvedParam(param.resolve),
+            var resolveParam = new ResolvedParam(param.value),
                 invoker = injectionMapper.find(resolveParam.namespace, resolveParam.item, resolveParam.entry);
             return invoker ? invoker() : null;
           },
           array: function(param) {
-            return newInjectionResolverFunc(me).resolve(param.array);
+            return newInjectionResolverFunc(me).resolve(param.value);
           }
         };
 
     function resolve(param) {
-      return resolverMap[Object.keys(param)[0]](param);
+      return resolverMap[param.type](param);
     }
 
     me = {
@@ -445,13 +462,17 @@ var Barista = function(config) {
     };
   }
 
-  function serve(ns, menu) {
-    var injectionMapper = new InjectionMapper();
+  function serve(ns, menuFunc) {
+    var injectionMapper = new InjectionMapper(),
+        menu = newMenu();
+    if (menuFunc) {
+      menuFunc(menu);
+    }
     return new Processor(
       new PropertyExtractor(ns, newProperty),
       new NamespaceBuilder(
         new ItemInvokerBuilder(
-          menu || newMenu(),
+          menu,
           new InvokerBuilder(
             new OrderTaker(new Maker(
               new ArgsOverrider(new ArgsWrapper()),
@@ -464,10 +485,14 @@ var Barista = function(config) {
     ).process(ns);
   }
 
-  function serveObject(implementation, name, menu) {
-    var injectionMapper = new InjectionMapper();
+  function serveObject(implementation, name, menuFunc) {
+    var injectionMapper = new InjectionMapper(),
+        menu = newMenu();
+    if (menuFunc) {
+      menuFunc(menu);
+    }
     return new ItemInvokerBuilder(
-      menu || newMenu(),
+      menu,
       new InvokerBuilder(
         new OrderTaker(new Maker(
           new ArgsOverrider(new ArgsWrapper()),
@@ -485,11 +510,15 @@ var Barista = function(config) {
   }
 
   return {
-    menu: newMenu,
     serve: serve,
     serveObject: serveObject,
     make: make,
     Menu: Menu,
+    MenuItem: MenuItem,
+    Param: Param,
+    Params: Params,
+    newParams: newParams,
+    Entry: Entry,
     Processor: Processor,
     ArgsOverrider: ArgsOverrider,
     ArgsWrapper: ArgsWrapper,
