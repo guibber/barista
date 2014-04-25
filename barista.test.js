@@ -1598,28 +1598,28 @@ describe('Barista Tests', function() {
     it('serve() and make() throw when using requireReg mode when using not fully registered object', function() {
       barista = new Barista({requireReg: true});
       var nsSimple = function() {
-        function ObjNoRegistration() { return {}; }
+        function ObjNoEntry() { return {}; }
         function ObjNoType() { return {}; }
-        function ObjDependentUponObjNoRegistration(obj) { return {obj: obj}; }
+        function ObjDependentUponObjNoEntry(obj) { return {obj: obj}; }
 
         return {
-          ObjNoRegistration: ObjNoRegistration,
+          ObjNoEntry: ObjNoEntry,
           ObjNoType: ObjNoType,
-          ObjDependentUponObjNoRegistration: ObjDependentUponObjNoRegistration
+          ObjDependentUponObjNoEntry: ObjDependentUponObjNoEntry
         };
       },
           servedNs = barista.serve(new nsSimple(), function(menu) {
             menu.forNamespace('Simple');
             menu.withItem('ObjNoType');
-            menu.withItem('ObjDependentUponObjNoRegistration').perDependency().withResolveParam('Simple.ObjNoRegistration');
+            menu.withItem('ObjDependentUponObjNoEntry').perDependency().withResolveParam('Simple.ObjNoEntry');
           });
 
-      assert.throw(function() { servedNs.ObjNoRegistration(); }, 'using barista in requireReg mode requires that you register "function ObjNoRegistration() { return {}; }" using menu.withItem and specifying singleton or perDependency');
+      assert.throw(function() { servedNs.ObjNoEntry(); }, 'using barista in requireReg mode requires that you register "function ObjNoEntry() { return {}; }" using menu.withItem and specifying singleton or perDependency');
       assert.throw(function() { servedNs.ObjNoType(); }, 'using barista in requireReg mode requires that you register "function ObjNoType() { return {}; }" using menu.withItem and specifying singleton or perDependency');
-      assert.throw(function() { servedNs.ObjDependentUponObjNoRegistration(); }, 'using barista in requireReg mode requires that you register "function ObjNoRegistration() { return {}; }" using menu.withItem and specifying singleton or perDependency');
-      assert.throw(function() { barista.make('Simple.ObjNoRegistration'); }, 'using barista in requireReg mode requires that you register "function ObjNoRegistration() { return {}; }" using menu.withItem and specifying singleton or perDependency');
+      assert.throw(function() { servedNs.ObjDependentUponObjNoEntry(); }, 'using barista in requireReg mode requires that you register "function ObjNoEntry() { return {}; }" using menu.withItem and specifying singleton or perDependency');
+      assert.throw(function() { barista.make('Simple.ObjNoEntry'); }, 'using barista in requireReg mode requires that you register "function ObjNoEntry() { return {}; }" using menu.withItem and specifying singleton or perDependency');
       assert.throw(function() { barista.make('Simple.ObjNoType'); }, 'using barista in requireReg mode requires that you register "function ObjNoType() { return {}; }" using menu.withItem and specifying singleton or perDependency');
-      assert.throw(function() { barista.make('Simple.ObjDependentUponObjNoRegistration'); }, 'using barista in requireReg mode requires that you register "function ObjNoRegistration() { return {}; }" using menu.withItem and specifying singleton or perDependency');
+      assert.throw(function() { barista.make('Simple.ObjDependentUponObjNoEntry'); }, 'using barista in requireReg mode requires that you register "function ObjNoEntry() { return {}; }" using menu.withItem and specifying singleton or perDependency');
     });
 
     it('serveObject() registers one object and returns invokers', function() {
