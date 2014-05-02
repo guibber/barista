@@ -1,9 +1,18 @@
 describe('Barista Tests', function() {
+  describe('IncludedNamespace', function() {
+    it('IncludedNamespace() set properties', function() {
+      var namespace = new barista.IncludedNamespace('name', 'instance');
+      assert.equal(namespace.name, 'name');
+      assert.equal(namespace.instance, 'instance');
+    });
+  });
+
   describe('NamespaceNameGenerator', function() {
     it('generate() returns Namespace1 then increments', function() {
-      assert.equal(new barista.NamespaceNameGenerator().generate(), 'Namespace1');
-      assert.equal(new barista.NamespaceNameGenerator().generate(), 'Namespace2');
-      assert.equal(new barista.NamespaceNameGenerator().generate(), 'Namespace3');
+      var generator = new barista.NamespaceNameGenerator();
+      assert.equal(generator.generate(), 'Namespace1');
+      assert.equal(generator.generate(), 'Namespace2');
+      assert.equal(generator.generate(), 'Namespace3');
     });
   });
 
@@ -42,14 +51,9 @@ describe('Barista Tests', function() {
       assert.deepEqual(params.withValueParam('value').value, ['param']);
     });
 
-    it('withResolveParam() sets resolve param and returns this', function() {
-      stubNewParamFunc.withArgs('resolve', 'value').returns('param');
-      assert.deepEqual(params.withResolveParam('value').value, ['param']);
-    });
-
-    it('withFuncParam() sets func param and returns this', function() {
+    it('withParam() sets func param and returns this', function() {
       stubNewParamFunc.withArgs('func', 'value').returns('param');
-      assert.deepEqual(params.withFuncParam('value').value, ['param']);
+      assert.deepEqual(params.withParam('value').value, ['param']);
     });
 
     it('withArrayParam() sets array param, calls addArrayParamsFunc and returns this', function() {
@@ -57,6 +61,11 @@ describe('Barista Tests', function() {
       stubNewParamsFunc.returns('params');
       stubArrayParamsFunc.withArgs('params');
       assert.deepEqual(params.withArrayParam(stubArrayParamsFunc).value, ['params']);
+    });
+
+    it('withResolveParam() sets resolve param and returns this', function() {
+      stubNewParamFunc.withArgs('resolve', 'value').returns('param');
+      assert.deepEqual(params.withResolveParam('value').value, ['param']);
     });
   });
 
@@ -104,273 +113,105 @@ describe('Barista Tests', function() {
       assert.equal(entry.withValueParam('value'), entry);
     });
 
+    it('withParam() sets func param', function() {
+      mockParams.expects('withParam').once().withExactArgs('value');
+      assert.equal(entry.withParam('value'), entry);
+    });
+
     it('withResolveParam() sets resolve param and returns this', function() {
       mockParams.expects('withResolveParam').once().withExactArgs('value');
       assert.equal(entry.withResolveParam('value'), entry);
-    });
-
-    it('withFuncParam() sets func param', function() {
-      mockParams.expects('withFuncParam').once().withExactArgs('value');
-      assert.equal(entry.withFuncParam('value'), entry);
     });
 
     it('withArrayParam() sets array param', function() {
       mockParams.expects('withArrayParam').once().withExactArgs('addFunc');
       assert.equal(entry.withArrayParam('addFunc'), entry);
     });
-
   });
 
-  describe('EntryDefaulter (default of requireReg mode off)', function() {
+  describe('EntryDefaulter', function() {
     var sandbox,
         stubNewEntryFunc,
-        defaulter,
-        defaultEntry = {
-          type: 'perdependency',
-          name: '_default',
-          params: []
-        };
+        defaulter;
 
     beforeEach(function() {
       sandbox = sinon.sandbox.create();
       stubNewEntryFunc = sandbox.stub();
       stubNewEntryFunc.returns({});
+    });
+
+    afterEach(function() {
+      sandbox.restore();
+    });
+
+    it('getDefaultedEntry() return default with requireReg false returns perDependency type', function() {
       defaulter = new barista.EntryDefaulter(stubNewEntryFunc);
+      assert.deepEqual(defaulter.getDefaultedEntry(), {
+        type: 'perdependency',
+        name: '_default',
+        params: []
+      });
     });
 
-    afterEach(function() {
-      sandbox.restore();
-    });
-
-    it('getDefaultedEntry() with empty object sets type, name and params', function() {
-      assert.deepEqual(defaulter.getDefaultedEntry({}), defaultEntry);
-    });
-
-    it('getDefaultedEntry() with all already set does nothing', function() {
-      assert.deepEqual(defaulter.getDefaultedEntry({
-          type: 'set',
-          name: 'set',
-          params: 'set'
-        }), {
-          type: 'set',
-          name: 'set',
-          params: 'set'
-        });
-    });
-
-    it('getDefaultedEntries() with no entries array returns one defaulted', function() {
-      assert.deepEqual(defaulter.getDefaultedEntries(), [defaultEntry]);
-    });
-
-    it('getDefaultedEntries() with empty entries array returns one defaulted entry', function() {
-      assert.deepEqual(defaulter.getDefaultedEntries([]), [defaultEntry]);
-    });
-
-    it('getDefaultedEntries() with one entry adds type and name and params if undefined', function() {
-      assert.deepEqual(defaulter.getDefaultedEntries([{}]), [defaultEntry]);
-    });
-
-    it('getDefaultedEntries() with many entries adds type and name if undefined', function() {
-      assert.deepEqual(defaulter.getDefaultedEntries([{}, {}, {}]), [defaultEntry, defaultEntry, defaultEntry]);
+    it('getDefaultedEntry() return default with requireReg true returns not_set type', function() {
+      defaulter = new barista.EntryDefaulter(stubNewEntryFunc, true);
+      assert.deepEqual(defaulter.getDefaultedEntry(), {
+        type: 'not_set',
+        name: '_default',
+        params: []
+      });
     });
   });
 
-  describe('EntryDefaulter (requireReg mode on)', function() {
+  describe('Entries', function() {
     var sandbox,
-        stubNewEntryFunc,
-        defaulter,
-        defaultEntry = {
-          type: 'not_set',
-          name: '_default',
-          params: []
-        };
-
-    beforeEach(function() {
-      barista = new Barista({requireReg: true});
-      sandbox = sinon.sandbox.create();
-      stubNewEntryFunc = sandbox.stub();
-      stubNewEntryFunc.returns({});
-      defaulter = new barista.EntryDefaulter(stubNewEntryFunc);
-    });
-
-    afterEach(function() {
-      sandbox.restore();
-    });
-
-    it('getDefaultedEntry() with empty object sets type, name and params', function() {
-      assert.deepEqual(defaulter.getDefaultedEntry({}), defaultEntry);
-    });
-
-    it('getDefaultedEntry() with all already set does nothing', function() {
-      assert.deepEqual(defaulter.getDefaultedEntry({
-          type: 'set',
-          name: 'set',
-          params: 'set'
-        }), {
-          type: 'set',
-          name: 'set',
-          params: 'set'
-        });
-    });
-
-    it('getDefaultedEntries() with no entries array returns one defaulted', function() {
-      assert.deepEqual(defaulter.getDefaultedEntries(), [defaultEntry]);
-    });
-
-    it('getDefaultedEntries() with empty entries array returns one defaulted entry', function() {
-      assert.deepEqual(defaulter.getDefaultedEntries([]), [defaultEntry]);
-    });
-
-    it('getDefaultedEntries() with one entry adds type and name and params if undefined', function() {
-      assert.deepEqual(defaulter.getDefaultedEntries([{}]), [defaultEntry]);
-    });
-
-    it('getDefaultedEntries() with many entries adds type and name if undefined', function() {
-      assert.deepEqual(defaulter.getDefaultedEntries([{}, {}, {}]), [defaultEntry, defaultEntry, defaultEntry]);
-    });
-  });
-
-  describe('MenuItem', function() {
-    var sandbox,
-        stubNewEntryFunc,
-        item;
+        entryDefaulter,
+        mockEntryDefaulter,
+        entries;
 
     beforeEach(function() {
       sandbox = sinon.sandbox.create();
-      stubNewEntryFunc = sandbox.stub();
-      item = new barista.MenuItem('name', stubNewEntryFunc);
+      entryDefaulter = new barista.EntryDefaulter();
+      mockEntryDefaulter = sandbox.mock(entryDefaulter);
+      entries = new barista.Entries(entryDefaulter);
     });
 
     afterEach(function() {
+      mockEntryDefaulter.verify();
       sandbox.restore();
     });
 
-    it('MenuItem() sets entries property to empty array and name property to name', function() {
-      assert.deepEqual(item.entries, []);
-      assert.equal(item.name, 'name');
+    it('getEntries() returns empty array by default', function() {
+      assert.deepEqual(entries.getEntries(), []);
     });
 
-    it('withEntry()creates entry includes in entries array and returns entry', function() {
-      stubNewEntryFunc.returns('entry');
-      assert.equal(item.withEntry(), 'entry');
-      assert.deepEqual(item.entries, ['entry']);
-    });
-  });
-
-
-  describe('Menu', function() {
-    var sandbox,
-        defaulter,
-        mockDefaulter,
-        nameGenerator,
-        mockNameGenerator,
-        stubNewMenuItem,
-        menu;
-
-    beforeEach(function() {
-      sandbox = sinon.sandbox.create();
-      defaulter = new barista.EntryDefaulter();
-      mockDefaulter = sandbox.mock(defaulter);
-      nameGenerator = new barista.NamespaceNameGenerator();
-      mockNameGenerator = sandbox.mock(nameGenerator);
-      stubNewMenuItem = sandbox.stub();
-      menu = new barista.Menu(nameGenerator, defaulter, stubNewMenuItem);
+    it('reset() empties entries', function() {
+      entries.getEntries().push(1);
+      entries.reset();
+      assert.deepEqual(entries.getEntries(), []);
     });
 
-    afterEach(function() {
-      mockDefaulter.verify();
-      mockNameGenerator.verify();
-      sandbox.restore();
+    it('withEntry() creates entry includes in entries array and returns entry', function() {
+      mockEntryDefaulter.expects('getDefaultedEntry').once().returns('entry');
+      assert.equal(entries.withEntry(), 'entry');
+      assert.deepEqual(entries.getEntries(), ['entry']);
     });
 
-    it('forNamespace() sets namespace name and getNamespace() returns name', function() {
-      menu.forNamespace('name');
-      assert.equal(menu.name, 'name');
-      assert.equal(menu.getNamespace(), 'name');
-    });
-
-    it('getNamespace() without forNamespace returns defaulted value', function() {
-      mockNameGenerator.expects('generate').once().returns('defaulted');
-      assert.equal(menu.getNamespace(), 'defaulted');
-    });
-
-    it('getEntries() with no item returns newMenuItem entries', function() {
-      stubNewMenuItem.withArgs('item').returns({entries: 'entries'});
-      assert.deepEqual(menu.getEntries('item'), 'entries');
-    });
-
-    it('getEntries() with one entry no match returns newMenuItem entries', function() {
-      menu.items = {nonMatch: {entries: 'nonMatch'}};
-      stubNewMenuItem.withArgs('item').returns({entries: 'entries'});
-      assert.deepEqual(menu.getEntries('item'), 'entries');
-    });
-
-    it('getEntries() with one matching item returns entries', function() {
-      menu.items = {item: {entries: 'entries'}};
-      assert.deepEqual(menu.getEntries('item'), 'entries');
-    });
-
-    it('getEntries() with many items and matching returns entries', function() {
-      menu.items = {
-        item1: {entries: 'entries1'},
-        item2: {entries: 'entries2'},
-        item3: {entries: 'entries3'}
-      };
-      assert.deepEqual(menu.getEntries('item1'), 'entries1');
-    });
-
-    it('getEntries() with many items and no match returns newMenuItem entries', function() {
-      menu.items = {
-        item1: {entries: 'entries1'},
-        item2: {entries: 'entries2'},
-        item3: {entries: 'entries3'}
-      };
-      stubNewMenuItem.withArgs('item1').returns({entries: 'entries'});
-      assert.deepEqual(menu.getEntries('item1'), 'entries1');
-    });
-
-    it('getDefaultedEntries() returns returns defaulted entries', function() {
-      menu.items = {item: {entries: 'entries'}};
-      mockDefaulter.expects('getDefaultedEntries').once().withExactArgs('entries').returns('defaultedEntries');
-      assert.deepEqual(menu.getDefaultedEntries('item'), 'defaultedEntries');
-    });
-
-    it('withItem() with first call for item name creates and sets MenuItem and returns new Entry', function() {
-      var item = {withEntry: function() { return 'entry'; }};
-      stubNewMenuItem.withArgs('item').returns(item);
-      mockDefaulter.expects('getDefaultedEntry').withExactArgs('entry').once().returns('defaultEntry');
-      assert.equal(menu.withItem('item'), 'defaultEntry');
-      assert.deepEqual(menu.items, {item: item});
-    });
-
-    it('withItem() on subsequent call for item name returns new Entry', function() {
-      var i = 0,
-          item = {withEntry: function() { return 'entry' + ++i; }};
-      stubNewMenuItem.withArgs('item').onCall(0).returns(item);
-      mockDefaulter.expects('getDefaultedEntry').withExactArgs('entry1').once().returns('defaultEntry1');
-      mockDefaulter.expects('getDefaultedEntry').withExactArgs('entry2').once().returns('defaultEntry2');
-      assert.equal(menu.withItem('item'), 'defaultEntry1');
-      assert.equal(menu.withItem('item'), 'defaultEntry2');
-      assert.deepEqual(menu.items, {item: item});
-    });
   });
 
   describe('Property', function() {
-    it('Property() sets name and implementation properties', function() {
-      var ObjectDef = function(arg1) {
-        return {arg1: arg1};
-      };
+    it('Property() sets namespace, name and implementation properties', function() {
+      var property = new barista.Property('namespace', 'name', 'implementation');
 
-      var property = new barista.Property('name', ObjectDef);
-
+      assert.equal(property.namespace, 'namespace');
       assert.equal(property.name, 'name');
-      assert.equal(property.implementation, ObjectDef);
+      assert.equal(property.implementation, 'implementation');
     });
 
     it('isObject() returns true for functions', function() {
       var objectDef = function() {
       };
-      assert.isTrue(new barista.Property('Name', objectDef).isObject());
+      assert.isTrue(new barista.Property(null, null, objectDef).isObject());
     });
 
     it('isObject() returns false for all other types', function() {
@@ -380,73 +221,38 @@ describe('Barista Tests', function() {
       var date = new Date();
       var obj = {};
 
-      assert.isFalse(new barista.Property('X', bool).isObject());
-      assert.isFalse(new barista.Property('X', number).isObject());
-      assert.isFalse(new barista.Property('X', str).isObject());
-      assert.isFalse(new barista.Property('X', date).isObject());
-      assert.isFalse(new barista.Property('X', obj).isObject());
-      assert.isFalse(new barista.Property('X', null).isObject());
-      assert.isFalse(new barista.Property('X').isObject());
+      assert.isFalse(new barista.Property(null, null, bool).isObject());
+      assert.isFalse(new barista.Property(null, null, number).isObject());
+      assert.isFalse(new barista.Property(null, null, str).isObject());
+      assert.isFalse(new barista.Property(null, null, date).isObject());
+      assert.isFalse(new barista.Property(null, null, obj).isObject());
+      assert.isFalse(new barista.Property(null, null, null).isObject());
+      assert.isFalse(new barista.Property(null, null).isObject());
     });
   });
 
   describe('PropertyExtractor', function() {
-    it('extract() with no properties returns property with undefined implementation', function() {
-      var ns = function() {
-        return {};
-      };
+    it('extract() call newPropFunc with namespace, name and implementation', function() {
+      var namespace = {
+        instance: {
+          prop1: 'implementation'
+        }
+      },
+          stubNewProp = sinon.stub(),
+          extractor = new barista.PropertyExtractor(stubNewProp);
 
-      var extractor = new barista.PropertyExtractor(new ns(), barista.newProperty);
+      stubNewProp.withArgs(namespace, 'prop1', 'implementation').returns('property');
 
-      assert.equal(extractor.extract('prop1').name, 'prop1');
-      assert.equal(extractor.extract('prop1').implementation, undefined);
-    });
-
-    it('extract() one property creates and returns properties', function() {
-      var ns = function() {
-        var prop1 = 1;
-
-        return {
-          prop1: prop1
-        };
-      };
-
-      var extractor = new barista.PropertyExtractor(new ns(), barista.newProperty);
-
-      assert.equal(extractor.extract('prop1').name, 'prop1');
-      assert.equal(extractor.extract('prop1').implementation, 1);
-    });
-
-    it('extract() many properties creates and returns properties', function() {
-      var ns = function() {
-        var prop1 = 1,
-            prop2 = 2,
-            prop3 = 3;
-
-        return {
-          prop1: prop1,
-          prop2: prop2,
-          prop3: prop3
-        };
-      };
-
-      var extractor = new barista.PropertyExtractor(new ns(), barista.newProperty);
-
-      assert.equal(extractor.extract('prop1').name, 'prop1');
-      assert.equal(extractor.extract('prop1').implementation, 1);
-      assert.equal(extractor.extract('prop2').name, 'prop2');
-      assert.equal(extractor.extract('prop2').implementation, 2);
-      assert.equal(extractor.extract('prop3').name, 'prop3');
-      assert.equal(extractor.extract('prop3').implementation, 3);
+      assert.equal(extractor.extract(namespace, 'prop1'), 'property');
     });
   });
 
-  describe('InjectionMapper', function() {
-    var oneEntryDefaultMap,
-        manyEntriesDefaultMap;
+  describe('InvokersMapper', function() {
+    var invokersOneDefault,
+        invokersManyDefault;
 
     beforeEach(function() {
-      oneEntryDefaultMap = {
+      invokersOneDefault = {
         ns: {
           item: {
             '_default': 'invoker'
@@ -454,7 +260,7 @@ describe('Barista Tests', function() {
         }
       };
 
-      manyEntriesDefaultMap = {
+      invokersManyDefault = {
         ns1: {
           item1: {
             '_default': 'invoker'
@@ -473,149 +279,135 @@ describe('Barista Tests', function() {
       };
     });
 
-    it('find() on empty map returns null', function() {
-      barista = new Barista({injectionMap: {}});
-      assert.equal(new barista.InjectionMapper().find('ns', 'item'), null);
+    it('find() on empty items and entries returns null', function() {
+      assert.equal(new barista.InvokersMapper({}).find('ns', 'item'), null);
     });
 
-    it('find() on map with one item and one entry returns match', function() {
-      barista = new Barista({injectionMap: oneEntryDefaultMap});
-      assert.equal(new barista.InjectionMapper().find('ns', 'item', '_default'), 'invoker');
+    it('find() with one item and one entry returns matched invoker', function() {
+      assert.equal(new barista.InvokersMapper(invokersOneDefault).find('ns', 'item', '_default'), 'invoker');
     });
 
-    it('find() on map with one item and many entries returns match', function() {
-      oneEntryDefaultMap.ns.item.other1 = 'x';
-      oneEntryDefaultMap.ns.item.other2 = 'x';
-      barista = new Barista({injectionMap: oneEntryDefaultMap});
-      assert.equal(new barista.InjectionMapper().find('ns', 'item', '_default'), 'invoker');
+    it('find() with one item and many entries returns matched invoker', function() {
+      invokersOneDefault.ns.item.other1 = 'x';
+      invokersOneDefault.ns.item.other2 = 'x';
+      assert.equal(new barista.InvokersMapper(invokersOneDefault).find('ns', 'item', '_default'), 'invoker');
     });
 
-    it('find() on map with one item and one entry returns match by defaulting default', function() {
-      barista = new Barista({injectionMap: oneEntryDefaultMap});
-      assert.equal(new barista.InjectionMapper().find('ns', 'item'), 'invoker');
+    it('find() with one item and one entry returns match by defaulting entry param', function() {
+      assert.equal(new barista.InvokersMapper(invokersOneDefault).find('ns', 'item'), 'invoker');
     });
 
-    it('find() on map with one item and one entry returns returns null when no entry name match', function() {
-      barista = new Barista({injectionMap: oneEntryDefaultMap});
-      assert.equal(new barista.InjectionMapper().find('ns', 'item', 'notfound'), null);
+    it('find() with one item and one entry returns returns null when no entry name match', function() {
+      assert.equal(new barista.InvokersMapper(invokersOneDefault).find('ns', 'item', 'notfound'), null);
     });
 
-    it('find() on map with one item and one entry returns null when no item match', function() {
-      barista = new Barista({injectionMap: oneEntryDefaultMap});
-      assert.equal(new barista.InjectionMapper().find('ns', 'itemNoMatch'), null);
+    it('find() with one item and one entry returns null when no item match', function() {
+      assert.equal(new barista.InvokersMapper(invokersOneDefault).find('ns', 'itemNoMatch'), null);
     });
 
-    it('find() on map with one item and one entry returns null when no namespace match', function() {
-      barista = new Barista({injectionMap: oneEntryDefaultMap});
-      assert.equal(new barista.InjectionMapper().find('nsNoMatch'), null);
+    it('find() with one item and one entry returns null when no namespace match', function() {
+      assert.equal(new barista.InvokersMapper(invokersOneDefault).find('nsNoMatch'), null);
     });
 
-    it('find() on map with many items and entries returns match', function() {
-      barista = new Barista({injectionMap: manyEntriesDefaultMap});
-      assert.equal(new barista.InjectionMapper().find('ns1', 'item1', '_default'), 'invoker');
+    it('find() with many items and entries returns match', function() {
+      assert.equal(new barista.InvokersMapper(invokersManyDefault).find('ns1', 'item1', '_default'), 'invoker');
     });
 
-    it('find() on map with many items and entries returns null when no entry name match', function() {
-      barista = new Barista({injectionMap: manyEntriesDefaultMap});
-      assert.equal(new barista.InjectionMapper().find('ns1', 'item1', 'notfound'), null);
+    it('find() with many items and entries returns null when no entry name match', function() {
+      assert.equal(new barista.InvokersMapper(invokersManyDefault).find('ns1', 'item1', 'notfound'), null);
     });
 
-    it('find() on map with many items and entries returns null when no item match', function() {
-      barista = new Barista({injectionMap: manyEntriesDefaultMap});
-      assert.equal(new barista.InjectionMapper().find('ns1', 'noItemMatch'), null);
+    it('find() with many items and entries returns null when no item match', function() {
+      assert.equal(new barista.InvokersMapper(invokersManyDefault).find('ns1', 'noItemMatch'), null);
     });
 
-    it('find() on map with many items and entries returns null when no namespace match', function() {
-      barista = new Barista({injectionMap: manyEntriesDefaultMap});
-      assert.equal(new barista.InjectionMapper().find('nsNoMatch'), null);
+    it('find() with many items and entries returns null when no namespace match', function() {
+      assert.equal(new barista.InvokersMapper(invokersManyDefault).find('nsNoMatch'), null);
     });
 
-    it('map() on empty map sets _default and named entry to invoker', function() {
-      var map = {};
-      barista = new Barista({injectionMap: map});
-      oneEntryDefaultMap.ns.item.name = 'invoker';
+    it('map() with no items and entries sets _default and named entry to invoker', function() {
+      var invokersMapper = new barista.InvokersMapper({});
+      invokersOneDefault.ns.item.name = 'invoker';
 
-      new barista.InjectionMapper().map('ns', 'item', 'name', 'invoker');
-      assert.deepEqual(map, oneEntryDefaultMap);
+      invokersMapper.map('ns', 'item', 'name', 'invoker');
+
+      assert.deepEqual(invokersMapper.invokers, invokersOneDefault);
     });
 
-    it('map() on empty map with null entry name defaults entry name to _default and sets', function() {
-      var map = {};
-      barista = new Barista({injectionMap: map});
-      new barista.InjectionMapper().map('ns', 'item', null, 'invoker');
-      assert.deepEqual(map, oneEntryDefaultMap);
+    it('map() with no items and entries, with null entry name defaults entry name to _default and sets', function() {
+      var invokersMapper = new barista.InvokersMapper({});
+      invokersMapper.map('ns', 'item', null, 'invoker');
+      assert.deepEqual(invokersMapper.invokers, invokersOneDefault);
     });
 
     it('map() with one item and entry using non-default entry name sets entry, but does not overwrite existing _default', function() {
-      var map = copy(oneEntryDefaultMap);
-      barista = new Barista({injectionMap: map});
-      oneEntryDefaultMap.ns.item.notDefault = 'invoker2';
+      var invokersMapper = new barista.InvokersMapper(copy(invokersOneDefault));
+      invokersOneDefault.ns.item.notDefault = 'invoker2';
 
-      new barista.InjectionMapper().map('ns', 'item', "notDefault", 'invoker2');
+      invokersMapper.map('ns', 'item', "notDefault", 'invoker2');
 
-      assert.deepEqual(map, oneEntryDefaultMap);
+      assert.deepEqual(invokersMapper.invokers, invokersOneDefault);
     });
 
     it('map() with one item and existing entry overwrites entry name', function() {
-      var map = copy(oneEntryDefaultMap);
+      var map = copy(invokersOneDefault),
+          invokersMapper;
       map.ns.item.existingName = 'existingInvoker';
-      barista = new Barista({injectionMap: map});
-      oneEntryDefaultMap.ns.item.existingName = 'overwrittenInvoker';
+      invokersMapper = new barista.InvokersMapper(map);
+      invokersOneDefault.ns.item.existingName = 'overwrittenInvoker';
 
-      new barista.InjectionMapper().map('ns', 'item', 'existingName', 'overwrittenInvoker');
+      invokersMapper.map('ns', 'item', 'existingName', 'overwrittenInvoker');
 
-      assert.deepEqual(map, oneEntryDefaultMap);
+      assert.deepEqual(invokersMapper.invokers, invokersOneDefault);
     });
 
-    it('map() on map with one item and entry maps correctly', function() {
-      var map = copy(oneEntryDefaultMap);
-      barista = new Barista({injectionMap: map});
-      oneEntryDefaultMap.ns1 = {
+    it('map() with one item and entry maps correctly', function() {
+      var invokersMapper = new barista.InvokersMapper(copy(invokersOneDefault));
+      invokersOneDefault.ns1 = {
         item1: {
           _default: 'invoker',
           name: 'invoker'
         }
       };
 
-      new barista.InjectionMapper().map('ns1', 'item1', 'name', 'invoker');
+      invokersMapper.map('ns1', 'item1', 'name', 'invoker');
 
-      assert.deepEqual(map, oneEntryDefaultMap);
+      assert.deepEqual(invokersMapper.invokers, invokersOneDefault);
     });
 
     it('map() with one item and many existing entry names maps correctly', function() {
-      var map = copy(oneEntryDefaultMap);
-      map.ns.item.existing = oneEntryDefaultMap.ns.item.existing = 'existing';
-      barista = new Barista({injectionMap: map});
-      oneEntryDefaultMap.ns.item.entryname = 'invoker';
+      var map = copy(invokersOneDefault),
+          invokersMapper;
+      map.ns.item.existing = invokersOneDefault.ns.item.existing = 'existing';
+      invokersMapper = new barista.InvokersMapper(map);
+      invokersOneDefault.ns.item.entryname = 'invoker';
 
-      new barista.InjectionMapper().map('ns', 'item', 'entryname', 'invoker');
+      invokersMapper.map('ns', 'item', 'entryname', 'invoker');
 
-      assert.deepEqual(map, oneEntryDefaultMap);
+      assert.deepEqual(invokersMapper.invokers, invokersOneDefault);
     });
 
     it('map() with many items and many entries maps new item and entry correctly', function() {
-      var map = copy(manyEntriesDefaultMap);
-      barista = new Barista({injectionMap: map});
-      manyEntriesDefaultMap.ns = {
+      var invokersMapper = new barista.InvokersMapper(copy(invokersManyDefault));
+      invokersManyDefault.ns = {
         item: {
           _default: 'invoker',
           entry: 'invoker'
         }
       };
 
-      new barista.InjectionMapper().map('ns', 'item', 'entry', 'invoker');
+      invokersMapper.map('ns', 'item', 'entry', 'invoker');
 
-      assert.deepEqual(map, manyEntriesDefaultMap);
+      assert.deepEqual(invokersMapper.invokers, invokersManyDefault);
     });
 
     it('map() with many items and entries maps additional entry name on existing item', function() {
-      var map = copy(manyEntriesDefaultMap);
-      barista = new Barista({injectionMap: map});
-      manyEntriesDefaultMap.ns1.item1.entry = 'invoker';
+      var invokersMapper = new barista.InvokersMapper(copy(invokersManyDefault));
+      invokersManyDefault.ns1.item1.entry = 'invoker';
 
-      new barista.InjectionMapper().map('ns1', 'item1', 'entry', 'invoker');
+      invokersMapper.map('ns1', 'item1', 'entry', 'invoker');
 
-      assert.deepEqual(map, manyEntriesDefaultMap);
+      assert.deepEqual(invokersMapper.invokers, invokersManyDefault);
     });
   });
 
@@ -722,64 +514,6 @@ describe('Barista Tests', function() {
     });
   });
 
-  describe('ParamResolver', function() {
-    var sandbox,
-        mapper,
-        mockMapper,
-        stubNewInjectionResolver,
-        injectionResolver,
-        mockInjectionResolver,
-        resolver;
-
-    beforeEach(function() {
-      sandbox = sinon.sandbox.create();
-      mapper = new barista.InjectionMapper();
-      mockMapper = sandbox.mock(mapper);
-      stubNewInjectionResolver = sandbox.stub();
-      injectionResolver = new barista.InjectionResolver();
-      mockInjectionResolver = sandbox.mock(injectionResolver);
-      resolver = new barista.ParamResolver(mapper, stubNewInjectionResolver);
-    });
-
-    afterEach(function() {
-      mockMapper.verify();
-      sandbox.restore();
-    });
-
-    it('resolve() with value param returns value', function() {
-      assert.equal(resolver.resolve({type: 'value', value: 11}), 11);
-    });
-
-    it('resolve() with func calls func and returns value', function() {
-      assert.equal(resolver.resolve({type: 'func', value: function() { return 11; }}), 11);
-    });
-
-    it('resolve() with resolve param returns resolved invoked item', function() {
-      var invoker = function() {
-        return 'invoked';
-      };
-      mockMapper.expects('find').once().withExactArgs('ns', 'item', '_default').returns(invoker);
-      assert.equal(resolver.resolve({type: 'resolve', value: 'ns.item'}), 'invoked');
-    });
-
-    it('resolve() with non-existing resolve param returns null', function() {
-      mockMapper.expects('find').once().withExactArgs('ns', 'item', '_default').returns(null);
-      assert.isNull(resolver.resolve({type: 'resolve', value: 'ns.item'}));
-    });
-
-    it('resolve() with array of params returns resolved array', function() {
-      var paramArray = [
-        {type: 'resolve', value: 'ns.Object1'},
-        {type: 'value', value: 'value'},
-        {type: 'resolve', value: 'ns.Object2'}
-      ];
-      stubNewInjectionResolver.withArgs(resolver).returns(injectionResolver);
-      mockInjectionResolver.expects('resolve').once().withExactArgs(paramArray).returns('array_resolved');
-
-      assert.equal(resolver.resolve({type: 'array', value: paramArray}), 'array_resolved');
-    });
-  });
-
   describe('InjectionResolver', function() {
     var sandbox,
         paramResolver,
@@ -812,6 +546,64 @@ describe('Barista Tests', function() {
       mockParamResolver.expects('resolve').once().withArgs('param2').returns('resolved2');
       mockParamResolver.expects('resolve').once().withArgs('param3').returns('resolved3');
       assert.deepEqual(resolver.resolve(['param1', 'param2', 'param3']), ['resolved1', 'resolved2', 'resolved3']);
+    });
+  });
+
+  describe('ParamResolver', function() {
+    var sandbox,
+        invokersMapper,
+        mockInvokersMapper,
+        stubNewInjectionResolver,
+        injectionResolver,
+        mockInjectionResolver,
+        resolver;
+
+    beforeEach(function() {
+      sandbox = sinon.sandbox.create();
+      invokersMapper = new barista.InvokersMapper();
+      mockInvokersMapper = sandbox.mock(invokersMapper);
+      stubNewInjectionResolver = sandbox.stub();
+      injectionResolver = new barista.InjectionResolver();
+      mockInjectionResolver = sandbox.mock(injectionResolver);
+      resolver = new barista.ParamResolver(invokersMapper, stubNewInjectionResolver);
+    });
+
+    afterEach(function() {
+      mockInvokersMapper.verify();
+      sandbox.restore();
+    });
+
+    it('resolve() with value param returns value', function() {
+      assert.equal(resolver.resolve({type: 'value', value: 11}), 11);
+    });
+
+    it('resolve() with func calls func and returns value', function() {
+      assert.equal(resolver.resolve({type: 'func', value: function() { return 11; }}), 11);
+    });
+
+    it('resolve() with resolve param returns resolved invoked item', function() {
+      var invoker = function() {
+        return 'invoked';
+      };
+      mockInvokersMapper.expects('find').once().withExactArgs('ns', 'item', '_default').returns(invoker);
+      assert.equal(resolver.resolve({type: 'resolve', value: 'ns.item'}), 'invoked');
+    });
+
+    it('resolve() with non-existing resolve param returns null', function() {
+      mockInvokersMapper.expects('find').once().withExactArgs('ns', 'item', '_default').returns(null);
+      assert.isNull(resolver.resolve({type: 'resolve', value: 'ns.item'}));
+    });
+
+    it('resolve() with array of params returns resolved array', function() {
+      var paramArray = [
+        {type: 'resolve', value: 'ns.Object1'},
+        {type: 'value', value: 'value'},
+        {type: 'resolve', value: 'ns.Object2'}
+      ];
+      stubNewInjectionResolver.withArgs(resolver).returns(injectionResolver);
+      mockInjectionResolver.expects('resolve').once().withExactArgs(paramArray).returns('array_resolved');
+
+      assert.equal(resolver.resolve({type: 'array', value: paramArray}), 'array_resolved');
     });
   });
 
@@ -1031,322 +823,445 @@ describe('Barista Tests', function() {
 
     it('orderNotSet() returns function, executing it throws', function() {
       var func = orderTaker.orderNotSet('impl');
-      assert.throw(function() { func(); }, 'using barista in requireReg mode requires that you register "impl" using menu.withItem and specifying singleton or perDependency');
+      assert.throw(function() { func(); }, 'using barista in requireReg mode requires that you register "impl" and specify singleton or perDependency');
     });
   });
 
   describe('InvokerBuilder', function() {
     var sandbox,
-        mapper,
-        mockMapper,
         orderTaker,
         mockOrderTaker,
         builder;
 
     beforeEach(function() {
       sandbox = sinon.sandbox.create();
-      mapper = new barista.InjectionMapper();
-      mockMapper = sandbox.mock(mapper);
       orderTaker = new barista.OrderTaker();
       mockOrderTaker = sandbox.mock(orderTaker);
-      builder = new barista.InvokerBuilder(orderTaker, mapper);
+      builder = new barista.InvokerBuilder(orderTaker);
     });
 
     afterEach(function() {
-      mockMapper.verify();
       mockOrderTaker.verify();
       sandbox.restore();
     });
 
-    it('build() with mapper finding invoker returns invoker', function() {
-      mockMapper.expects('find').once().withExactArgs('ns', 'propName', 'itemName').returns('invoker');
-      assert.equal(builder.build('ns', {name: 'propName'}, {name: 'itemName'}), 'invoker');
-    });
-
-    it('build() with mapper not finding invoker creates perdep invoker, maps and returns', function() {
-      mockMapper.expects('find').once().withExactArgs('ns', 'propName', 'itemName').returns(null);
+    it('build() creates perdep invoker and returns', function() {
       mockOrderTaker.expects("orderPerDependency").withExactArgs('implementation', 'params').once().returns('invoker');
-      mockMapper.expects('map').once().withExactArgs('ns', 'propName', 'itemName', 'invoker');
-      assert.equal(builder.build('ns', {name: 'propName', implementation: 'implementation'}, {type: 'perdependency', name: 'itemName', params: 'params'}), 'invoker');
+      assert.equal(builder.build({implementation: 'implementation'}, {type: 'perdependency', name: 'itemName', params: 'params'}), 'invoker');
     });
 
-    it('build() with mapper not finding invoker creates singleton invoker, maps and returns', function() {
-      mockMapper.expects('find').once().withExactArgs('ns', 'propName', 'itemName').returns(null);
+    it('build() creates singleton invoker returns', function() {
       mockOrderTaker.expects("orderSingleton").withExactArgs('implementation', 'params').once().returns('invoker');
-      mockMapper.expects('map').once().withExactArgs('ns', 'propName', 'itemName', 'invoker');
-      assert.equal(builder.build('ns', {name: 'propName', implementation: 'implementation'}, {type: 'singleton', name: 'itemName', params: 'params'}), 'invoker');
+      assert.equal(builder.build({implementation: 'implementation'}, {type: 'singleton', name: 'itemName', params: 'params'}), 'invoker');
     });
 
-    it('build() with mapper not finding invoker creates not_set invoker, maps and returns', function() {
-      mockMapper.expects('find').once().withExactArgs('ns', 'propName', 'itemName').returns(null);
+    it('build() creates not_set invoker and returns', function() {
       mockOrderTaker.expects("orderNotSet").withExactArgs('implementation', 'params').once().returns('invoker');
-      mockMapper.expects('map').once().withExactArgs('ns', 'propName', 'itemName', 'invoker');
-      assert.equal(builder.build('ns', {name: 'propName', implementation: 'implementation'}, {type: 'not_set', name: 'itemName', params: 'params'}), 'invoker');
+      assert.equal(builder.build({implementation: 'implementation'}, {type: 'not_set', name: 'itemName', params: 'params'}), 'invoker');
     });
   });
 
-  describe('ItemInvokerBuilder', function() {
+  describe('ItemMapBuilder', function() {
     var sandbox,
-        menu,
-        mockMenu,
+        invokersMapper,
+        mockInvokersMapper,
         invokerBuilder,
         mockInvokerBuilder,
         builder;
 
     beforeEach(function() {
       sandbox = sinon.sandbox.create();
-      menu = new barista.Menu();
-      mockMenu = sandbox.mock(menu);
+      invokersMapper = new barista.InvokersMapper();
+      mockInvokersMapper = sandbox.mock(invokersMapper);
       invokerBuilder = new barista.InvokerBuilder();
       mockInvokerBuilder = sandbox.mock(invokerBuilder);
-      builder = new barista.ItemInvokerBuilder(menu, invokerBuilder);
+      builder = new barista.InvokerMapBuilder(invokerBuilder, invokersMapper);
     });
 
     afterEach(function() {
-      mockMenu.verify();
+      mockInvokersMapper.verify();
       mockInvokerBuilder.verify();
       sandbox.restore();
     });
 
-    it('build() with no entries returns _default set to null', function() {
-      var prop = new barista.Property('Name', function() {
-      });
-      mockMenu.expects('getNamespace').once().returns('ns');
-      mockMenu.expects('getDefaultedEntries').withExactArgs(prop.name).once().returns([]);
-
-      assert.deepEqual(builder.build(prop), {_default: null});
+    it('build() with no entries does nothing', function() {
+      mockInvokersMapper.expects('map').never();
+      mockInvokerBuilder.expects('build').never();
+      builder.build(null, []);
     });
 
-    it('build() with one named entry returns _default set to invoker and named set to invoker', function() {
-      var entry = {
-        name: 'named'
-      },
-          prop = new barista.Property('propname');
-      mockMenu.expects('getNamespace').once().returns('ns');
-      mockMenu.expects('getDefaultedEntries').withExactArgs(prop.name).once().returns([entry]);
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, entry).returns('invoker');
-
-      assert.deepEqual(builder.build(prop), {_default: 'invoker', named: 'invoker'});
-    });
-
-    it('build() with one default entry returns _default set to invoker', function() {
+    it('build() with one default named entry maps _default to invoker', function() {
       var entry = {
         name: '_default'
       },
-          prop = new barista.Property('propname');
-      mockMenu.expects('getNamespace').once().returns('ns');
-      mockMenu.expects('getDefaultedEntries').withExactArgs(prop.name).once().returns([entry]);
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, entry).returns('invoker');
+          prop = new barista.Property(new barista.IncludedNamespace('nsName'), 'propName');
 
-      assert.deepEqual(builder.build(prop), {_default: 'invoker'});
+      mockInvokerBuilder.expects('build').once().withExactArgs(prop, entry).returns('invoker');
+      mockInvokersMapper.expects('map').once().withExactArgs('nsName', 'propName', '_default', 'invoker');
+      builder.build(prop, [entry]);
     });
 
-    it('build() with many entries without default returns default and invokers', function() {
+    it('build() with one named entry maps named entry and _default to invoker', function() {
+      var entry = {
+        name: 'entryName'
+      },
+          prop = new barista.Property(new barista.IncludedNamespace('nsName'), 'propName');
+
+      mockInvokerBuilder.expects('build').once().withExactArgs(prop, entry).returns('invoker');
+      mockInvokersMapper.expects('map').once().withExactArgs('nsName', 'propName', 'entryName', 'invoker');
+      mockInvokersMapper.expects('map').once().withExactArgs('nsName', 'propName', '_default', 'invoker');
+      builder.build(prop, [entry]);
+    });
+
+    it('build() with many entries without default maps default and named', function() {
       var entries = [
         {name: 'X'},
         {name: 'Y'},
         {name: 'Z'}
       ],
-          prop = new barista.Property('propname');
-      mockMenu.expects('getNamespace').once().returns('ns');
-      mockMenu.expects('getDefaultedEntries').withExactArgs(prop.name).once().returns(entries);
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, entries[0]).returns('invokerX');
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, entries[1]).returns('invokerY');
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, entries[2]).returns('invokerZ');
+          prop = new barista.Property(new barista.IncludedNamespace('nsName'), 'propName');
 
-      assert.deepEqual(builder.build(prop), {_default: 'invokerX', X: 'invokerX', Y: 'invokerY', Z: 'invokerZ'});
+      mockInvokerBuilder.expects('build').once().withExactArgs(prop, entries[0]).returns('invokerX');
+      mockInvokerBuilder.expects('build').once().withExactArgs(prop, entries[1]).returns('invokerY');
+      mockInvokerBuilder.expects('build').once().withExactArgs(prop, entries[2]).returns('invokerZ');
+      mockInvokersMapper.expects('map').once().withExactArgs('nsName', 'propName', 'X', 'invokerX');
+      mockInvokersMapper.expects('map').once().withExactArgs('nsName', 'propName', 'Y', 'invokerY');
+      mockInvokersMapper.expects('map').once().withExactArgs('nsName', 'propName', 'Z', 'invokerZ');
+      mockInvokersMapper.expects('map').once().withExactArgs('nsName', 'propName', '_default', 'invokerX');
+
+      builder.build(prop, entries);
     });
 
-    it('build() with many entries including default returns default and invokers', function() {
+    it('build() with many entries including default maps default and named', function() {
       var entries = [
         {name: '_default'},
         {name: 'X'},
         {name: 'Y'}
       ],
-          prop = new barista.Property('propname');
-      mockMenu.expects('getNamespace').once().returns('ns');
-      mockMenu.expects('getDefaultedEntries').withExactArgs(prop.name).once().returns(entries);
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, entries[0]).returns('invoker');
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, entries[1]).returns('invokerX');
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, entries[2]).returns('invokerY');
+          prop = new barista.Property(new barista.IncludedNamespace('nsName'), 'propName');
 
-      assert.deepEqual(builder.build(prop), {_default: 'invoker', X: 'invokerX', Y: 'invokerY'});
+      mockInvokerBuilder.expects('build').once().withExactArgs(prop, entries[0]).returns('invoker');
+      mockInvokerBuilder.expects('build').once().withExactArgs(prop, entries[1]).returns('invokerX');
+      mockInvokerBuilder.expects('build').once().withExactArgs(prop, entries[2]).returns('invokerY');
+      mockInvokersMapper.expects('map').once().withExactArgs('nsName', 'propName', '_default', 'invoker');
+      mockInvokersMapper.expects('map').once().withExactArgs('nsName', 'propName', 'X', 'invokerX');
+      mockInvokersMapper.expects('map').once().withExactArgs('nsName', 'propName', 'Y', 'invokerY');
+
+      builder.build(prop, entries);
     });
 
-    it('build() with many entries with default in last position returns namespace with default invoker', function() {
+    it('build() with many entries with default in last position maps default and named', function() {
       var entries = [
         {name: 'X'},
         {name: 'Y'},
         {name: '_default'}
       ],
-          prop = new barista.Property('propname');
-      mockMenu.expects('getNamespace').once().returns('ns');
-      mockMenu.expects('getDefaultedEntries').withExactArgs(prop.name).once().returns(entries);
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, entries[0]).returns('invokerX');
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, entries[1]).returns('invokerY');
-      mockInvokerBuilder.expects('build').once().withExactArgs('ns', prop, entries[2]).returns('invoker');
+          prop = new barista.Property(new barista.IncludedNamespace('nsName'), 'propName');
 
-      assert.deepEqual(builder.build(prop), {_default: 'invoker', X: 'invokerX', Y: 'invokerY'});
+      mockInvokerBuilder.expects('build').once().withExactArgs(prop, entries[0]).returns('invokerX');
+      mockInvokerBuilder.expects('build').once().withExactArgs(prop, entries[1]).returns('invokerY');
+      mockInvokerBuilder.expects('build').once().withExactArgs(prop, entries[2]).returns('invoker');
+      mockInvokersMapper.expects('map').once().withExactArgs('nsName', 'propName', '_default', 'invoker');
+      mockInvokersMapper.expects('map').once().withExactArgs('nsName', 'propName', 'X', 'invokerX');
+      mockInvokersMapper.expects('map').once().withExactArgs('nsName', 'propName', 'Y', 'invokerY');
+
+      builder.build(prop, entries);
     });
   });
 
-  describe('NamespaceBuilder', function() {
+  describe('Resolver', function() {
     var sandbox,
-        itemBuilder,
-        mockItemBuilder,
+        invokersMapper,
+        mockInvokersMapper,
+        resolver;
+
+    beforeEach(function() {
+      sandbox = sinon.sandbox.create();
+      invokersMapper = new barista.InvokersMapper();
+      mockInvokersMapper = sandbox.mock(invokersMapper);
+      resolver = new barista.Resolver(invokersMapper);
+    });
+
+    afterEach(function() {
+      mockInvokersMapper.verify();
+      sandbox.restore();
+    });
+
+    it('resolve() not finding invoker returns null', function() {
+      mockInvokersMapper.expects('find').once().withExactArgs('ns', 'item', 'entry').returns(null);
+      assert.equal(resolver.resolve('ns.item.entry'), null);
+    });
+
+    it('resolve() with zero args returns invoked', function() {
+      mockInvokersMapper.expects('find').once().withExactArgs('ns', 'item', 'entry').returns(function() { return 'invoked'; });
+      assert.equal(resolver.resolve('ns.item.entry'), 'invoked');
+    });
+
+    it('resolve() with one args returns invoked called with arg', function() {
+      var stubInvoker = sinon.stub();
+      mockInvokersMapper.expects('find').once().withExactArgs('ns', 'item', 'entry').returns(stubInvoker);
+      stubInvoker.withArgs('arg').returns('invoked');
+      assert.equal(resolver.resolve('ns.item.entry', 'arg'), 'invoked');
+    });
+
+    it('resolve() with many args returns invoked called with args', function() {
+      var stubInvoker = sinon.stub();
+      mockInvokersMapper.expects('find').once().withExactArgs('ns', 'item', 'entry').returns(stubInvoker);
+      stubInvoker.withArgs('arg1', 'arg2', 'arg3').returns('invoked');
+      assert.equal(resolver.resolve('ns.item.entry', 'arg1', 'arg2', 'arg3'), 'invoked');
+    });
+  });
+
+  describe('PropEntriesRegistrar', function() {
+    var sandbox,
+        invokersMapper,
+        invokerMapBuilder,
+        mockInvokerMapBuilder,
+        entries,
+        mockEntries,
+        registrar;
+
+    beforeEach(function() {
+      sandbox = sinon.sandbox.create();
+      invokersMapper = barista.InvokersMapper('items');
+      invokerMapBuilder = new barista.InvokerMapBuilder();
+      mockInvokerMapBuilder = sandbox.mock(invokerMapBuilder);
+      entries = new barista.Entries();
+      mockEntries = sandbox.mock(entries);
+      registrar = new barista.PropEntriesRegistrar(invokerMapBuilder, invokersMapper, 'resolver', 'prop', entries);
+    });
+
+    afterEach(function() {
+      mockInvokerMapBuilder.verify();
+      mockEntries.verify();
+      sandbox.restore();
+    });
+
+    it('PropEntriesRegistrar() sets prop property', function() {
+      assert.equal(registrar.prop, 'prop');
+    });
+
+    it('register() resets entries array, calls supplied function with args, and builds', function() {
+      var stubEntriesFunc = sinon.stub();
+      mockEntries.expects('reset').once();
+      stubEntriesFunc.withArgs(entries, 'items', 'resolver');
+      mockEntries.expects('getEntries').once().returns('entries');
+      mockInvokerMapBuilder.expects('build').once().withExactArgs('prop', 'entries');
+      registrar.register(stubEntriesFunc);
+    });
+  });
+
+  describe('PropEntriesRegistrarBuilder', function() {
+    it('build() resets entries array, calls supplied function with args, and builds', function() {
+      var stubNewEntriesFunc = sinon.stub(),
+          stubNewPropEntriesRegistrarFunc = sinon.stub();
+
+      stubNewEntriesFunc.returns('newEntries');
+      stubNewPropEntriesRegistrarFunc.withArgs('invokerMapBuilder', 'invokersMapper', 'resolver', 'prop', 'newEntries').returns('newPropEntriesRegistrar');
+      assert.equal(new barista.PropEntriesRegistrarBuilder('invokerMapBuilder', 'invokersMapper', 'resolver', stubNewEntriesFunc, stubNewPropEntriesRegistrarFunc).build('prop'), 'newPropEntriesRegistrar');
+    });
+  });
+
+
+  describe('NamespaceRegistrarBuilder', function() {
+    var sandbox,
+        extractor,
+        mockExtractor,
+        registrarBuilder,
+        mockRegistrarBuilder,
+        registrar1,
+        mockRegistrar1,
+        registrar2,
+        mockRegistrar2,
+        registrar3,
+        mockRegistrar3,
         builder;
 
     beforeEach(function() {
       sandbox = sinon.sandbox.create();
-      itemBuilder = new barista.ItemInvokerBuilder();
-      mockItemBuilder = sandbox.mock(itemBuilder);
-      builder = new barista.NamespaceBuilder(itemBuilder);
-    });
-
-    afterEach(function() {
-      mockItemBuilder.verify();
-      sandbox.restore();
-    });
-
-    it('build() with zero added props returns empty namespace', function() {
-      assert.deepEqual(builder.build(), {});
-    });
-
-    it('build() with one added non-object returns namespace with prop set', function() {
-      var implementation = 'impl',
-          prop = new barista.Property('impl', implementation);
-
-      builder.add(prop);
-
-      assert.deepEqual(builder.build(), {
-        impl: implementation
-      });
-    });
-
-    it('build() with one object returns namespace with invoker set by name', function() {
-      var prop = new barista.Property('Name', function() {
-      });
-      mockItemBuilder.expects('build').withExactArgs(prop).once().returns({_default: 'invoker'});
-
-      builder.add(prop);
-
-      assert.deepEqual(builder.build(), {Name: 'invoker'});
-    });
-
-    it('build() with many objects returns namespace with invokers set by name', function() {
-      var prop1 = new barista.Property('Name1', function() {
-      }),
-          prop2 = new barista.Property('Name2', function() {
-          }),
-          prop3 = new barista.Property('Name3', function() {
-          });
-
-      mockItemBuilder.expects('build').withExactArgs(prop1).once().returns({_default: 'invoker1'});
-      mockItemBuilder.expects('build').withExactArgs(prop2).once().returns({_default: 'invoker2'});
-      mockItemBuilder.expects('build').withExactArgs(prop3).once().returns({_default: 'invoker3'});
-
-      builder.add(prop1);
-      builder.add(prop2);
-      builder.add(prop3);
-
-      assert.deepEqual(builder.build(), {
-        Name1: 'invoker1',
-        Name2: 'invoker2',
-        Name3: 'invoker3'
-      });
-    });
-  });
-
-  describe('Processor', function() {
-    var sandbox,
-        builder,
-        mockBuilder,
-        extractor,
-        mockExtractor,
-        processor;
-
-    beforeEach(function() {
-      sandbox = sinon.sandbox.create();
-      builder = new barista.NamespaceBuilder();
-      mockBuilder = sandbox.mock(builder);
       extractor = new barista.PropertyExtractor();
       mockExtractor = sandbox.mock(extractor);
-      processor = new barista.Processor(extractor, builder);
+      registrarBuilder = new barista.PropEntriesRegistrarBuilder();
+      mockRegistrarBuilder = sandbox.mock(registrarBuilder);
+      registrar1 = new barista.PropEntriesRegistrar();
+      mockRegistrar1 = sandbox.mock(registrar1);
+      registrar2 = new barista.PropEntriesRegistrar();
+      mockRegistrar2 = sandbox.mock(registrar2);
+      registrar3 = new barista.PropEntriesRegistrar();
+      mockRegistrar3 = sandbox.mock(registrar3);
+      builder = new barista.NamespaceRegistrarBuilder(extractor, registrarBuilder);
     });
 
     afterEach(function() {
       mockExtractor.verify();
-      mockBuilder.verify();
+      mockRegistrarBuilder.verify();
+      mockRegistrar1.verify();
+      mockRegistrar2.verify();
+      mockRegistrar3.verify();
       sandbox.restore();
     });
 
-    it('process() with zero properties returns namespace and return build return value', function() {
-      mockBuilder.expects('build').once().returns('namespace');
-      assert.equal(processor.process({}), 'namespace');
+    it('build() with no props in namespace returns empty', function() {
+      var namespace = new barista.IncludedNamespace({});
+      assert.deepEqual(builder.build(namespace), {});
     });
 
-    it('process() with one property adds property to namespace and returns build return value', function() {
-      mockExtractor.expects('extract').withExactArgs('prop1').once().returns('extracted1');
-      mockBuilder.expects('add').withExactArgs('extracted1').once();
-      mockBuilder.expects('build').once().returns('namespace');
-
-      assert.deepEqual(processor.process({
-        prop1: 1
-      }), 'namespace');
+    it('build() with one prop extracts prop, sets prop registrar and adds default entry', function() {
+      var namespace = new barista.IncludedNamespace(null, {prop1: 'prop1'}),
+          prop1 = new barista.Property(namespace, 'prop1', null);
+      mockExtractor.expects('extract').once().withExactArgs(namespace, 'prop1').returns(prop1);
+      mockRegistrarBuilder.expects('build').once().withExactArgs(prop1).returns(registrar1);
+      mockRegistrar1.expects('register').once().withExactArgs(builder.addDefaultEntry);
+      assert.deepEqual(builder.build(namespace), {prop1: registrar1});
     });
 
-    it('process() with many properties adds each to namespace and returns build return value', function() {
-      mockExtractor.expects('extract').withExactArgs('prop1').once().returns('extracted1');
-      mockExtractor.expects('extract').withExactArgs('prop2').once().returns('extracted2');
-      mockExtractor.expects('extract').withExactArgs('prop3').once().returns('extracted3');
-
-      mockBuilder.expects('add').withExactArgs('extracted1').once();
-      mockBuilder.expects('add').withExactArgs('extracted2').once();
-      mockBuilder.expects('add').withExactArgs('extracted3').once();
-
-      mockBuilder.expects('build').once().returns('namespace');
-
-      assert.deepEqual(processor.process({
-        prop1: 1,
-        prop2: 2,
-        prop3: 3
-      }), 'namespace');
-    });
-
-    it('process() only calls add with own properties and returns build return value', function() {
-      function nsSuper() {
-        this.valueNotOwn = 0;
-      }
-      function ns() {
-        this.own1 = 1;
-      }
-      ns.prototype = new nsSuper();
-
-      mockExtractor.expects('extract').withExactArgs('own1').once().returns('extracted1');
-      mockBuilder.expects('add').withExactArgs('extracted1').once();
-      mockBuilder.expects('build').once().returns('namespace');
-
-      assert.deepEqual(processor.process(new ns()), 'namespace');
+    it('build() with many props extracts props, sets props registrars and adds default entry to each', function() {
+      var namespace = new barista.IncludedNamespace(null, {
+        prop1: 'prop1',
+        prop2: 'prop2',
+        prop3: 'prop3'
+      }),
+          prop1 = new barista.Property(namespace, 'prop1', null),
+          prop2 = new barista.Property(namespace, 'prop2', null),
+          prop3 = new barista.Property(namespace, 'prop3', null);
+      mockExtractor.expects('extract').once().withExactArgs(namespace, 'prop1').returns(prop1);
+      mockExtractor.expects('extract').once().withExactArgs(namespace, 'prop2').returns(prop2);
+      mockExtractor.expects('extract').once().withExactArgs(namespace, 'prop3').returns(prop3);
+      mockRegistrarBuilder.expects('build').once().withExactArgs(prop1).returns(registrar1);
+      mockRegistrarBuilder.expects('build').once().withExactArgs(prop2).returns(registrar2);
+      mockRegistrarBuilder.expects('build').once().withExactArgs(prop3).returns(registrar3);
+      mockRegistrar1.expects('register').once().withExactArgs(builder.addDefaultEntry);
+      mockRegistrar2.expects('register').once().withExactArgs(builder.addDefaultEntry);
+      mockRegistrar3.expects('register').once().withExactArgs(builder.addDefaultEntry);
+      assert.deepEqual(builder.build(namespace), {
+        prop1: registrar1,
+        prop2: registrar2,
+        prop3: registrar3
+      });
     });
   });
 
-  describe('Barista', function() {
+  describe('NamespaceIncluder', function() {
+    var sandbox,
+        generator,
+        mockGenerator,
+        registrarBuilder,
+        mockRegistrarBuilder,
+        includer;
+
     beforeEach(function() {
-      barista = new Barista();
+      sandbox = sinon.sandbox.create();
+      generator = new barista.NamespaceNameGenerator();
+      mockGenerator = sandbox.mock(generator);
+      registrarBuilder = new barista.NamespaceRegistrarBuilder();
+      mockRegistrarBuilder = sandbox.mock(registrarBuilder);
+      includer = new barista.NamespaceIncluder(generator, registrarBuilder);
     });
 
-    it('serve() with no menuFunc defaults menu', function() {
-      var nsSimple = function() {
-        function ObjDef1() { return {}; }
-        return {
-          ObjDef1: ObjDef1
-        };
+    afterEach(function() {
+      mockGenerator.verify();
+      mockRegistrarBuilder.verify();
+      sandbox.restore();
+    });
+
+    it('NamespaceIncluder() sets registrations property to empty object', function() {
+      assert.deepEqual(includer.registrations, {});
+    });
+
+    it('include() without name generates namespace name, sets registration and returns this', function() {
+      mockGenerator.expects('generate').once().returns('generated');
+      mockRegistrarBuilder.expects('build').once().withExactArgs(new barista.IncludedNamespace('generated', 'namespace')).returns('registrar');
+      assert.deepEqual(includer.include('namespace').registrations, {generated: 'registrar'});
+    });
+
+    it('include() with name sets registration and returns this', function() {
+      mockRegistrarBuilder.expects('build').once().withExactArgs(new barista.IncludedNamespace('name', 'namespace')).returns('registrar');
+      assert.deepEqual(includer.include('namespace', 'name').registrations, {name: 'registrar'});
+    });
+  });
+
+  describe('PropBuilder', function() {
+    var builder;
+
+    beforeEach(function() {
+      builder = new barista.PropBuilder();
+    });
+
+    it('build() when prop is object returns invoker default', function() {
+      var registration = {
+        prop: {
+          isObject: function() {
+            return true;
+          }
+        }
       },
-          servedNs = barista.serve(new nsSimple());
-
-      assert.isObject(servedNs.ObjDef1());
+          invokers = {
+            _default: 'invoker'
+          };
+      assert.equal(builder.build(registration, invokers), 'invoker');
     });
 
+    it('build() when prop is not object returns prop implmentation', function() {
+      var registration = {
+        prop: {
+          isObject: function() {
+            return false;
+          },
+          implementation: 'implementation'
+        }
+      };
+      assert.equal(builder.build(registration, null), 'implementation');
+    });
+  });
+
+  describe('ObjectBuilder', function() {
+    var sandbox,
+        childBuilder,
+        mockChildBuilder,
+        builder;
+
+    beforeEach(function() {
+      sandbox = sinon.sandbox.create();
+      childBuilder = barista.ObjectBuilder();
+      mockChildBuilder = sandbox.mock(childBuilder);
+      builder = new barista.ObjectBuilder(childBuilder);
+    });
+
+    afterEach(function() {
+      mockChildBuilder.verify();
+      sandbox.restore();
+    });
+
+    it('build() with no children returns empty object', function() {
+      assert.deepEqual(builder.build({}), {});
+    });
+
+    it('build() with one child returns object with built child', function() {
+      mockChildBuilder.expects('build').once().withExactArgs('child1', 'invokers1').returns('builtChild1');
+      assert.deepEqual(builder.build({child1: 'child1'}, {child1: 'invokers1'}), {child1: 'builtChild1'});
+    });
+
+    it('build() with many children returns object with built children', function() {
+      mockChildBuilder.expects('build').once().withExactArgs('child1', 'invokers1').returns('builtChild1');
+      mockChildBuilder.expects('build').once().withExactArgs('child2', 'invokers2').returns('builtChild2');
+      mockChildBuilder.expects('build').once().withExactArgs('child3', 'invokers3').returns('builtChild3');
+      assert.deepEqual(builder.build({
+            child1: 'child1',
+            child2: 'child2',
+            child3: 'child3'
+          }, {
+            child1: 'invokers1',
+            child2: 'invokers2',
+            child3: 'invokers3'
+          }), {
+            child1: 'builtChild1',
+            child2: 'builtChild2',
+            child3: 'builtChild3'
+          });
+    });
+  });
+
+  describe('barista', function() {
     it('serve() with simple namespace, no-dependency injection, controls instancing where ObjDef2 registered as singleton', function() {
       var nsSimple = function(dependency) {
         var prop1 = dependency;
@@ -1371,9 +1286,13 @@ describe('Barista Tests', function() {
           ObjDef2: ObjDef2
         };
       },
-          servedNs = barista.serve(new nsSimple('depends'), function(menu) {
-            menu.withItem('ObjDef2').singleton();
-          }),
+          servedNs = barista.serve(function(namespaces) {
+            namespaces.include(new nsSimple('depends'));
+          }, function(registrations) {
+            registrations.Namespace1.ObjDef2.register(function(entries) {
+              entries.withEntry().singleton();
+            });
+          }).namespaces.Namespace1,
           obj1Instance1 = servedNs.ObjDef1(1),
           obj1Instance2 = servedNs.ObjDef1(2),
           obj2Ref1 = servedNs.ObjDef2(3),
@@ -1387,7 +1306,7 @@ describe('Barista Tests', function() {
       assert.equal(obj2Ref1, obj2Ref2);
     });
 
-    it('serve() and make() using multiple namespaces, including various instancing types, and full dependency injection', function() {
+    it('serve() with multiple namespaces, including various instancing types, and full dependency injection', function() {
       var nsUtils = function() {
         function Tester(value) {
           function test() {
@@ -1523,80 +1442,99 @@ describe('Barista Tests', function() {
               Widget2: Widget2
             };
           },
-          servedUtilsNs = barista.serve(new nsUtils(), function(menu) {
-            menu.forNamespace('Utils');
-            menu.withItem('addAlternatingChar').withValueParam('default').withValueParam(' ');
-            menu.withItem('Tester').named('notdefault').withValueParam('uses _default');
-            menu.withItem('Prepender').withValueParam('-');
-            menu.withItem('Prepender').named('special').withValueParam('special');
-            menu.withItem('Capitalizer').singleton();
-            menu
-              .withItem('ChainOfResponsibilities')
-              .named('widget1Controller')
-              .withArrayParam(function(params) {
-                params
-                  .withResolveParam('Responsibilities.PrependResponsibility')
-                  .withResolveParam('Responsibilities.AppendPlusesResponsibility.p3')
-                  .withResolveParam('Responsibilities.WrapResponsibility');
-              });
-            menu
-              .withItem('ChainOfResponsibilities')
-              .named('widget2Controller')
-              .withArrayParam(function(params) {
-                params
-                  .withResolveParam('Responsibilities.PrependAndCapitalizeResponsibility')
-                  .withResolveParam('Responsibilities.AppendPlusesResponsibility.p1')
-                  .withResolveParam('Responsibilities.WrapResponsibility');
-              });
-          }),
-          servedWidgetNs = barista.serve(new nsWidget(), function(menu) {
-            menu.forNamespace('Widget');
-            menu.withItem('Widget1').withResolveParam('Utils.ChainOfResponsibilities.widget1Controller');
-            menu.withItem('Widget2').withResolveParam('Utils.ChainOfResponsibilities.widget2Controller');
+          served = barista.serve(function(namespaces) {
+            namespaces.include(new nsUtils(), 'Utils');
+            namespaces.include(new nsResponsibilities(), 'Responsibilities');
+            namespaces.include(new nsWidget(), 'Widget');
+          }, function(registrations) {
+            registrations.Utils.addAlternatingChar.register(function(entries) {
+              entries.withEntry().withValueParam('default').withValueParam(' ');
+            });
+            registrations.Utils.Tester.register(function(entries) {
+              entries.withEntry().named('notdefault').withValueParam('uses _default');
+            });
+            registrations.Utils.Prepender.register(function(entries) {
+              entries.withEntry().withValueParam('-');
+              entries.withEntry().named('special').withValueParam('special');
+            });
+            registrations.Utils.Capitalizer.register(function(entries) {
+              entries.withEntry().singleton();
+            });
+            registrations.Responsibilities.PrependResponsibility.register(function(entries, registered) {
+              entries.withEntry().withParam(registered.Utils.Prepender._default);
+            });
+            registrations.Responsibilities.PrependAndCapitalizeResponsibility.register(function(entries, registered) {
+              entries.withEntry().withParam(registered.Utils.Prepender._default).withParam(registered.Utils.Capitalizer._default);
+            });
+            registrations.Responsibilities.AppendPlusesResponsibility.register(function(entries) {
+              entries.withEntry().named('p3').withValueParam(3);
+            });
+            registrations.Responsibilities.AppendPlusesResponsibility.register(function(entries) {
+              entries.withEntry().named('p1').withValueParam(1);
+            });
+            registrations.Utils.ChainOfResponsibilities.register(function(entries, registered) {
+              entries
+                .withEntry()
+                .named('widget1Controller')
+                .withArrayParam(function(params) {
+                  params
+                    .withParam(registered.Responsibilities.PrependResponsibility._default)
+                    .withParam(registered.Responsibilities.AppendPlusesResponsibility.p3)
+                    .withParam(registered.Responsibilities.WrapResponsibility._default);
+                });
+              entries
+                .withEntry()
+                .named('widget2Controller')
+                .withArrayParam(function(params) {
+                  params
+                    .withParam(registered.Responsibilities.PrependAndCapitalizeResponsibility._default)
+                    .withParam(registered.Responsibilities.AppendPlusesResponsibility.p1)
+                    .withParam(registered.Responsibilities.WrapResponsibility._default);
+                });
+            });
+            registrations.Widget.Widget1.register(function(entries, registered) {
+              entries.withEntry().withParam(registered.Utils.ChainOfResponsibilities.widget1Controller);
+            });
+            registrations.Widget.Widget2.register(function(entries, registered) {
+              entries.withEntry().withParam(registered.Utils.ChainOfResponsibilities.widget2Controller);
+            });
           });
 
-      barista.serve(new nsResponsibilities(), function(menu) {
-        menu.forNamespace('Responsibilities');
-        menu.withItem('PrependResponsibility').withResolveParam('Utils.Prepender');
-        menu.withItem('PrependAndCapitalizeResponsibility').withResolveParam('Utils.Prepender').withResolveParam('Utils.Capitalizer');
-        menu.withItem('AppendPlusesResponsibility').named('p3').withValueParam(3);
-        menu.withItem('AppendPlusesResponsibility').named('p1').withValueParam(1);
-      });
+      assert.equal(served.namespaces.Utils.Prepender('overriden').prepend('value'), 'overridenvalue');
+      assert.equal(served.namespaces.Widget.Widget1().run('initial_value'), 'Widget1[-initial_value+++]');
+      assert.equal(served.namespaces.Widget.Widget2().run('initial_value'), 'Widget2[-INITIAL_VALUE+]');
+      assert.equal(served.namespaces.Utils.addAlternatingChar('value'), 'v a l u e ');
+      assert.equal(served.namespaces.Utils.addAlternatingChar('value', '-'), 'v-a-l-u-e-');
 
-      assert.equal(servedUtilsNs.Prepender('overriden').prepend('value'), 'overridenvalue');
-      assert.equal(servedWidgetNs.Widget1().run('initial_value'), 'Widget1[-initial_value+++]');
-      assert.equal(servedWidgetNs.Widget2().run('initial_value'), 'Widget2[-INITIAL_VALUE+]');
-      assert.equal(servedUtilsNs.addAlternatingChar('value'), 'v a l u e ');
-      assert.equal(servedUtilsNs.addAlternatingChar('value', '-'), 'v-a-l-u-e-');
-
-      assert.equal(barista.make('Utils.Tester').test(), 'uses _default');
-      assert.equal(barista.make('Utils.Tester.notdefault').test(), 'uses _default');
-      assert.equal(barista.make('Widget.Widget1').run('initial_value'), 'Widget1[-initial_value+++]');
-      assert.equal(barista.make('Widget.Widget1').run('initial_value'), 'Widget1[-initial_value+++]');
-      assert.equal(barista.make('Widget.Widget2').run('initial_value'), 'Widget2[-INITIAL_VALUE+]');
-      assert.equal(barista.make('Widget.Widget2', barista.make('Utils.ChainOfResponsibilities.widget1Controller')).run('initial_value'), 'Widget2[-initial_value+++]');
-      assert.equal(barista.make('Utils.Prepender.special').prepend('value'), 'specialvalue');
-      assert.equal(barista.make('Utils.Prepender.special', 'overriden1').prepend('value'), 'overriden1value');
-      assert.equal(barista.make('Utils.Prepender', 'overriden2').prepend('value'), 'overriden2value');
-      assert.equal(barista.make('Utils.addAlternatingChar', 'value'), 'v a l u e ');
-      assert.equal(barista.make('Utils.addAlternatingChar', 'value', '-'), 'v-a-l-u-e-');
+      assert.equal(served.registered.Utils.Tester._default().test(), 'uses _default');
+      assert.equal(served.registered.Utils.Tester.notdefault().test(), 'uses _default');
+      assert.equal(served.registered.Widget.Widget1._default().run('initial_value'), 'Widget1[-initial_value+++]');
+      assert.equal(served.registered.Widget.Widget1._default().run('initial_value'), 'Widget1[-initial_value+++]');
+      assert.equal(served.registered.Widget.Widget2._default().run('initial_value'), 'Widget2[-INITIAL_VALUE+]');
+      assert.equal(served.registered.Widget.Widget2._default(served.registered.Utils.ChainOfResponsibilities.widget1Controller()).run('initial_value'), 'Widget2[-initial_value+++]');
+      assert.equal(served.registered.Utils.Prepender.special().prepend('value'), 'specialvalue');
+      assert.equal(served.registered.Utils.Prepender.special('overriden1').prepend('value'), 'overriden1value');
+      assert.equal(served.registered.Utils.Prepender._default('overriden2').prepend('value'), 'overriden2value');
+      assert.equal(served.registered.Utils.addAlternatingChar._default('value'), 'v a l u e ');
+      assert.equal(served.registered.Utils.addAlternatingChar._default('value', '-'), 'v-a-l-u-e-');
     });
 
-    it('serve() and make() using standard namespace using this pointer', function() {
+    it('serve() with standard namespace using this pointer', function() {
       var ns = function() {
         this.ObjDef = function(arg1) { this.x = arg1; };
       },
-          servedNs = barista.serve(new ns(), function(menu) {
-            menu
-              .forNamespace('Simple')
-              .withItem('ObjDef').withValueParam('param1');
+          served = barista.serve(function(namespaces) {
+            namespaces.include(new ns(), 'Simple');
+          }, function(registrations) {
+            registrations.Simple.ObjDef.register(function(entries) {
+              entries.withEntry().withValueParam('param1');
+            });
           });
-      assert.equal(servedNs.ObjDef().x, 'param1');
-      assert.equal(barista.make('Simple.ObjDef').x, 'param1');
+      assert.equal(served.namespaces.Simple.ObjDef().x, 'param1');
+      assert.equal(served.registered.Simple.ObjDef._default().x, 'param1');
     });
 
-    it('serve() and make() throw when using requireReg mode when using not fully registered object', function() {
-      barista = new Barista({requireReg: true});
+    it('serve() with requireReg mode throws when using not fully registered object', function() {
       var nsSimple = function() {
         function ObjNoEntry() { return {}; }
         function ObjNoType() { return {}; }
@@ -1608,35 +1546,28 @@ describe('Barista Tests', function() {
           ObjDependentUponObjNoEntry: ObjDependentUponObjNoEntry
         };
       },
-          servedNs = barista.serve(new nsSimple(), function(menu) {
-            menu.forNamespace('Simple');
-            menu.withItem('ObjNoType');
-            menu.withItem('ObjDependentUponObjNoEntry').perDependency().withResolveParam('Simple.ObjNoEntry');
+          served = barista.serve(function(namespaces) {
+            namespaces.include(new nsSimple(), 'Simple');
+          }, function(registrations) {
+            registrations.Simple.ObjNoType.register(function(entries) {
+              entries.withEntry();
+            });
+            registrations.Simple.ObjDependentUponObjNoEntry.register(function(entries, registered) {
+              entries.withEntry().perDependency().withParam(registered.Simple.ObjNoEntry._default);
+            });
+          }, {
+            requireReg: true
           });
 
-      assert.throw(function() { servedNs.ObjNoEntry(); }, 'using barista in requireReg mode requires that you register "function ObjNoEntry() { return {}; }" using menu.withItem and specifying singleton or perDependency');
-      assert.throw(function() { servedNs.ObjNoType(); }, 'using barista in requireReg mode requires that you register "function ObjNoType() { return {}; }" using menu.withItem and specifying singleton or perDependency');
-      assert.throw(function() { servedNs.ObjDependentUponObjNoEntry(); }, 'using barista in requireReg mode requires that you register "function ObjNoEntry() { return {}; }" using menu.withItem and specifying singleton or perDependency');
-      assert.throw(function() { barista.make('Simple.ObjNoEntry'); }, 'using barista in requireReg mode requires that you register "function ObjNoEntry() { return {}; }" using menu.withItem and specifying singleton or perDependency');
-      assert.throw(function() { barista.make('Simple.ObjNoType'); }, 'using barista in requireReg mode requires that you register "function ObjNoType() { return {}; }" using menu.withItem and specifying singleton or perDependency');
-      assert.throw(function() { barista.make('Simple.ObjDependentUponObjNoEntry'); }, 'using barista in requireReg mode requires that you register "function ObjNoEntry() { return {}; }" using menu.withItem and specifying singleton or perDependency');
+      assert.throw(function() { served.namespaces.Simple.ObjNoEntry(); }, 'using barista in requireReg mode requires that you register "function ObjNoEntry() { return {}; }" and specify singleton or perDependency');
+      assert.throw(function() { served.namespaces.Simple.ObjNoType(); }, 'using barista in requireReg mode requires that you register "function ObjNoType() { return {}; }" and specify singleton or perDependency');
+      assert.throw(function() { served.namespaces.Simple.ObjDependentUponObjNoEntry(); }, 'using barista in requireReg mode requires that you register "function ObjNoEntry() { return {}; }" and specify singleton or perDependency');
+      assert.throw(function() { served.registered.Simple.ObjNoEntry._default(); }, 'using barista in requireReg mode requires that you register "function ObjNoEntry() { return {}; }" and specify singleton or perDependency');
+      assert.throw(function() { served.registered.Simple.ObjNoType._default(); }, 'using barista in requireReg mode requires that you register "function ObjNoType() { return {}; }" and specify singleton or perDependency');
+      assert.throw(function() { served.registered.Simple.ObjDependentUponObjNoEntry._default(); }, 'using barista in requireReg mode requires that you register "function ObjNoEntry() { return {}; }" and specify singleton or perDependency');
     });
 
-    it('serveObject() registers one object and returns invokers', function() {
-      var ObjDef = function(arg1) { return {value: arg1}; },
-          invokers = barista.serveObject(ObjDef, 'ObjDef', function(menu) {
-            menu.forNamespace('AdHoc');
-            menu.withItem('ObjDef').withValueParam('param1').perDependency();
-            menu.withItem('ObjDef').named('two').withValueParam('param2').singleton();
-          });
-
-      assert.equal(invokers._default().value, 'param1');
-      assert.equal(invokers.two().value, 'param2');
-      assert.equal(barista.make('AdHoc.ObjDef._default').value, 'param1');
-      assert.equal(barista.make('AdHoc.ObjDef.two').value, 'param2');
-    });
-
-    it('make() example using runtime param to index', function() {
+    it('serve() example using runtime param to index', function() {
       var nsWorkers = function() {
         function Worker1() {
           return {id: 1};
@@ -1657,35 +1588,53 @@ describe('Barista Tests', function() {
         };
       },
           nsBoss = function() {
-            function Assistant(workers) {
+            function Assistant1(workers) {
               function getWorkerId(arg) {
                 return workers[arg].id;
               }
               return {getWorkerId: getWorkerId};
             }
 
-            return {Assistant: Assistant};
-          };
+            function Assistant2(workers) {
+              function getWorkerId(arg) {
+                return workers(arg).id;
+              }
+              return {getWorkerId: getWorkerId};
+            }
 
-      barista.serve(new nsWorkers(), function(menu) {
-        menu.forNamespace('Workers');
-      });
+            return {
+              Assistant1: Assistant1,
+              Assistant2: Assistant2
+            };
+          },
+          served = barista.serve(function(namespaces) {
+            namespaces.include(new nsWorkers(), 'Workers');
+            namespaces.include(new nsBoss(), 'Boss');
+          }, function(registrations) {
+            registrations.Boss.Assistant1.register(function(entries, registered) {
+              entries.withEntry().withParam(function() {
+                return {
+                  key1: registered.Workers.Worker1._default(),
+                  key2: registered.Workers.Worker2._default(),
+                  key3: registered.Workers.Worker3._default()
+                };
+              });
+            });
+            registrations.Boss.Assistant2.register(function(entries, registered, resolver) {
+              entries.withEntry().named('resolve').withValueParam(function(arg) {
+                return resolver.resolve('Workers.Worker' + arg);
+              });
+            });
+          });
 
-      barista.serve(new nsBoss(), function(menu) {
-        menu.forNamespace('Boss');
-        menu.withItem('Assistant').withFuncParam(function() {
-          return {
-            key1: barista.make('Workers.Worker1'),
-            key2: barista.make('Workers.Worker2'),
-            key3: barista.make('Workers.Worker3')
-          };
-        });
-      });
-
-      var assistant = barista.make('Boss.Assistant');
+      var assistant = served.registered.Boss.Assistant1._default();
       assert.equal(assistant.getWorkerId('key1'), 1);
       assert.equal(assistant.getWorkerId('key2'), 2);
       assert.equal(assistant.getWorkerId('key3'), 3);
+      assistant = served.registered.Boss.Assistant2.resolve();
+      assert.equal(assistant.getWorkerId('1'), 1);
+      assert.equal(assistant.getWorkerId('2'), 2);
+      assert.equal(assistant.getWorkerId('3'), 3);
     });
   });
 });

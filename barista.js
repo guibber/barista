@@ -1,15 +1,17 @@
-var Barista = function(config) {
+var barista = function() {
   'use strict';
-  config = config || {};
-  var injectionMap = config.injectionMap || {},
-      requireReg = config.requireReg || false,
-      _singleton = 'singleton',
+  var _singleton = 'singleton',
       _perdependency = 'perdependency',
       _not_set = 'not_set',
-      _default = '_default',
-      namespaceIndex = 0;
+      _default = '_default';
+
+  function IncludedNamespace(name, instance) {
+    this.name = name;
+    this.instance = instance;
+  }
 
   function NamespaceNameGenerator() {
+    var namespaceIndex = 0;
     function generate() {
       return 'Namespace' + ++namespaceIndex;
     }
@@ -41,7 +43,7 @@ var Barista = function(config) {
       return this;
     };
 
-    this.withFuncParam = function(func) {
+    this.withParam = function(func) {
       this.value.push(newParamFunc('func', func));
       return this;
     };
@@ -86,8 +88,8 @@ var Barista = function(config) {
       return this;
     };
 
-    this.withFuncParam = function(func) {
-      paramsObj.withFuncParam(func);
+    this.withParam = function(func) {
+      paramsObj.withParam(func);
       return this;
     };
 
@@ -101,78 +103,48 @@ var Barista = function(config) {
     return new Entry(newParams());
   }
 
-  function EntryDefaulter(newEntryFunc) {
-    function getDefaultedEntry(entry) {
+  function EntryDefaulter(newEntryFunc, requireReg) {
+    function getDefaultedEntry() {
+      var entry = newEntryFunc();
+      entry.type = entry.type || (requireReg ? _not_set : _perdependency);
       entry.name = entry.name || _default;
       entry.params = entry.params || [];
-      entry.type = entry.type || (requireReg ? _not_set : _perdependency);
       return entry;
     }
+    return {
+      getDefaultedEntry: getDefaultedEntry
+    };
+  }
 
-    function getDefaultedEntries(entries) {
-      entries = entries && entries.length > 0 ? entries : [newEntryFunc()];
-      entries.forEach(function(entry) {
-        getDefaultedEntry(entry);
-      });
+  function Entries(entryDefaulter) {
+    var entries = [];
+
+    function reset() {
+      entries.length = 0;
+    }
+
+    function getEntries() {
       return entries;
     }
 
-    return {
-      getDefaultedEntry: getDefaultedEntry,
-      getDefaultedEntries: getDefaultedEntries
-    };
-  }
-
-  function MenuItem(name, newEntryFunc) {
-    this.entries = [];
-    this.name = name;
-    this.withEntry = function() {
-      var entry = newEntryFunc();
-      this.entries.push(entry);
+    function withEntry() {
+      var entry = entryDefaulter.getDefaultedEntry();
+      entries.push(entry);
       return entry;
+    }
+
+    return {
+      reset: reset,
+      getEntries: getEntries,
+      withEntry: withEntry
     };
   }
 
-  function newMenuItem(name) {
-    return new MenuItem(name, newEntry);
+  function newEntries(requireReg) {
+    return new Entries(new EntryDefaulter(newEntry, requireReg));
   }
 
-  function Menu(nameGenerator, entryDefaulter, newMenuItemFunc) {
-    this.items = {};
-
-    this.forNamespace = function(name) {
-      this.name = name;
-      return this;
-    };
-
-    this.getNamespace = function() {
-      if (!this.name) {
-        this.name = nameGenerator.generate();
-      }
-      return this.name;
-    };
-
-    this.getEntries = function(name) {
-      return this.items[name] ? this.items[name].entries : newMenuItemFunc(name).entries;
-    };
-
-    this.getDefaultedEntries = function(name) {
-      return entryDefaulter.getDefaultedEntries(this.getEntries(name));
-    };
-
-    this.withItem = function(name) {
-      if (!this.items[name]) {
-        this.items[name] = newMenuItemFunc(name);
-      }
-      return entryDefaulter.getDefaultedEntry(this.items[name].withEntry());
-    };
-  }
-
-  function newMenu() {
-    return new Menu(new NamespaceNameGenerator(), new EntryDefaulter(newEntry), newMenuItem);
-  }
-
-  function Property(name, implementation) {
+  function Property(namespace, name, implementation) {
     function isFunction() {
       return typeof(implementation) === 'function';
     }
@@ -182,19 +154,20 @@ var Barista = function(config) {
     }
 
     return {
+      namespace: namespace,
       name: name,
       implementation: implementation,
       isObject: isObject
     };
   }
 
-  function newProperty(name, implementation) {
-    return new Property(name, implementation);
+  function newProperty(namespace, name, implementation) {
+    return new Property(namespace, name, implementation);
   }
 
-  function PropertyExtractor(ns, newPropFunc) {
-    function extract(name) {
-      return newPropFunc(name, ns[name]);
+  function PropertyExtractor(newPropFunc) {
+    function extract(ns, name) {
+      return newPropFunc(ns, name, ns.instance[name]);
     }
 
     return {
@@ -202,7 +175,7 @@ var Barista = function(config) {
     };
   }
 
-  function InjectionMapper() {
+  function InvokersMapper(invokers) {
     function getEntryName(entryName) {
       return entryName || _default;
     }
@@ -217,32 +190,33 @@ var Barista = function(config) {
       return name === _default;
     }
 
+    function find(nsName, itemName, entryName) {
+      var sourceNs = getChild(invokers, nsName),
+          obj = getChild(sourceNs, itemName);
+
+      return getChild(obj, getEntryName(entryName));
+    };
+
     function defaultExists(nsName, itemName) {
       return find(nsName, itemName, _default) ? true : false;
     }
 
-    function find(nsName, itemName, entryName) {
-      var sourceNs = getChild(injectionMap, nsName),
-          obj = getChild(sourceNs, itemName);
-
-      return getChild(obj, getEntryName(entryName));
-    }
-
     function map(nsName, itemName, entryName, invoker) {
-      var sourceNs = getChild(injectionMap, nsName, {}),
+      var sourceNs = getChild(invokers, nsName, {}),
           obj = getChild(sourceNs, itemName, {}),
           name = getEntryName(entryName);
 
-      injectionMap[nsName] = sourceNs;
+      invokers[nsName] = sourceNs;
       sourceNs[itemName] = obj;
       obj[name] = invoker;
 
       if (!isDefaultName(name) && !defaultExists(nsName, itemName)) {
         obj[_default] = invoker;
       }
-    }
+    };
 
     return {
+      invokers: invokers,
       find: find,
       map: map
     };
@@ -289,7 +263,21 @@ var Barista = function(config) {
     };
   }
 
-  function ParamResolver(injectionMapper, newInjectionResolverFunc) {
+  function InjectionResolver(paramResolver) {
+    function resolve(params) {
+      return params.map(paramResolver.resolve);
+    }
+
+    return {
+      resolve: resolve
+    };
+  }
+
+  function newInjectionResolver(paramResolver) {
+    return new InjectionResolver(paramResolver);
+  }
+
+  function ParamResolver(invokersMapper, newInjectionResolverFunc) {
     var me,
         resolverMap = {
           value: function(param) {
@@ -300,7 +288,7 @@ var Barista = function(config) {
           },
           resolve: function(param) {
             var resolveParam = new ResolvedParam(param.value),
-                invoker = injectionMapper.find(resolveParam.namespace, resolveParam.item, resolveParam.entry);
+                invoker = invokersMapper.find(resolveParam.namespace, resolveParam.item, resolveParam.entry);
             return invoker ? invoker() : null;
           },
           array: function(param) {
@@ -316,20 +304,6 @@ var Barista = function(config) {
       resolve: resolve
     };
     return me;
-  }
-
-  function InjectionResolver(paramResolver) {
-    function resolve(params) {
-      return params.map(paramResolver.resolve);
-    }
-
-    return {
-      resolve: resolve
-    };
-  }
-
-  function newInjectionResolver(paramResolver) {
-    return new InjectionResolver(paramResolver);
   }
 
   function Maker(argsOverrider, injectionResolver) {
@@ -364,7 +338,7 @@ var Barista = function(config) {
 
     function orderNotSet(implementation) {
       return function() {
-        throw ('using barista in requireReg mode requires that you register "' + implementation + '" using menu.withItem and specifying singleton or perDependency');
+        throw ('using barista in requireReg mode requires that you register "' + implementation + '" and specify singleton or perDependency');
       };
     }
 
@@ -375,20 +349,15 @@ var Barista = function(config) {
     };
   }
 
-  function InvokerBuilder(orderTaker, injectionMapper) {
+  function InvokerBuilder(orderTaker) {
     var typeMap = {
       'perdependency': function(i, p) { return orderTaker.orderPerDependency(i, p); },
       'singleton': function(i, p) { return orderTaker.orderSingleton(i, p); },
       'not_set': function(i, p) { return orderTaker.orderNotSet(i, p); }
     };
 
-    function build(nsName, prop, item) {
-      var invoker = injectionMapper.find(nsName, prop.name, item.name);
-      if (!invoker) {
-        invoker = typeMap[item.type](prop.implementation, item.params);
-        injectionMapper.map(nsName, prop.name, item.name, invoker);
-      }
-      return invoker;
+    function build(prop, entry) {
+      return typeMap[entry.type](prop.implementation, entry.params);
     }
 
     return {
@@ -396,145 +365,184 @@ var Barista = function(config) {
     };
   }
 
-  function ItemInvokerBuilder(menu, invokerBuilder) {
-    function build(prop) {
-      var invokers = {},
-          defaultInvoker,
-          nsName = menu.getNamespace();
-      menu.getDefaultedEntries(prop.name).forEach(function(entry) {
-        var invoker = invokerBuilder.build(nsName, prop, entry);
-        invokers[entry.name] = invoker;
+  function InvokerMapBuilder(invokerBuilder, invokersMapper) {
+    function build(prop, entries) {
+      var defaultInvoker,
+          defaultExplicitlyDefined = false;
+      entries.forEach(function(entry) {
+        var invoker = invokerBuilder.build(prop, entry);
+        invokersMapper.map(prop.namespace.name, prop.name, entry.name, invoker);
+        defaultExplicitlyDefined = defaultExplicitlyDefined || entry.name === _default;
         if (!defaultInvoker || entry.name === _default) {
           defaultInvoker = invoker;
         }
       });
-      invokers._default = (invokers._default || defaultInvoker) ? (invokers._default || defaultInvoker) : null;
-      return invokers;
-    }
-
-    return {
-      build: build
-    };
-  }
-
-  function NamespaceBuilder(itemInvokerBuilder) {
-    var retNs = {};
-
-    function addObject(prop) {
-      retNs[prop.name] = itemInvokerBuilder.build(prop)._default;
-    }
-
-    function addNonObject(prop) {
-      retNs[prop.name] = prop.implementation;
-    }
-
-    function add(prop) {
-      if (prop.isObject()) {
-        addObject(prop);
-      } else {
-        addNonObject(prop);
+      if (!defaultExplicitlyDefined && defaultInvoker) {
+        invokersMapper.map(prop.namespace.name, prop.name, _default, defaultInvoker);
       }
     }
 
-    function build() {
-      return retNs;
-    }
-
     return {
-      add: add,
       build: build
     };
   }
 
-  function Processor(extractor, namespaceBuilder) {
-    function process(ns) {
+  function Resolver(invokersMapper) {
+    this.resolve = function(id) {
+      var resolveParam = new ResolvedParam(id),
+          invoker = invokersMapper.find(resolveParam.namespace, resolveParam.item, resolveParam.entry);
+      return invoker ? invoker.apply(null, Array.prototype.slice.call(arguments || []).splice(1)) : null;
+    };
+  }
+
+  function PropEntriesRegistrar(invokerMapBuilder, invokersMapper, resolver, prop, entries) {
+    function register(entriesFunc) {
+      entries.reset();
+      entriesFunc(entries, invokersMapper.invokers, resolver);
+      invokerMapBuilder.build(prop, entries.getEntries());
+    }
+
+    return {
+      prop: prop,
+      register: register
+    };
+  }
+
+  function newPropEntriesRegistrar(invokerMapBuilder, invokersMapper, resolver, prop, entries) {
+    return new PropEntriesRegistrar(invokerMapBuilder, invokersMapper, resolver, prop, entries);
+  }
+
+  function PropEntriesRegistrarBuilder(invokerMapBuilder, invokersMapper, resolver, newEntriesFunc, newPropEntriesRegistrarFunc) {
+    this.build = function(prop) {
+      return newPropEntriesRegistrarFunc(invokerMapBuilder, invokersMapper, resolver, prop, newEntriesFunc());
+    };
+  }
+
+  function NamespaceRegistrarBuilder(extractor, nsPropRegistrarBuilder) {
+    function addDefaultEntry(entries) {
+      entries.withEntry();
+    }
+
+    function build(ns) {
+      var def = {};
       var name;
-      for (name in ns) {
-        if (ns.hasOwnProperty(name)) {
-          namespaceBuilder.add(extractor.extract(name));
+      for (name in ns.instance) {
+        if (ns.instance.hasOwnProperty(name)) {
+          var prop = extractor.extract(ns, name);
+          def[prop.name] = nsPropRegistrarBuilder.build(prop);
+          def[prop.name].register(addDefaultEntry);
         }
       }
-      return namespaceBuilder.build();
+      return def;
     }
 
     return {
-      process: process
+      addDefaultEntry: addDefaultEntry,
+      build: build
     };
   }
 
-  function serve(ns, menuFunc) {
-    var injectionMapper = new InjectionMapper(),
-        menu = newMenu();
-    if (menuFunc) {
-      menuFunc(menu);
-    }
-    return new Processor(
-      new PropertyExtractor(ns, newProperty),
-      new NamespaceBuilder(
-        new ItemInvokerBuilder(
-          menu,
+  function newNamespaceRegistrarBuilder(invokersMapper, config) {
+    return new NamespaceRegistrarBuilder(new PropertyExtractor(newProperty),
+      new PropEntriesRegistrarBuilder(
+        new InvokerMapBuilder(
           new InvokerBuilder(
             new OrderTaker(new Maker(
               new ArgsOverrider(new ArgsWrapper()),
-              new InjectionResolver(new ParamResolver(injectionMapper, newInjectionResolver))
+              new InjectionResolver(new ParamResolver(invokersMapper, newInjectionResolver))
             )),
-            injectionMapper
-          )
-        )
+            invokersMapper
+          ),
+          invokersMapper
+        ),
+        invokersMapper,
+        new Resolver(invokersMapper),
+        function() { return newEntries(config.requireReg); },
+        newPropEntriesRegistrar
       )
-    ).process(ns);
+    );
   }
 
-  function serveObject(implementation, name, menuFunc) {
-    var injectionMapper = new InjectionMapper(),
-        menu = newMenu();
-    if (menuFunc) {
-      menuFunc(menu);
+  function NamespaceIncluder(nameGenerator, registrarBuilder) {
+    this.registrations = {};
+    this.include = function(namespace, name) {
+      name = name || nameGenerator.generate();
+      this.registrations[name] = registrarBuilder.build(new IncludedNamespace(name, namespace));
+      return this;
+    };
+  }
+
+  function newNamespaceIncluder(invokers, config) {
+    return new NamespaceIncluder(new NamespaceNameGenerator(), newNamespaceRegistrarBuilder(new InvokersMapper(invokers), config));
+  }
+
+  function PropBuilder() {
+    function build(registration, invokers) {
+      return registration.prop.isObject() ? invokers._default : registration.prop.implementation;
     }
-    return new ItemInvokerBuilder(
-      menu,
-      new InvokerBuilder(
-        new OrderTaker(new Maker(
-          new ArgsOverrider(new ArgsWrapper()),
-          new InjectionResolver(new ParamResolver(injectionMapper, newInjectionResolver))
-        )),
-        injectionMapper
-      )
-    ).build(newProperty(name, implementation));
+    return {
+      build: build
+    };
   }
 
-  function make(item) {
-    var resolveParam = new ResolvedParam(item),
-        invoker = new InjectionMapper().find(resolveParam.namespace, resolveParam.item, resolveParam.entry);
-    return invoker ? invoker.apply(null, Array.prototype.slice.call(arguments || []).splice(1)) : null;
+  function ObjectBuilder(childBuilder) {
+    function build(registrations, invokers) {
+      var namespace = {};
+      var name;
+      for (name in registrations) {
+        if (registrations.hasOwnProperty(name)) {
+          namespace[name] = childBuilder.build(registrations[name], invokers[name]);
+        }
+      }
+      return namespace;
+    }
+
+    return {
+      build: build
+    };
+  }
+
+  function serve(includeFunc, registerFunc, config) {
+    config = config || {};
+    var invokers = config.invokers || {},
+        included = newNamespaceIncluder(invokers, config);
+
+    includeFunc(included);
+    registerFunc(included.registrations);
+
+    return {
+      namespaces: new ObjectBuilder(new ObjectBuilder(new PropBuilder())).build(included.registrations, invokers),
+      registered: invokers
+    };
   }
 
   return {
     serve: serve,
-    serveObject: serveObject,
-    make: make,
-    Menu: Menu,
-    MenuItem: MenuItem,
+    NamespaceNameGenerator: NamespaceNameGenerator,
     Param: Param,
     Params: Params,
-    newParams: newParams,
     Entry: Entry,
-    Processor: Processor,
-    ArgsOverrider: ArgsOverrider,
+    EntryDefaulter: EntryDefaulter,
+    Entries: Entries,
+    Property: Property,
+    PropertyExtractor: PropertyExtractor,
+    InvokersMapper: InvokersMapper,
     ArgsWrapper: ArgsWrapper,
+    ArgsOverrider: ArgsOverrider,
+    ResolvedParam: ResolvedParam,
     InjectionResolver: InjectionResolver,
+    ParamResolver: ParamResolver,
     Maker: Maker,
     OrderTaker: OrderTaker,
-    Property: Property,
-    newProperty: newProperty,
-    PropertyExtractor: PropertyExtractor,
-    EntryDefaulter: EntryDefaulter,
-    InjectionMapper: InjectionMapper,
-    ResolvedParam: ResolvedParam,
-    ParamResolver: ParamResolver,
     InvokerBuilder: InvokerBuilder,
-    ItemInvokerBuilder: ItemInvokerBuilder,
-    NamespaceBuilder: NamespaceBuilder,
-    NamespaceNameGenerator: NamespaceNameGenerator
+    IncludedNamespace: IncludedNamespace,
+    InvokerMapBuilder: InvokerMapBuilder,
+    Resolver: Resolver,
+    PropEntriesRegistrar: PropEntriesRegistrar,
+    PropEntriesRegistrarBuilder: PropEntriesRegistrarBuilder,
+    NamespaceRegistrarBuilder: NamespaceRegistrarBuilder,
+    NamespaceIncluder: NamespaceIncluder,
+    PropBuilder: PropBuilder,
+    ObjectBuilder: ObjectBuilder
   };
-};
+}();
