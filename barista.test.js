@@ -1115,6 +1115,15 @@ describe('barista Tests', function() {
       assert.deepEqual(builder.build(namespace), {prop1: registrar1});
     });
 
+    it('build() with one prop does nothing when not hasOwnProperty', function() {
+      var namespace = new barista.IncludedNamespace(null, {
+        hasOwnProperty: function() {
+          return false;
+        }
+      });
+      assert.deepEqual(builder.build(namespace), {});
+    });
+
     it('build() with many props extracts props, sets props registrars and adds default entry to each', function() {
       var namespace = new barista.IncludedNamespace(null, {
         prop1: 'prop1',
@@ -1137,6 +1146,29 @@ describe('barista Tests', function() {
         prop1: registrar1,
         prop2: registrar2,
         prop3: registrar3
+      });
+    });
+
+    it('build() with many props only extracts hasOwnProperty properties', function() {
+      var stubHasOwnProperty = sinon.stub(),
+          namespace = new barista.IncludedNamespace(null, {
+            prop1: 'prop1',
+            prop2: 'prop2',
+            prop3: 'prop3',
+            hasOwnProperty: stubHasOwnProperty
+          }),
+          prop2 = new barista.Property(namespace, 'prop2', null);
+
+      stubHasOwnProperty.withArgs('prop1').returns(false);
+      stubHasOwnProperty.withArgs('prop2').returns(true);
+      stubHasOwnProperty.withArgs('prop3').returns(false);
+      stubHasOwnProperty.withArgs('hasOwnProperty').returns(false);
+      mockExtractor.expects('extract').once().withExactArgs(namespace, 'prop2').returns(prop2);
+      mockRegistrarBuilder.expects('build').once().withExactArgs(prop2).returns(registrar2);
+      mockRegistrar2.expects('register').once().withExactArgs(builder.addDefaultEntry);
+
+      assert.deepEqual(builder.build(namespace), {
+        prop2: registrar2
       });
     });
   });
@@ -1241,6 +1273,14 @@ describe('barista Tests', function() {
       assert.deepEqual(builder.build({child1: 'child1'}, {child1: 'invokers1'}), {child1: 'builtChild1'});
     });
 
+    it('build() with one child does nothing when not hasOwnProperty', function() {
+      assert.deepEqual(builder.build({
+        hasOwnProperty: function() {
+          return false;
+        }
+      }, null), {});
+    });
+
     it('build() with many children returns object with built children', function() {
       mockChildBuilder.expects('build').once().withExactArgs('child1', 'invokers1').returns('builtChild1');
       mockChildBuilder.expects('build').once().withExactArgs('child2', 'invokers2').returns('builtChild2');
@@ -1257,6 +1297,25 @@ describe('barista Tests', function() {
             child1: 'builtChild1',
             child2: 'builtChild2',
             child3: 'builtChild3'
+          });
+    });
+
+    it('build() with many children only processes when hasOwnProperty', function() {
+      var stubHasOwnProperty = sinon.stub();
+      stubHasOwnProperty.withArgs('child1').returns(false);
+      stubHasOwnProperty.withArgs('child2').returns(true);
+      stubHasOwnProperty.withArgs('child3').returns(false);
+      stubHasOwnProperty.withArgs('hasOwnProperty').returns(false);
+      mockChildBuilder.expects('build').once().withExactArgs('child2', 'invokers2').returns('builtChild2');
+      assert.deepEqual(builder.build({
+            child1: 'child1',
+            child2: 'child2',
+            child3: 'child3',
+            hasOwnProperty: stubHasOwnProperty
+          }, {
+            child2: 'invokers2'
+          }), {
+            child2: 'builtChild2'
           });
     });
   });
