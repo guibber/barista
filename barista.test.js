@@ -1,4 +1,4 @@
-describe('Barista Tests', function() {
+describe('barista Tests', function() {
   describe('IncludedNamespace', function() {
     it('IncludedNamespace() set properties', function() {
       var namespace = new barista.IncludedNamespace('name', 'instance');
@@ -498,16 +498,16 @@ describe('Barista Tests', function() {
     });
   });
 
-  describe('ResolvedParam', function() {
-    it('ResolvedParam() sets namespace, item, and name properties when all present in key', function() {
-      var key = new barista.ResolvedParam('ns.item.entry');
+  describe('ResolveKey', function() {
+    it('ResolveKey() sets namespace, item, and name properties when all present in id', function() {
+      var key = new barista.ResolveKey('ns.item.entry');
       assert.equal(key.namespace, 'ns');
       assert.equal(key.item, 'item');
       assert.equal(key.entry, 'entry');
     });
 
-    it('ResolvedParam() sets namespace and item, and entry is defaulted to _default when absent', function() {
-      var key = new barista.ResolvedParam('ns.item');
+    it('ResolveKey() sets namespace and item, and entry is defaulted to _default when absent', function() {
+      var key = new barista.ResolveKey('ns.item');
       assert.equal(key.namespace, 'ns');
       assert.equal(key.item, 'item');
       assert.equal(key.entry, '_default');
@@ -607,13 +607,13 @@ describe('Barista Tests', function() {
     });
   });
 
-  describe('Maker', function() {
+  describe('Factory', function() {
     var sandbox,
         injectionResolver,
         mockInjectionResolver,
         argsOverrider,
         mockArgsOverrider,
-        maker;
+        factory;
 
     beforeEach(function() {
       sandbox = sinon.sandbox.create();
@@ -621,7 +621,7 @@ describe('Barista Tests', function() {
       mockInjectionResolver = sandbox.mock(injectionResolver);
       argsOverrider = new barista.ArgsOverrider();
       mockArgsOverrider = sandbox.mock(argsOverrider);
-      maker = new barista.Maker(argsOverrider, injectionResolver);
+      factory = new barista.Factory(argsOverrider, injectionResolver);
     });
 
     afterEach(function() {
@@ -639,7 +639,7 @@ describe('Barista Tests', function() {
       mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns('overriden_params');
       mockInjectionResolver.expects('resolve').once().withExactArgs('overriden_params').returns(['resolved1']);
 
-      actual = maker.make(ObjectDef, ['param1'], ['arg1']);
+      actual = factory.make(ObjectDef, ['param1'], ['arg1']);
 
       assert.equal(actual.value1, expected.value1);
       assert.equal(actual.prototype, expected.prototype);
@@ -655,7 +655,7 @@ describe('Barista Tests', function() {
       mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns('overriden_params');
       mockInjectionResolver.expects('resolve').once().withExactArgs('overriden_params').returns(['resolved1']);
 
-      actual = maker.make(ObjectDef, ['param1'], ['arg1']);
+      actual = factory.make(ObjectDef, ['param1'], ['arg1']);
 
       assert.equal(actual.value1, expected.value1);
       assert.equal(actual.prototype, expected.prototype);
@@ -671,7 +671,7 @@ describe('Barista Tests', function() {
       mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns('overriden_params');
       mockInjectionResolver.expects('resolve').once().withExactArgs('overriden_params').returns(['resolved1']);
 
-      actual = maker.make(ObjectDef, ['param1'], ['arg1']);
+      actual = factory.make(ObjectDef, ['param1'], ['arg1']);
 
       assert.equal(actual.value1, expected.value1);
       assert.equal(actual.prototype, expected.prototype);
@@ -687,7 +687,7 @@ describe('Barista Tests', function() {
       mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns('overriden_params');
       mockInjectionResolver.expects('resolve').once().withExactArgs('overriden_params').returns(['resolved1']);
 
-      actual = maker.make(ObjectDef, ['param1'], ['arg1']);
+      actual = factory.make(ObjectDef, ['param1'], ['arg1']);
 
       assert.equal(actual.value1, expected.value1);
       assert.equal(actual.prototype, expected.prototype);
@@ -706,7 +706,7 @@ describe('Barista Tests', function() {
       mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns('overriden_params');
       mockInjectionResolver.expects('resolve').once().withExactArgs('overriden_params').returns(['resolved1']);
 
-      actual = maker.make(ObjectDef, ['param1'], ['arg1']);
+      actual = factory.make(ObjectDef, ['param1'], ['arg1']);
 
       assert.equal(actual.value1, 'resolved1');
       assert.equal(actual.value1, expected.value1);
@@ -728,7 +728,7 @@ describe('Barista Tests', function() {
       mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns('overriden_params');
       mockInjectionResolver.expects('resolve').once().withExactArgs('overriden_params').returns(['resolved1']);
 
-      actual = maker.make(ObjectDef, ['param1'], ['arg1']);
+      actual = factory.make(ObjectDef, ['param1'], ['arg1']);
 
       assert.equal(actual.value1, 'resolved1');
       assert.equal(actual.value1, expected.value1);
@@ -756,7 +756,7 @@ describe('Barista Tests', function() {
       mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns('overriden_params');
       mockInjectionResolver.expects('resolve').once().withExactArgs('overriden_params').returns(['resolved1']);
 
-      actual = maker.make(ObjectDef, ['param1'], ['arg1']);
+      actual = factory.make(ObjectDef, ['param1'], ['arg1']);
 
       assert.equal(actual.value1, 'resolved1');
       assert.equal(actual.value1, expected.value1);
@@ -774,89 +774,89 @@ describe('Barista Tests', function() {
       mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns('overriden_params');
       mockInjectionResolver.expects('resolve').once().withExactArgs('overriden_params').returns(['resolved1']);
 
-      assert.equal(maker.make(someFunc, ['param1'], ['arg1']), 'resolved1');
+      assert.equal(factory.make(someFunc, ['param1'], ['arg1']), 'resolved1');
     });
   });
 
-  describe('OrderTaker', function() {
+  describe('InvokerTypeBuilder', function() {
     var sandbox,
-        maker,
-        mockMaker,
-        orderTaker;
+        factory,
+        mockFactory,
+        typeBuilder;
 
     beforeEach(function() {
       sandbox = sinon.sandbox.create();
-      maker = new barista.Maker();
-      mockMaker = sandbox.mock(maker);
-      orderTaker = new barista.OrderTaker(maker);
+      factory = new barista.Factory();
+      mockFactory = sandbox.mock(factory);
+      typeBuilder = new barista.InvokerTypeBuilder(factory);
     });
 
     afterEach(function() {
-      mockMaker.verify();
+      mockFactory.verify();
       sandbox.restore();
     });
 
-    it('orderPerDependency() returns function, executing it calls maker and returns new instance', function() {
-      mockMaker
+    it('buildPerDependency() returns function, executing it calls factory and returns new instance', function() {
+      mockFactory
         .expects('make')
         .once()
         .withExactArgs('impl', 'params', match({0: "arg1", 1: "arg2", 2: "arg3"}))
         .returns('instance');
 
-      var instance = orderTaker.orderPerDependency('impl', 'params')('arg1', 'arg2', 'arg3');
+      var instance = typeBuilder.buildPerDependency('impl', 'params')('arg1', 'arg2', 'arg3');
       assert.equal(instance, 'instance');
     });
 
-    it('orderSingleton() returns function, executing it multiple times calls maker only once and always returns same instance', function() {
-      mockMaker
+    it('buildSingleton() returns function, executing it multiple times calls factory only once and always returns same instance', function() {
+      mockFactory
         .expects('make')
         .once()
         .withExactArgs('impl', 'params', match({0: "arg1", 1: "arg2", 2: "arg3"}))
         .returns('instance');
 
-      var func = orderTaker.orderSingleton('impl', 'params');
+      var func = typeBuilder.buildSingleton('impl', 'params');
       var instance = func('arg1', 'arg2', 'arg3');
       var instance2 = func('argOther');
       assert.equal(instance, 'instance');
       assert.equal(instance, instance2);
     });
 
-    it('orderNotSet() returns function, executing it throws', function() {
-      var func = orderTaker.orderNotSet('impl');
+    it('buildNotSet() returns function, executing it throws', function() {
+      var func = typeBuilder.buildNotSet('impl');
       assert.throw(function() { func(); }, 'using barista in requireReg mode requires that you register "impl" and specify singleton or perDependency');
     });
   });
 
   describe('InvokerBuilder', function() {
     var sandbox,
-        orderTaker,
-        mockOrderTaker,
+        typeBuilder,
+        mockInvokerTypeBuilder,
         builder;
 
     beforeEach(function() {
       sandbox = sinon.sandbox.create();
-      orderTaker = new barista.OrderTaker();
-      mockOrderTaker = sandbox.mock(orderTaker);
-      builder = new barista.InvokerBuilder(orderTaker);
+      typeBuilder = new barista.InvokerTypeBuilder();
+      mockInvokerTypeBuilder = sandbox.mock(typeBuilder);
+      builder = new barista.InvokerBuilder(typeBuilder);
     });
 
     afterEach(function() {
-      mockOrderTaker.verify();
+      mockInvokerTypeBuilder.verify();
       sandbox.restore();
     });
 
     it('build() creates perdep invoker and returns', function() {
-      mockOrderTaker.expects("orderPerDependency").withExactArgs('implementation', 'params').once().returns('invoker');
+      mockInvokerTypeBuilder.expects("buildPerDependency").withExactArgs('implementation', 'params').once().returns('invoker');
       assert.equal(builder.build({implementation: 'implementation'}, {type: 'perdependency', name: 'itemName', params: 'params'}), 'invoker');
     });
 
     it('build() creates singleton invoker returns', function() {
-      mockOrderTaker.expects("orderSingleton").withExactArgs('implementation', 'params').once().returns('invoker');
+      mockInvokerTypeBuilder.expects("buildSingleton").withExactArgs('implementation', 'params').once().returns('invoker');
       assert.equal(builder.build({implementation: 'implementation'}, {type: 'singleton', name: 'itemName', params: 'params'}), 'invoker');
     });
 
     it('build() creates not_set invoker and returns', function() {
-      mockOrderTaker.expects("orderNotSet").withExactArgs('implementation', 'params').once().returns('invoker');
+      mockInvokerTypeBuilder.expects("buildNotSet").withExactArgs('implementation', 'params').once().returns('invoker');
       assert.equal(builder.build({implementation: 'implementation'}, {type: 'not_set', name: 'itemName', params: 'params'}), 'invoker');
     });
   });
@@ -1214,7 +1214,7 @@ describe('Barista Tests', function() {
     });
   });
 
-  describe('ObjectBuilder', function() {
+  describe('GeneralBuilder', function() {
     var sandbox,
         childBuilder,
         mockChildBuilder,
@@ -1222,9 +1222,9 @@ describe('Barista Tests', function() {
 
     beforeEach(function() {
       sandbox = sinon.sandbox.create();
-      childBuilder = barista.ObjectBuilder();
+      childBuilder = barista.GeneralBuilder();
       mockChildBuilder = sandbox.mock(childBuilder);
-      builder = new barista.ObjectBuilder(childBuilder);
+      builder = new barista.GeneralBuilder(childBuilder);
     });
 
     afterEach(function() {

@@ -254,8 +254,8 @@ var barista = function() {
     };
   }
 
-  function ResolvedParam(key) {
-    var values = key.split('.');
+  function ResolveKey(id) {
+    var values = id.split('.');
     return {
       namespace: values[0],
       item: values[1],
@@ -287,8 +287,8 @@ var barista = function() {
             return param.value();
           },
           resolve: function(param) {
-            var resolveParam = new ResolvedParam(param.value),
-                invoker = invokersMapper.find(resolveParam.namespace, resolveParam.item, resolveParam.entry);
+            var key = new ResolveKey(param.value),
+                invoker = invokersMapper.find(key.namespace, key.item, key.entry);
             return invoker ? invoker() : null;
           },
           array: function(param) {
@@ -306,7 +306,7 @@ var barista = function() {
     return me;
   }
 
-  function Maker(argsOverrider, injectionResolver) {
+  function Factory(argsOverrider, injectionResolver) {
     function make(implementation, params, args) {
       var obj = Object.create(implementation.prototype),
           ret = implementation.apply(obj, injectionResolver.resolve(argsOverrider.override(params, args)));
@@ -318,42 +318,42 @@ var barista = function() {
     };
   }
 
-  function OrderTaker(maker) {
-    function orderPerDependency(implementation, params) {
+  function InvokerTypeBuilder(factory) {
+    function buildPerDependency(implementation, params) {
       return function() {
-        return maker.make(implementation, params, arguments);
+        return factory.make(implementation, params, arguments);
       };
     }
 
-    function orderSingleton(implementation, params) {
+    function buildSingleton(implementation, params) {
       var instance;
       return function() {
         if (instance) {
           return instance;
         }
-        instance = maker.make(implementation, params, arguments);
+        instance = factory.make(implementation, params, arguments);
         return instance;
       };
     }
 
-    function orderNotSet(implementation) {
+    function buildNotSet(implementation) {
       return function() {
         throw ('using barista in requireReg mode requires that you register "' + implementation + '" and specify singleton or perDependency');
       };
     }
 
     return {
-      orderPerDependency: orderPerDependency,
-      orderSingleton: orderSingleton,
-      orderNotSet: orderNotSet
+      buildPerDependency: buildPerDependency,
+      buildSingleton: buildSingleton,
+      buildNotSet: buildNotSet
     };
   }
 
-  function InvokerBuilder(orderTaker) {
+  function InvokerBuilder(typeBuilder) {
     var typeMap = {
-      'perdependency': function(i, p) { return orderTaker.orderPerDependency(i, p); },
-      'singleton': function(i, p) { return orderTaker.orderSingleton(i, p); },
-      'not_set': function(i, p) { return orderTaker.orderNotSet(i, p); }
+      'perdependency': function(i, p) { return typeBuilder.buildPerDependency(i, p); },
+      'singleton': function(i, p) { return typeBuilder.buildSingleton(i, p); },
+      'not_set': function(i, p) { return typeBuilder.buildNotSet(i, p); }
     };
 
     function build(prop, entry) {
@@ -389,8 +389,8 @@ var barista = function() {
 
   function Resolver(invokersMapper) {
     this.resolve = function(id) {
-      var resolveParam = new ResolvedParam(id),
-          invoker = invokersMapper.find(resolveParam.namespace, resolveParam.item, resolveParam.entry);
+      var key = new ResolveKey(id),
+          invoker = invokersMapper.find(key.namespace, key.item, key.entry);
       return invoker ? invoker.apply(null, Array.prototype.slice.call(arguments || []).splice(1)) : null;
     };
   }
@@ -447,7 +447,7 @@ var barista = function() {
       new PropEntriesRegistrarBuilder(
         new InvokerMapBuilder(
           new InvokerBuilder(
-            new OrderTaker(new Maker(
+            new InvokerTypeBuilder(new Factory(
               new ArgsOverrider(new ArgsWrapper()),
               new InjectionResolver(new ParamResolver(invokersMapper, newInjectionResolver))
             )),
@@ -485,7 +485,7 @@ var barista = function() {
     };
   }
 
-  function ObjectBuilder(childBuilder) {
+  function GeneralBuilder(childBuilder) {
     function build(registrations, invokers) {
       var namespace = {};
       var name;
@@ -511,7 +511,7 @@ var barista = function() {
     registerFunc(included.registrations);
 
     return {
-      namespaces: new ObjectBuilder(new ObjectBuilder(new PropBuilder())).build(included.registrations, invokers),
+      namespaces: new GeneralBuilder(new GeneralBuilder(new PropBuilder())).build(included.registrations, invokers),
       registered: invokers
     };
   }
@@ -529,11 +529,11 @@ var barista = function() {
     InvokersMapper: InvokersMapper,
     ArgsWrapper: ArgsWrapper,
     ArgsOverrider: ArgsOverrider,
-    ResolvedParam: ResolvedParam,
+    ResolveKey: ResolveKey,
     InjectionResolver: InjectionResolver,
     ParamResolver: ParamResolver,
-    Maker: Maker,
-    OrderTaker: OrderTaker,
+    Factory: Factory,
+    InvokerTypeBuilder: InvokerTypeBuilder,
     InvokerBuilder: InvokerBuilder,
     IncludedNamespace: IncludedNamespace,
     InvokerMapBuilder: InvokerMapBuilder,
@@ -543,6 +543,6 @@ var barista = function() {
     NamespaceRegistrarBuilder: NamespaceRegistrarBuilder,
     NamespaceIncluder: NamespaceIncluder,
     PropBuilder: PropBuilder,
-    ObjectBuilder: ObjectBuilder
+    GeneralBuilder: GeneralBuilder
   };
 }();
