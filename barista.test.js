@@ -1212,11 +1212,11 @@ describe('barista Tests', function() {
     });
   });
 
-  describe('PropBuilder', function() {
+  describe('OutputPropBuilder', function() {
     var builder;
 
     beforeEach(function() {
-      builder = new barista.PropBuilder();
+      builder = new barista.OutputPropBuilder();
     });
 
     it('build() when prop is object returns invoker default', function() {
@@ -1233,7 +1233,7 @@ describe('barista Tests', function() {
       assert.equal(builder.build(registration, invokers), 'invoker');
     });
 
-    it('build() when prop is not object returns prop implmentation', function() {
+    it('build() when prop is not object returns prop implementation', function() {
       var registration = {
         prop: {
           isObject: function() {
@@ -1246,7 +1246,7 @@ describe('barista Tests', function() {
     });
   });
 
-  describe('GeneralBuilder', function() {
+  describe('OutputBuilder', function() {
     var sandbox,
         childBuilder,
         mockChildBuilder,
@@ -1254,9 +1254,9 @@ describe('barista Tests', function() {
 
     beforeEach(function() {
       sandbox = sinon.sandbox.create();
-      childBuilder = barista.GeneralBuilder();
+      childBuilder = barista.OutputBuilder();
       mockChildBuilder = sandbox.mock(childBuilder);
-      builder = new barista.GeneralBuilder(childBuilder);
+      builder = new barista.OutputBuilder(childBuilder);
     });
 
     afterEach(function() {

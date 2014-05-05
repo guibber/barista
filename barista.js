@@ -476,7 +476,7 @@ var barista = function() {
     return new NamespaceIncluder(new NamespaceNameGenerator(), newNamespaceRegistrarBuilder(new InvokersMapper(invokers), config));
   }
 
-  function PropBuilder() {
+  function OutputPropBuilder() {
     function build(registration, invokers) {
       return registration.prop.isObject() ? invokers._default : registration.prop.implementation;
     }
@@ -485,7 +485,7 @@ var barista = function() {
     };
   }
 
-  function GeneralBuilder(childBuilder) {
+  function OutputBuilder(childBuilder) {
     function build(registrations, invokers) {
       var namespace = {};
       var name;
@@ -511,7 +511,7 @@ var barista = function() {
     registerFunc(included.registrations);
 
     return {
-      namespaces: new GeneralBuilder(new GeneralBuilder(new PropBuilder())).build(included.registrations, invokers),
+      namespaces: new OutputBuilder(new OutputBuilder(new OutputPropBuilder())).build(included.registrations, invokers),
       registered: invokers
     };
   }
@@ -542,7 +542,7 @@ var barista = function() {
     PropEntriesRegistrarBuilder: PropEntriesRegistrarBuilder,
     NamespaceRegistrarBuilder: NamespaceRegistrarBuilder,
     NamespaceIncluder: NamespaceIncluder,
-    PropBuilder: PropBuilder,
-    GeneralBuilder: GeneralBuilder
+    OutputPropBuilder: OutputPropBuilder,
+    OutputBuilder: OutputBuilder
   };
 }();
