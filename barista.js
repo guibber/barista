@@ -222,31 +222,21 @@ var barista = function() {
     };
   }
 
-  function ArgsWrapper() {
-    function buildParam(arg) {
-      return newParam('value', arg);
-    }
-
-    function wrap(args) {
-      args = args || [];
-      return args.map(buildParam);
-    }
-
-    return {
-      wrap: wrap
-    };
-  }
-
-  function ArgsOverrider(argsWrapper) {
+  function ArgsOverrider(injectionResolver, paramResolver) {
     function override(params, args) {
       params = params || [];
-      args = argsWrapper.wrap(Array.prototype.slice.call(args || []));
-      var i,
-          merged = new Array(params.length > args.length ? params.length : args.length);
-      for (i = 0; i < merged.length; ++i) {
-        merged[i] = args[i] || params[i];
+      var i;
+      if (!args || args.length === 0) {
+        return params.length > 0 ? injectionResolver.resolve(params) : [];
       }
-      return merged;
+      if (params.length <= args.length) {
+        return args;
+      }
+      args = Array.prototype.slice.call(args);
+      for (i = args.length; i < params.length; ++i) {
+        args.push(paramResolver.resolve(params[i]));
+      }
+      return args;
     }
 
     return {
@@ -306,10 +296,11 @@ var barista = function() {
     return me;
   }
 
-  function Factory(argsOverrider, injectionResolver) {
+  function Factory(argsOverrider) {
     function make(implementation, params, args) {
       var obj = Object.create(implementation.prototype),
-          ret = implementation.apply(obj, injectionResolver.resolve(argsOverrider.override(params, args)));
+          applyArgs = argsOverrider.override(params, args),
+          ret = implementation.apply(obj, applyArgs);
       return ret && (Object(ret) === ret || typeof(ret) !== 'object') ? ret : obj;
     }
 
@@ -443,13 +434,13 @@ var barista = function() {
   }
 
   function newNamespaceRegistrarBuilder(invokersMapper, config) {
+    var paramResolver = new ParamResolver(invokersMapper, newInjectionResolver);
     return new NamespaceRegistrarBuilder(new PropertyExtractor(newProperty),
       new PropEntriesRegistrarBuilder(
         new InvokerMapBuilder(
           new InvokerBuilder(
             new InvokerTypeBuilder(new Factory(
-              new ArgsOverrider(new ArgsWrapper()),
-              new InjectionResolver(new ParamResolver(invokersMapper, newInjectionResolver))
+              new ArgsOverrider(new InjectionResolver(paramResolver), paramResolver)
             )),
             invokersMapper
           ),
@@ -527,7 +518,6 @@ var barista = function() {
     Property: Property,
     PropertyExtractor: PropertyExtractor,
     InvokersMapper: InvokersMapper,
-    ArgsWrapper: ArgsWrapper,
     ArgsOverrider: ArgsOverrider,
     ResolveKey: ResolveKey,
     InjectionResolver: InjectionResolver,

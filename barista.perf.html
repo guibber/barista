@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>barista Performance Tests</title>
+  <link rel="stylesheet" media="all" href="include/mocha.css">
+</head>
+<body>
+  <div id="mocha"><p><a href=".">barista Index</a></p></div>
+  <div id="messages"></div>
+  <div id="fixtures"></div>
+  <script type="text/javascript" src="include/mocha.js"></script>
+  <script type="text/javascript" src="include/chai.js"></script>
+  <script type="text/javascript" src="include/sinon.js"></script>
+  <script type="text/javascript" src="barista.js"></script>
+  <script type="text/javascript">
+    mocha.setup('bdd');
+    var assert = chai.assert;
+    var expect = chai.expect;
+    var should = chai.should();
+    var match = sinon.match;
+    
+    var copy = function(original) {
+      return JSON.parse(JSON.stringify(original));
+    };
+  </script>
+  <script type="text/javascript" src="barista.perf.js"></script>
+  <script type="text/javascript">
+    mocha.checkLeaks();
+    mocha.run();
+  </script>
+</body>
+</html>

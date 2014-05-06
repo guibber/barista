@@ -411,90 +411,96 @@ describe('barista Tests', function() {
     });
   });
 
-  describe('ArgsWrapper', function() {
-    it('wrap() with null args returns empty array', function() {
-      assert.deepEqual(new barista.ArgsWrapper().wrap(), []);
-    });
-
-    it('wrap() with empty args returns empty array', function() {
-      assert.deepEqual(new barista.ArgsWrapper().wrap([]), []);
-    });
-
-    it('wrap() with one arg returns wrapped arg', function() {
-      assert.deepEqual(new barista.ArgsWrapper().wrap([1]), [{type: 'value', value: 1}]);
-    });
-
-    it('wrap() with many args returns wrapped args', function() {
-      assert.deepEqual(new barista.ArgsWrapper().wrap([1, 2, 3]), [
-        {type: 'value', value: 1},
-        {type: 'value', value: 2},
-        {type: 'value', value: 3}]);
-    });
-  });
-
   describe('ArgsOverrider', function() {
-    var overrider;
+    var sandbox,
+        injectionResolver,
+        mockInjectionResolver,
+        paramResolver,
+        mockParamResolver,
+        overrider;
 
     beforeEach(function() {
-      overrider = new barista.ArgsOverrider(new barista.ArgsWrapper());
+      sandbox = sinon.sandbox.create();
+      injectionResolver = new barista.InjectionResolver();
+      mockInjectionResolver = sandbox.mock(injectionResolver);
+      paramResolver = new barista.ParamResolver();
+      mockParamResolver = sandbox.mock(paramResolver);
+      overrider = new barista.ArgsOverrider(injectionResolver, paramResolver);
+    });
+
+    afterEach(function() {
+      mockInjectionResolver.verify();
+      mockParamResolver.verify();
+      sandbox.restore();
     });
 
     it('override() with null args and null params returns empty array', function() {
+      mockInjectionResolver.expects('resolve').never();
+      mockParamResolver.expects('resolve').never();
       assert.deepEqual(overrider.override(), []);
     });
 
     it('override() with empty args and empty params returns empty array', function() {
+      mockInjectionResolver.expects('resolve').never();
+      mockParamResolver.expects('resolve').never();
       assert.deepEqual(overrider.override([], []), []);
     });
 
-    it('override() with one arg and empty params returns wrapped arg', function() {
-      assert.deepEqual(overrider.override([], ['arg1']), [{type: 'value', value: 'arg1'}]);
+    it('override() with one arg and empty params returns arg', function() {
+      mockInjectionResolver.expects('resolve').never();
+      mockParamResolver.expects('resolve').never();
+      assert.deepEqual(overrider.override([], ['arg1']), ['arg1']);
     });
 
-    it('override() with many args and empty params returns wrapped args', function() {
-      assert.deepEqual(overrider.override([], ['arg1', 'arg2', 'arg3']), [
-        {type: 'value', value: 'arg1'},
-        {type: 'value', value: 'arg2'},
-        {type: 'value', value: 'arg3'}]);
+    it('override() with many args and empty params returns args', function() {
+      mockInjectionResolver.expects('resolve').never();
+      mockParamResolver.expects('resolve').never();
+      assert.deepEqual(overrider.override([], ['arg1', 'arg2', 'arg3']), ['arg1', 'arg2', 'arg3']);
     });
 
-    it('override() with empty args and one param returns param', function() {
-      assert.deepEqual(overrider.override(['param'], []), ['param']);
+    it('override() with empty args and one param returns resolved param', function() {
+      mockInjectionResolver.expects('resolve').once().withExactArgs(['param']).returns('resolvedParamInArray');
+      mockParamResolver.expects('resolve').never();
+      assert.deepEqual(overrider.override(['param'], []), 'resolvedParamInArray');
     });
 
-    it('override() with empty args and many params returns params', function() {
-      assert.deepEqual(overrider.override(['param1', 'param2', 'param3'], []), ['param1', 'param2', 'param3']);
+    it('override() with empty args and many params returns resolved params', function() {
+      mockInjectionResolver.expects('resolve').once().withExactArgs(['param1', 'param2', 'param3']).returns('resolvedParamsInArray');
+      mockParamResolver.expects('resolve').never();
+      assert.deepEqual(overrider.override(['param1', 'param2', 'param3'], []), 'resolvedParamsInArray');
     });
 
-    it('override() with one arg and many params returns overriden arg and remainder of params', function() {
+    it('override() with one arg and many params returns overriden arg and remainder of resolved params', function() {
+      mockParamResolver.expects('resolve').once().withExactArgs('param2').returns('resolvedParam2');
+      mockParamResolver.expects('resolve').once().withExactArgs('param3').returns('resolvedParam3');
+      mockInjectionResolver.expects('resolve').never();
       assert.deepEqual(overrider.override(['param1', 'param2', 'param3'], ['arg1']), [
-        {type: 'value', value: 'arg1'},
-        'param2',
-        'param3'
+        'arg1',
+        'resolvedParam2',
+        'resolvedParam3'
       ]);
     });
 
     it('override() with many args and many params returns overriden args', function() {
-      assert.deepEqual(overrider.override(['param1', 'param2', 'param3'], ['arg1', 'arg2', 'arg3']), [
-        {type: 'value', value: 'arg1'},
-        {type: 'value', value: 'arg2'},
-        {type: 'value', value: 'arg3'}]);
+      mockInjectionResolver.expects('resolve').never();
+      mockParamResolver.expects('resolve').never();
+      assert.deepEqual(overrider.override(['param1', 'param2', 'param3'], ['arg1', 'arg2', 'arg3']), ['arg1', 'arg2', 'arg3']);
     });
 
-    it('override() with less args and many params returns overriden args and remaining param', function() {
+    it('override() with less args and many params returns overriden args and remaining resolved param', function() {
+      mockParamResolver.expects('resolve').once().withExactArgs('param3').returns('resolvedParam3');
+      mockInjectionResolver.expects('resolve').never();
       assert.deepEqual(overrider.override(['param1', 'param2', 'param3'], ['arg1', 'arg2']), [
-        {type: 'value', value: 'arg1'},
-        {type: 'value', value: 'arg2'},
-        'param3'
+        'arg1',
+        'arg2',
+        'resolvedParam3'
       ]);
     });
 
     it('override() with more args and many params returns all args', function() {
-      assert.deepEqual(overrider.override(['param1', 'param2', 'param3'], ['arg1', 'arg2', 'arg3', 'arg4']), [
-        {type: 'value', value: 'arg1'},
-        {type: 'value', value: 'arg2'},
-        {type: 'value', value: 'arg3'},
-        {type: 'value', value: 'arg4'}]);
+      mockInjectionResolver.expects('resolve').never();
+      mockParamResolver.expects('resolve').never();
+      assert.deepEqual(overrider.override(['param1', 'param2', 'param3'], ['arg1', 'arg2', 'arg3', 'arg4']), ['arg1', 'arg2', 'arg3', 'arg4']);
     });
   });
 
@@ -609,23 +615,18 @@ describe('barista Tests', function() {
 
   describe('Factory', function() {
     var sandbox,
-        injectionResolver,
-        mockInjectionResolver,
         argsOverrider,
         mockArgsOverrider,
         factory;
 
     beforeEach(function() {
       sandbox = sinon.sandbox.create();
-      injectionResolver = new barista.InjectionResolver();
-      mockInjectionResolver = sandbox.mock(injectionResolver);
       argsOverrider = new barista.ArgsOverrider();
       mockArgsOverrider = sandbox.mock(argsOverrider);
-      factory = new barista.Factory(argsOverrider, injectionResolver);
+      factory = new barista.Factory(argsOverrider);
     });
 
     afterEach(function() {
-      mockInjectionResolver.verify();
       mockArgsOverrider.verify();
       sandbox.restore();
     });
@@ -634,10 +635,9 @@ describe('barista Tests', function() {
       var ObjectDef = function(arg1) {
         return {value1: arg1};
       },
-          expected = new ObjectDef('resolved1'),
+          expected = new ObjectDef('applyArgs'),
           actual;
-      mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns('overriden_params');
-      mockInjectionResolver.expects('resolve').once().withExactArgs('overriden_params').returns(['resolved1']);
+      mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns(['applyArgs']);
 
       actual = factory.make(ObjectDef, ['param1'], ['arg1']);
 
@@ -650,10 +650,9 @@ describe('barista Tests', function() {
       function ObjectDef(arg1) {
         return {value1: arg1};
       }
-      var expected = new ObjectDef('resolved1'),
+      var expected = new ObjectDef('applyArgs'),
           actual;
-      mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns('overriden_params');
-      mockInjectionResolver.expects('resolve').once().withExactArgs('overriden_params').returns(['resolved1']);
+      mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns(['applyArgs']);
 
       actual = factory.make(ObjectDef, ['param1'], ['arg1']);
 
@@ -666,10 +665,9 @@ describe('barista Tests', function() {
       var ObjectDef = function(arg1) {
         this.value1 = arg1;
       },
-          expected = new ObjectDef('resolved1'),
+          expected = new ObjectDef('applyArgs'),
           actual;
-      mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns('overriden_params');
-      mockInjectionResolver.expects('resolve').once().withExactArgs('overriden_params').returns(['resolved1']);
+      mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns(['applyArgs']);
 
       actual = factory.make(ObjectDef, ['param1'], ['arg1']);
 
@@ -682,10 +680,9 @@ describe('barista Tests', function() {
       function ObjectDef(arg1) {
         this.value1 = arg1;
       }
-      var expected = new ObjectDef('resolved1'),
+      var expected = new ObjectDef('applyArgs'),
           actual;
-      mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns('overriden_params');
-      mockInjectionResolver.expects('resolve').once().withExactArgs('overriden_params').returns(['resolved1']);
+      mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns(['applyArgs']);
 
       actual = factory.make(ObjectDef, ['param1'], ['arg1']);
 
@@ -701,17 +698,16 @@ describe('barista Tests', function() {
       ObjectDef.prototype.getValue = function() {
         return this.value1 + 'X';
       };
-      var expected = new ObjectDef('resolved1'),
+      var expected = new ObjectDef('applyArgs'),
           actual;
-      mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns('overriden_params');
-      mockInjectionResolver.expects('resolve').once().withExactArgs('overriden_params').returns(['resolved1']);
+      mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns(['applyArgs']);
 
       actual = factory.make(ObjectDef, ['param1'], ['arg1']);
 
-      assert.equal(actual.value1, 'resolved1');
+      assert.equal(actual.value1, 'applyArgs');
       assert.equal(actual.value1, expected.value1);
       assert.equal(actual.prototype, expected.prototype);
-      assert.equal(actual.getValue(), 'resolved1X');
+      assert.equal(actual.getValue(), 'applyArgsX');
       assert.equal(actual.getValue(), expected.getValue());
       assert.deepEqual(actual, expected);
     });
@@ -723,17 +719,16 @@ describe('barista Tests', function() {
       ObjectDef.prototype.getValue = function() {
         return this.value1 + 'X';
       };
-      var expected = new ObjectDef('resolved1'),
+      var expected = new ObjectDef('applyArgs'),
           actual;
-      mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns('overriden_params');
-      mockInjectionResolver.expects('resolve').once().withExactArgs('overriden_params').returns(['resolved1']);
+      mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns(['applyArgs']);
 
       actual = factory.make(ObjectDef, ['param1'], ['arg1']);
 
-      assert.equal(actual.value1, 'resolved1');
+      assert.equal(actual.value1, 'applyArgs');
       assert.equal(actual.value1, expected.value1);
       assert.equal(actual.prototype, expected.prototype);
-      assert.equal(actual.getValue(), 'resolved1X');
+      assert.equal(actual.getValue(), 'applyArgsX');
       assert.equal(actual.getValue(), expected.getValue());
       assert.deepEqual(actual, expected);
     });
@@ -751,17 +746,16 @@ describe('barista Tests', function() {
       ObjectDef.prototype = Object.create(ObjectDefSuper.prototype);
       ObjectDef.prototype.constructor = ObjectDef;
 
-      var expected = new ObjectDef('resolved1'),
+      var expected = new ObjectDef('applyArgs'),
           actual;
-      mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns('overriden_params');
-      mockInjectionResolver.expects('resolve').once().withExactArgs('overriden_params').returns(['resolved1']);
+      mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns(['applyArgs']);
 
       actual = factory.make(ObjectDef, ['param1'], ['arg1']);
 
-      assert.equal(actual.value1, 'resolved1');
+      assert.equal(actual.value1, 'applyArgs');
       assert.equal(actual.value1, expected.value1);
       assert.equal(actual.prototype, expected.prototype);
-      assert.equal(actual.getValue(), 'resolved1X');
+      assert.equal(actual.getValue(), 'applyArgsX');
       assert.equal(actual.getValue(), expected.getValue());
       assert.deepEqual(actual, expected);
     });
@@ -771,10 +765,9 @@ describe('barista Tests', function() {
         return args1;
       };
 
-      mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns('overriden_params');
-      mockInjectionResolver.expects('resolve').once().withExactArgs('overriden_params').returns(['resolved1']);
+      mockArgsOverrider.expects('override').once().withExactArgs(['param1'], ['arg1']).returns(['applyArgs']);
 
-      assert.equal(factory.make(someFunc, ['param1'], ['arg1']), 'resolved1');
+      assert.equal(factory.make(someFunc, ['param1'], ['arg1']), 'applyArgs');
     });
   });
 
