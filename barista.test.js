@@ -854,7 +854,7 @@ describe('barista Tests', function() {
     });
   });
 
-  describe('ItemMapBuilder', function() {
+  describe('InvokerMapBuilder', function() {
     var sandbox,
         invokersMapper,
         mockInvokersMapper,
