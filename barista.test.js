@@ -129,7 +129,7 @@ describe('barista Tests', function() {
     });
   });
 
-  describe('EntryDefaulter', function() {
+  describe('EntryBuilder', function() {
     var sandbox,
         stubNewEntryFunc,
         defaulter;
@@ -144,18 +144,18 @@ describe('barista Tests', function() {
       sandbox.restore();
     });
 
-    it('getDefaultedEntry() return default with requireReg false returns perDependency type', function() {
-      defaulter = new barista.EntryDefaulter(stubNewEntryFunc);
-      assert.deepEqual(defaulter.getDefaultedEntry(), {
+    it('build() return default with requireReg false returns perDependency type', function() {
+      defaulter = new barista.EntryBuilder(stubNewEntryFunc);
+      assert.deepEqual(defaulter.build(), {
         type: 'perdependency',
         name: '_default',
         params: []
       });
     });
 
-    it('getDefaultedEntry() return default with requireReg true returns not_set type', function() {
-      defaulter = new barista.EntryDefaulter(stubNewEntryFunc, true);
-      assert.deepEqual(defaulter.getDefaultedEntry(), {
+    it('build() return default with requireReg true returns not_set type', function() {
+      defaulter = new barista.EntryBuilder(stubNewEntryFunc, true);
+      assert.deepEqual(defaulter.build(), {
         type: 'not_set',
         name: '_default',
         params: []
@@ -165,19 +165,19 @@ describe('barista Tests', function() {
 
   describe('Entries', function() {
     var sandbox,
-        entryDefaulter,
-        mockEntryDefaulter,
+        entryBuilder,
+        mockEntryBuilder,
         entries;
 
     beforeEach(function() {
       sandbox = sinon.sandbox.create();
-      entryDefaulter = new barista.EntryDefaulter();
-      mockEntryDefaulter = sandbox.mock(entryDefaulter);
-      entries = new barista.Entries(entryDefaulter);
+      entryBuilder = new barista.EntryBuilder();
+      mockEntryBuilder = sandbox.mock(entryBuilder);
+      entries = new barista.Entries(entryBuilder);
     });
 
     afterEach(function() {
-      mockEntryDefaulter.verify();
+      mockEntryBuilder.verify();
       sandbox.restore();
     });
 
@@ -192,7 +192,7 @@ describe('barista Tests', function() {
     });
 
     it('withEntry() creates entry includes in entries array and returns entry', function() {
-      mockEntryDefaulter.expects('getDefaultedEntry').once().returns('entry');
+      mockEntryBuilder.expects('build').once().returns('entry');
       assert.equal(entries.withEntry(), 'entry');
       assert.deepEqual(entries.getEntries(), ['entry']);
     });
@@ -413,59 +413,59 @@ describe('barista Tests', function() {
 
   describe('ArgsOverrider', function() {
     var sandbox,
-        injectionResolver,
-        mockInjectionResolver,
+        paramsResolver,
+        mockParamsResolver,
         paramResolver,
         mockParamResolver,
         overrider;
 
     beforeEach(function() {
       sandbox = sinon.sandbox.create();
-      injectionResolver = new barista.InjectionResolver();
-      mockInjectionResolver = sandbox.mock(injectionResolver);
+      paramsResolver = new barista.ParamsResolver();
+      mockParamsResolver = sandbox.mock(paramsResolver);
       paramResolver = new barista.ParamResolver();
       mockParamResolver = sandbox.mock(paramResolver);
-      overrider = new barista.ArgsOverrider(injectionResolver, paramResolver);
+      overrider = new barista.ArgsOverrider(paramsResolver, paramResolver);
     });
 
     afterEach(function() {
-      mockInjectionResolver.verify();
+      mockParamsResolver.verify();
       mockParamResolver.verify();
       sandbox.restore();
     });
 
     it('override() with null args and null params returns empty array', function() {
-      mockInjectionResolver.expects('resolve').never();
+      mockParamsResolver.expects('resolve').never();
       mockParamResolver.expects('resolve').never();
       assert.deepEqual(overrider.override(), []);
     });
 
     it('override() with empty args and empty params returns empty array', function() {
-      mockInjectionResolver.expects('resolve').never();
+      mockParamsResolver.expects('resolve').never();
       mockParamResolver.expects('resolve').never();
       assert.deepEqual(overrider.override([], []), []);
     });
 
     it('override() with one arg and empty params returns arg', function() {
-      mockInjectionResolver.expects('resolve').never();
+      mockParamsResolver.expects('resolve').never();
       mockParamResolver.expects('resolve').never();
       assert.deepEqual(overrider.override([], ['arg1']), ['arg1']);
     });
 
     it('override() with many args and empty params returns args', function() {
-      mockInjectionResolver.expects('resolve').never();
+      mockParamsResolver.expects('resolve').never();
       mockParamResolver.expects('resolve').never();
       assert.deepEqual(overrider.override([], ['arg1', 'arg2', 'arg3']), ['arg1', 'arg2', 'arg3']);
     });
 
     it('override() with empty args and one param returns resolved param', function() {
-      mockInjectionResolver.expects('resolve').once().withExactArgs(['param']).returns('resolvedParamInArray');
+      mockParamsResolver.expects('resolve').once().withExactArgs(['param']).returns('resolvedParamInArray');
       mockParamResolver.expects('resolve').never();
       assert.deepEqual(overrider.override(['param'], []), 'resolvedParamInArray');
     });
 
     it('override() with empty args and many params returns resolved params', function() {
-      mockInjectionResolver.expects('resolve').once().withExactArgs(['param1', 'param2', 'param3']).returns('resolvedParamsInArray');
+      mockParamsResolver.expects('resolve').once().withExactArgs(['param1', 'param2', 'param3']).returns('resolvedParamsInArray');
       mockParamResolver.expects('resolve').never();
       assert.deepEqual(overrider.override(['param1', 'param2', 'param3'], []), 'resolvedParamsInArray');
     });
@@ -473,7 +473,7 @@ describe('barista Tests', function() {
     it('override() with one arg and many params returns overriden arg and remainder of resolved params', function() {
       mockParamResolver.expects('resolve').once().withExactArgs('param2').returns('resolvedParam2');
       mockParamResolver.expects('resolve').once().withExactArgs('param3').returns('resolvedParam3');
-      mockInjectionResolver.expects('resolve').never();
+      mockParamsResolver.expects('resolve').never();
       assert.deepEqual(overrider.override(['param1', 'param2', 'param3'], ['arg1']), [
         'arg1',
         'resolvedParam2',
@@ -482,14 +482,14 @@ describe('barista Tests', function() {
     });
 
     it('override() with many args and many params returns overriden args', function() {
-      mockInjectionResolver.expects('resolve').never();
+      mockParamsResolver.expects('resolve').never();
       mockParamResolver.expects('resolve').never();
       assert.deepEqual(overrider.override(['param1', 'param2', 'param3'], ['arg1', 'arg2', 'arg3']), ['arg1', 'arg2', 'arg3']);
     });
 
     it('override() with less args and many params returns overriden args and remaining resolved param', function() {
       mockParamResolver.expects('resolve').once().withExactArgs('param3').returns('resolvedParam3');
-      mockInjectionResolver.expects('resolve').never();
+      mockParamsResolver.expects('resolve').never();
       assert.deepEqual(overrider.override(['param1', 'param2', 'param3'], ['arg1', 'arg2']), [
         'arg1',
         'arg2',
@@ -498,7 +498,7 @@ describe('barista Tests', function() {
     });
 
     it('override() with more args and many params returns all args', function() {
-      mockInjectionResolver.expects('resolve').never();
+      mockParamsResolver.expects('resolve').never();
       mockParamResolver.expects('resolve').never();
       assert.deepEqual(overrider.override(['param1', 'param2', 'param3'], ['arg1', 'arg2', 'arg3', 'arg4']), ['arg1', 'arg2', 'arg3', 'arg4']);
     });
@@ -520,7 +520,7 @@ describe('barista Tests', function() {
     });
   });
 
-  describe('InjectionResolver', function() {
+  describe('ParamsResolver', function() {
     var sandbox,
         paramResolver,
         mockParamResolver,
@@ -530,7 +530,7 @@ describe('barista Tests', function() {
       sandbox = sinon.sandbox.create();
       paramResolver = new barista.ParamResolver();
       mockParamResolver = sandbox.mock(paramResolver);
-      resolver = new barista.InjectionResolver(paramResolver);
+      resolver = new barista.ParamsResolver(paramResolver);
     });
 
     afterEach(function() {
@@ -559,19 +559,19 @@ describe('barista Tests', function() {
     var sandbox,
         invokersMapper,
         mockInvokersMapper,
-        stubNewInjectionResolver,
-        injectionResolver,
-        mockInjectionResolver,
+        stubNewParamsResolver,
+        paramsResolver,
+        mockParamsResolver,
         resolver;
 
     beforeEach(function() {
       sandbox = sinon.sandbox.create();
       invokersMapper = new barista.InvokersMapper();
       mockInvokersMapper = sandbox.mock(invokersMapper);
-      stubNewInjectionResolver = sandbox.stub();
-      injectionResolver = new barista.InjectionResolver();
-      mockInjectionResolver = sandbox.mock(injectionResolver);
-      resolver = new barista.ParamResolver(invokersMapper, stubNewInjectionResolver);
+      stubNewParamsResolver = sandbox.stub();
+      paramsResolver = new barista.ParamsResolver();
+      mockParamsResolver = sandbox.mock(paramsResolver);
+      resolver = new barista.ParamResolver(invokersMapper, stubNewParamsResolver);
     });
 
     afterEach(function() {
@@ -606,8 +606,8 @@ describe('barista Tests', function() {
         {type: 'value', value: 'value'},
         {type: 'resolve', value: 'ns.Object2'}
       ];
-      stubNewInjectionResolver.withArgs(resolver).returns(injectionResolver);
-      mockInjectionResolver.expects('resolve').once().withExactArgs(paramArray).returns('array_resolved');
+      stubNewParamsResolver.withArgs(resolver).returns(paramsResolver);
+      mockParamsResolver.expects('resolve').once().withExactArgs(paramArray).returns('array_resolved');
 
       assert.equal(resolver.resolve({type: 'array', value: paramArray}), 'array_resolved');
     });

@@ -103,8 +103,8 @@ var barista = function() {
     return new Entry(newParams());
   }
 
-  function EntryDefaulter(newEntryFunc, requireReg) {
-    function getDefaultedEntry() {
+  function EntryBuilder(newEntryFunc, requireReg) {
+    function build() {
       var entry = newEntryFunc();
       entry.type = entry.type || (requireReg ? _not_set : _perdependency);
       entry.name = entry.name || _default;
@@ -112,11 +112,11 @@ var barista = function() {
       return entry;
     }
     return {
-      getDefaultedEntry: getDefaultedEntry
+      build: build
     };
   }
 
-  function Entries(entryDefaulter) {
+  function Entries(entryBuilder) {
     var entries = [];
 
     function reset() {
@@ -128,7 +128,7 @@ var barista = function() {
     }
 
     function withEntry() {
-      var entry = entryDefaulter.getDefaultedEntry();
+      var entry = entryBuilder.build();
       entries.push(entry);
       return entry;
     }
@@ -141,7 +141,7 @@ var barista = function() {
   }
 
   function newEntries(requireReg) {
-    return new Entries(new EntryDefaulter(newEntry, requireReg));
+    return new Entries(new EntryBuilder(newEntry, requireReg));
   }
 
   function Property(namespace, name, implementation) {
@@ -222,12 +222,12 @@ var barista = function() {
     };
   }
 
-  function ArgsOverrider(injectionResolver, paramResolver) {
+  function ArgsOverrider(paramsResolver, paramResolver) {
     function override(params, args) {
       params = params || [];
       var i;
       if (!args || args.length === 0) {
-        return params.length > 0 ? injectionResolver.resolve(params) : [];
+        return params.length > 0 ? paramsResolver.resolve(params) : [];
       }
       if (params.length <= args.length) {
         return args;
@@ -253,7 +253,7 @@ var barista = function() {
     };
   }
 
-  function InjectionResolver(paramResolver) {
+  function ParamsResolver(paramResolver) {
     function resolve(params) {
       return params.map(paramResolver.resolve);
     }
@@ -263,11 +263,11 @@ var barista = function() {
     };
   }
 
-  function newInjectionResolver(paramResolver) {
-    return new InjectionResolver(paramResolver);
+  function newParamsResolver(paramResolver) {
+    return new ParamsResolver(paramResolver);
   }
 
-  function ParamResolver(invokersMapper, newInjectionResolverFunc) {
+  function ParamResolver(invokersMapper, newParamsResolverFunc) {
     var me,
         resolverMap = {
           value: function(param) {
@@ -282,7 +282,7 @@ var barista = function() {
             return invoker ? invoker() : null;
           },
           array: function(param) {
-            return newInjectionResolverFunc(me).resolve(param.value);
+            return newParamsResolverFunc(me).resolve(param.value);
           }
         };
 
@@ -434,13 +434,13 @@ var barista = function() {
   }
 
   function newNamespaceRegistrarBuilder(invokersMapper, config) {
-    var paramResolver = new ParamResolver(invokersMapper, newInjectionResolver);
+    var paramResolver = new ParamResolver(invokersMapper, newParamsResolver);
     return new NamespaceRegistrarBuilder(new PropertyExtractor(newProperty),
       new PropEntriesRegistrarBuilder(
         new InvokerMapBuilder(
           new InvokerBuilder(
             new InvokerTypeBuilder(new Factory(
-              new ArgsOverrider(new InjectionResolver(paramResolver), paramResolver)
+              new ArgsOverrider(new ParamsResolver(paramResolver), paramResolver)
             )),
             invokersMapper
           ),
@@ -513,14 +513,14 @@ var barista = function() {
     Param: Param,
     Params: Params,
     Entry: Entry,
-    EntryDefaulter: EntryDefaulter,
+    EntryBuilder: EntryBuilder,
     Entries: Entries,
     Property: Property,
     PropertyExtractor: PropertyExtractor,
     InvokersMapper: InvokersMapper,
     ArgsOverrider: ArgsOverrider,
     ResolveKey: ResolveKey,
-    InjectionResolver: InjectionResolver,
+    ParamsResolver: ParamsResolver,
     ParamResolver: ParamResolver,
     Factory: Factory,
     InvokerTypeBuilder: InvokerTypeBuilder,
