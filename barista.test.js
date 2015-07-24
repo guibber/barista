@@ -255,7 +255,8 @@ describe('barista Tests', function() {
       invokersOneDefault = {
         ns: {
           item: {
-            '_default': 'invoker'
+            '_default': 'invoker',
+            '_definition': 'implementation'
           }
         }
       };
@@ -263,17 +264,20 @@ describe('barista Tests', function() {
       invokersManyDefault = {
         ns1: {
           item1: {
-            '_default': 'invoker'
+            '_default': 'invoker',
+            '_definition': 'implementation'
           }
         },
         ns2: {
           item2: {
-            '_default': 'invoker'
+            '_default': 'invoker',
+            '_definition': 'implementation'
           }
         },
         ns3: {
           item3: {
-            '_default': 'invoker'
+            '_default': 'invoker',
+            '_definition': 'implementation'
           }
         }
       };
@@ -285,6 +289,10 @@ describe('barista Tests', function() {
 
     it('find() with one item and one entry returns matched invoker', function() {
       assert.equal(new barista.InvokersMapper(invokersOneDefault).find('ns', 'item', '_default'), 'invoker');
+    });
+    
+    it('find() with one item and one entry returns matched implementation', function() {
+      assert.equal(new barista.InvokersMapper(invokersOneDefault).find('ns', 'item', '_definition'), 'implementation');
     });
 
     it('find() with one item and many entries returns matched invoker', function() {
@@ -329,14 +337,14 @@ describe('barista Tests', function() {
       var invokersMapper = new barista.InvokersMapper({});
       invokersOneDefault.ns.item.name = 'invoker';
 
-      invokersMapper.map('ns', 'item', 'name', 'invoker');
+      invokersMapper.map('ns', 'item', 'name', 'invoker', 'implementation');
 
       assert.deepEqual(invokersMapper.invokers, invokersOneDefault);
     });
 
     it('map() with no items and entries, with null entry name defaults entry name to _default and sets', function() {
       var invokersMapper = new barista.InvokersMapper({});
-      invokersMapper.map('ns', 'item', null, 'invoker');
+      invokersMapper.map('ns', 'item', null, 'invoker', 'implementation');
       assert.deepEqual(invokersMapper.invokers, invokersOneDefault);
     });
 
@@ -344,7 +352,7 @@ describe('barista Tests', function() {
       var invokersMapper = new barista.InvokersMapper(copy(invokersOneDefault));
       invokersOneDefault.ns.item.notDefault = 'invoker2';
 
-      invokersMapper.map('ns', 'item', "notDefault", 'invoker2');
+      invokersMapper.map('ns', 'item', "notDefault", 'invoker2', 'implementation');
 
       assert.deepEqual(invokersMapper.invokers, invokersOneDefault);
     });
@@ -356,7 +364,7 @@ describe('barista Tests', function() {
       invokersMapper = new barista.InvokersMapper(map);
       invokersOneDefault.ns.item.existingName = 'overwrittenInvoker';
 
-      invokersMapper.map('ns', 'item', 'existingName', 'overwrittenInvoker');
+      invokersMapper.map('ns', 'item', 'existingName', 'overwrittenInvoker', 'implementation');
 
       assert.deepEqual(invokersMapper.invokers, invokersOneDefault);
     });
@@ -366,11 +374,12 @@ describe('barista Tests', function() {
       invokersOneDefault.ns1 = {
         item1: {
           _default: 'invoker',
+          _definition: 'implementation',
           name: 'invoker'
         }
       };
 
-      invokersMapper.map('ns1', 'item1', 'name', 'invoker');
+      invokersMapper.map('ns1', 'item1', 'name', 'invoker', 'implementation');
 
       assert.deepEqual(invokersMapper.invokers, invokersOneDefault);
     });
@@ -382,7 +391,7 @@ describe('barista Tests', function() {
       invokersMapper = new barista.InvokersMapper(map);
       invokersOneDefault.ns.item.entryname = 'invoker';
 
-      invokersMapper.map('ns', 'item', 'entryname', 'invoker');
+      invokersMapper.map('ns', 'item', 'entryname', 'invoker', 'implementation');
 
       assert.deepEqual(invokersMapper.invokers, invokersOneDefault);
     });
@@ -392,11 +401,12 @@ describe('barista Tests', function() {
       invokersManyDefault.ns = {
         item: {
           _default: 'invoker',
+          _definition: 'implementation',
           entry: 'invoker'
         }
       };
 
-      invokersMapper.map('ns', 'item', 'entry', 'invoker');
+      invokersMapper.map('ns', 'item', 'entry', 'invoker', 'implementation');
 
       assert.deepEqual(invokersMapper.invokers, invokersManyDefault);
     });
@@ -405,7 +415,7 @@ describe('barista Tests', function() {
       var invokersMapper = new barista.InvokersMapper(copy(invokersManyDefault));
       invokersManyDefault.ns1.item1.entry = 'invoker';
 
-      invokersMapper.map('ns1', 'item1', 'entry', 'invoker');
+      invokersMapper.map('ns1', 'item1', 'entry', 'invoker', 'implementation');
 
       assert.deepEqual(invokersMapper.invokers, invokersManyDefault);
     });
@@ -887,10 +897,10 @@ describe('barista Tests', function() {
       var entry = {
         name: '_default'
       },
-          prop = new barista.Property(new barista.IncludedNamespace('nsName'), 'propName');
-
+          prop = new barista.Property(new barista.IncludedNamespace('nsName'), 'propName', 'implementation');
+      
       mockInvokerBuilder.expects('build').once().withExactArgs(prop, entry).returns('invoker');
-      mockInvokersMapper.expects('map').once().withExactArgs('nsName', 'propName', '_default', 'invoker');
+      mockInvokersMapper.expects('map').once().withExactArgs('nsName', 'propName', '_default', 'invoker', 'implementation');
       builder.build(prop, [entry]);
     });
 
@@ -898,11 +908,11 @@ describe('barista Tests', function() {
       var entry = {
         name: 'entryName'
       },
-          prop = new barista.Property(new barista.IncludedNamespace('nsName'), 'propName');
+          prop = new barista.Property(new barista.IncludedNamespace('nsName'), 'propName', 'implementation');
 
       mockInvokerBuilder.expects('build').once().withExactArgs(prop, entry).returns('invoker');
-      mockInvokersMapper.expects('map').once().withExactArgs('nsName', 'propName', 'entryName', 'invoker');
-      mockInvokersMapper.expects('map').once().withExactArgs('nsName', 'propName', '_default', 'invoker');
+      mockInvokersMapper.expects('map').once().withExactArgs('nsName', 'propName', 'entryName', 'invoker', 'implementation');
+      mockInvokersMapper.expects('map').once().withExactArgs('nsName', 'propName', '_default', 'invoker', 'implementation');
       builder.build(prop, [entry]);
     });
 
@@ -912,15 +922,15 @@ describe('barista Tests', function() {
         {name: 'Y'},
         {name: 'Z'}
       ],
-          prop = new barista.Property(new barista.IncludedNamespace('nsName'), 'propName');
+          prop = new barista.Property(new barista.IncludedNamespace('nsName'), 'propName', 'implementation');
 
       mockInvokerBuilder.expects('build').once().withExactArgs(prop, entries[0]).returns('invokerX');
       mockInvokerBuilder.expects('build').once().withExactArgs(prop, entries[1]).returns('invokerY');
       mockInvokerBuilder.expects('build').once().withExactArgs(prop, entries[2]).returns('invokerZ');
-      mockInvokersMapper.expects('map').once().withExactArgs('nsName', 'propName', 'X', 'invokerX');
-      mockInvokersMapper.expects('map').once().withExactArgs('nsName', 'propName', 'Y', 'invokerY');
-      mockInvokersMapper.expects('map').once().withExactArgs('nsName', 'propName', 'Z', 'invokerZ');
-      mockInvokersMapper.expects('map').once().withExactArgs('nsName', 'propName', '_default', 'invokerX');
+      mockInvokersMapper.expects('map').once().withExactArgs('nsName', 'propName', 'X', 'invokerX', 'implementation');
+      mockInvokersMapper.expects('map').once().withExactArgs('nsName', 'propName', 'Y', 'invokerY', 'implementation');
+      mockInvokersMapper.expects('map').once().withExactArgs('nsName', 'propName', 'Z', 'invokerZ', 'implementation');
+      mockInvokersMapper.expects('map').once().withExactArgs('nsName', 'propName', '_default', 'invokerX', 'implementation');
 
       builder.build(prop, entries);
     });
@@ -931,14 +941,14 @@ describe('barista Tests', function() {
         {name: 'X'},
         {name: 'Y'}
       ],
-          prop = new barista.Property(new barista.IncludedNamespace('nsName'), 'propName');
+          prop = new barista.Property(new barista.IncludedNamespace('nsName'), 'propName', 'implementation');
 
       mockInvokerBuilder.expects('build').once().withExactArgs(prop, entries[0]).returns('invoker');
       mockInvokerBuilder.expects('build').once().withExactArgs(prop, entries[1]).returns('invokerX');
       mockInvokerBuilder.expects('build').once().withExactArgs(prop, entries[2]).returns('invokerY');
-      mockInvokersMapper.expects('map').once().withExactArgs('nsName', 'propName', '_default', 'invoker');
-      mockInvokersMapper.expects('map').once().withExactArgs('nsName', 'propName', 'X', 'invokerX');
-      mockInvokersMapper.expects('map').once().withExactArgs('nsName', 'propName', 'Y', 'invokerY');
+      mockInvokersMapper.expects('map').once().withExactArgs('nsName', 'propName', '_default', 'invoker', 'implementation');
+      mockInvokersMapper.expects('map').once().withExactArgs('nsName', 'propName', 'X', 'invokerX', 'implementation');
+      mockInvokersMapper.expects('map').once().withExactArgs('nsName', 'propName', 'Y', 'invokerY', 'implementation');
 
       builder.build(prop, entries);
     });
@@ -949,14 +959,14 @@ describe('barista Tests', function() {
         {name: 'Y'},
         {name: '_default'}
       ],
-          prop = new barista.Property(new barista.IncludedNamespace('nsName'), 'propName');
+          prop = new barista.Property(new barista.IncludedNamespace('nsName'), 'propName', 'implementation');
 
       mockInvokerBuilder.expects('build').once().withExactArgs(prop, entries[0]).returns('invokerX');
       mockInvokerBuilder.expects('build').once().withExactArgs(prop, entries[1]).returns('invokerY');
       mockInvokerBuilder.expects('build').once().withExactArgs(prop, entries[2]).returns('invoker');
-      mockInvokersMapper.expects('map').once().withExactArgs('nsName', 'propName', '_default', 'invoker');
-      mockInvokersMapper.expects('map').once().withExactArgs('nsName', 'propName', 'X', 'invokerX');
-      mockInvokersMapper.expects('map').once().withExactArgs('nsName', 'propName', 'Y', 'invokerY');
+      mockInvokersMapper.expects('map').once().withExactArgs('nsName', 'propName', '_default', 'invoker', 'implementation');
+      mockInvokersMapper.expects('map').once().withExactArgs('nsName', 'propName', 'X', 'invokerX', 'implementation');
+      mockInvokersMapper.expects('map').once().withExactArgs('nsName', 'propName', 'Y', 'invokerY', 'implementation');
 
       builder.build(prop, entries);
     });
@@ -1687,6 +1697,49 @@ describe('barista Tests', function() {
       assert.equal(assistant.getWorkerId('1'), 1);
       assert.equal(assistant.getWorkerId('2'), 2);
       assert.equal(assistant.getWorkerId('3'), 3);
+    });
+    
+    it('serve() with injected property that is object and function', function() {
+      var nsTest = function() {
+        function someFunc(value) {
+          return value;
+        }
+        
+        var someObject = {
+          test : function() {
+            return 'test';
+          }
+        };
+
+        function InjectionReceiver(f, o) {
+          function test(value) {
+            console.log('InjectionReceiver::test');
+            console.log(f);
+            console.log(o);
+            return f(value) + o.test();
+          }
+          return {
+            test: test
+          };
+        }
+        return {
+          someFunc: someFunc,
+          someObject: someObject,
+          InjectionReceiver: InjectionReceiver
+        };
+      },
+        ns = barista.serve(function(namespaces) {
+            namespaces.include(new nsTest(), 'ns');
+          }, function(registrations) {
+            registrations.ns.InjectionReceiver.register(function(entries, registered) {
+              entries
+                .withEntry()
+                .withValueParam(registered.ns.someFunc._default)
+                .withValueParam(registered.ns.someObject._definition);
+            });
+          }).namespaces.ns;
+      
+      assert.equal(ns.InjectionReceiver().test("123"), "123test");
     });
   });
 });

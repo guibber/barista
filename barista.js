@@ -3,7 +3,8 @@ var barista = function() {
   var _singleton = 'singleton',
       _perdependency = 'perdependency',
       _not_set = 'not_set',
-      _default = '_default';
+      _default = '_default',
+      _definition = '_definition';
 
   function IncludedNamespace(name, instance) {
     this.name = name;
@@ -201,7 +202,7 @@ var barista = function() {
       return find(nsName, itemName, _default) ? true : false;
     }
 
-    function map(nsName, itemName, entryName, invoker) {
+    function map(nsName, itemName, entryName, invoker, implementation) {
       var sourceNs = getChild(invokers, nsName, {}),
           obj = getChild(sourceNs, itemName, {}),
           name = getEntryName(entryName);
@@ -209,6 +210,7 @@ var barista = function() {
       invokers[nsName] = sourceNs;
       sourceNs[itemName] = obj;
       obj[name] = invoker;
+      obj[_definition] = implementation;
 
       if (!isDefaultName(name) && !defaultExists(nsName, itemName)) {
         obj[_default] = invoker;
@@ -362,14 +364,14 @@ var barista = function() {
           defaultExplicitlyDefined = false;
       entries.forEach(function(entry) {
         var invoker = invokerBuilder.build(prop, entry);
-        invokersMapper.map(prop.namespace.name, prop.name, entry.name, invoker);
+        invokersMapper.map(prop.namespace.name, prop.name, entry.name, invoker, prop.implementation);
         defaultExplicitlyDefined = defaultExplicitlyDefined || entry.name === _default;
         if (!defaultInvoker || entry.name === _default) {
           defaultInvoker = invoker;
         }
       });
       if (!defaultExplicitlyDefined && defaultInvoker) {
-        invokersMapper.map(prop.namespace.name, prop.name, _default, defaultInvoker);
+        invokersMapper.map(prop.namespace.name, prop.name, _default, defaultInvoker, prop.implementation);
       }
     }
 
