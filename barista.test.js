@@ -1713,9 +1713,6 @@ describe('barista Tests', function() {
 
         function InjectionReceiver(f, o) {
           function test(value) {
-            console.log('InjectionReceiver::test');
-            console.log(f);
-            console.log(o);
             return f(value) + o.test();
           }
           return {
