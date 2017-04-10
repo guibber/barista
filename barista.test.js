@@ -1738,5 +1738,54 @@ describe('barista Tests', function() {
       
       assert.equal(ns.InjectionReceiver().test("123"), "123test");
     });
+
+    it('namespaces from separate serve() calls can be dependent', function() {
+      var nsDeps = function() {
+        function Prepender(prefix) {
+          function prepend(value) {
+            return prefix + value;
+          }
+          return {
+            prepend: prepend
+          };
+        }
+
+        return {
+          Prepender: Prepender
+        };
+      },
+          ns = function() {
+            function Processor(prepender) {
+              function process(value) {
+                return prepender.prepend(value);
+              }
+              return {
+                process: process
+              };
+            }
+
+            return {
+              Processor: Processor
+            };
+          },
+          servedDeps = barista.serve(function(namespaces) {
+            namespaces.include(new nsDeps(), 'ns');
+          }, function(registrations) {
+            registrations.ns.Prepender.register(function(entries) {
+              entries
+                .withEntry()
+                .withValueParam('prepend');
+            });
+          }),
+          served = barista.serve(function(namespaces) {
+            namespaces.include(new ns(), 'ns');
+          }, function(registrations) {
+            registrations.ns.Processor.register(function(entries) {
+              entries.withEntry().withParam(servedDeps.registered.ns.Prepender._default);
+            });
+          });
+
+      assert.equal(served.namespaces.ns.Processor().process('value'), 'prependvalue');
+    });
   });
 });
